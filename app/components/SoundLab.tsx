@@ -3,28 +3,13 @@ import { useState, useCallback } from 'react';
 import RatingModal from './RatingModal';
 
 const INSTRUMENTS = [
-  { label: '🥁 Drum', emoji: '🥁', freq: 196, color: '#FF6B9D', shadow: '#c9456e' },
-  { label: '🎸 Guitar', emoji: '🎸', freq: 330, color: '#FFD93D', shadow: '#c9a82e' },
-  { label: '🎺 Trumpet', emoji: '🎺', freq: 440, color: '#6BCBFF', shadow: '#4a9fd9' },
-  { label: '🎹 Piano', emoji: '🎹', freq: 523, color: '#6BCB77', shadow: '#4fa05c' },
-  { label: '🔔 Bell', emoji: '🔔', freq: 880, color: '#C084FC', shadow: '#9660d4' },
-  { label: '🎻 Violin', emoji: '🎻', freq: 659, color: '#FF9F43', shadow: '#cc7a2f' },
+  { label: '🥁 Drum', emoji: '🥁', href: 'https://hub.goodbotai.tech/sound-lab#drums', color: '#FF6B9D', shadow: '#c9456e' },
+  { label: '🎸 Guitar', emoji: '🎸', href: 'https://hub.goodbotai.tech/sound-lab#guitar', color: '#FFD93D', shadow: '#c9a82e' },
+  { label: '🎺 Trumpet', emoji: '🎺', href: 'https://hub.goodbotai.tech/sound-lab#trumpet', color: '#6BCBFF', shadow: '#4a9fd9' },
+  { label: '🎹 Piano', emoji: '🎹', href: 'https://hub.goodbotai.tech/sound-lab#piano', color: '#6BCB77', shadow: '#4fa05c' },
+  { label: '🔔 Bell', emoji: '🔔', href: 'https://hub.goodbotai.tech/sound-lab#bells', color: '#C084FC', shadow: '#9660d4' },
+  { label: '🎻 Violin', emoji: '🎻', href: 'https://hub.goodbotai.tech/sound-lab#violin', color: '#FF9F43', shadow: '#cc7a2f' },
 ];
-
-function playBeep(freq: number) {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.9);
-  } catch {}
 }
 
 export default function SoundLab({ onBack, kidName }: { onBack: () => void; kidName: string }) {
@@ -33,7 +18,7 @@ export default function SoundLab({ onBack, kidName }: { onBack: () => void; kidN
   const [lastPlayed, setLastPlayed] = useState('');
 
   const handleTap = useCallback((inst: typeof INSTRUMENTS[0]) => {
-    playBeep(inst.freq);
+    window.open(inst.href, '_blank');
     setLastPlayed(inst.label);
     setPlayed(p => [inst.label, ...p].slice(0, 6));
   }, []);
