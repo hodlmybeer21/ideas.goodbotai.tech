@@ -67,10 +67,12 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
   const [story, setStory] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [rated, setRated] = useState(false);
+  const [showRating, setShowRating] = useState(false);
 
   const generate = () => {
     setIsGenerating(true);
     setRated(false);
+    setShowRating(false);
     const villain = VILLAINS[Math.floor(Math.random() * VILLAINS.length)];
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
     const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
@@ -83,6 +85,7 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
   const pickAnother = () => {
     setStory('');
     setRated(false);
+    setShowRating(false);
     generate();
   };
 
@@ -144,22 +147,36 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
       {story && (
         <div className="slide-up">
           <div className="story-output">{story}</div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-purple" onClick={pickAnother}>🔄 Another Story!</button>
             <button className="btn btn-secondary" onClick={() => { setStory(''); setRated(false); }}>
               ✏️ Change Choices
             </button>
+            {!rated && (
+              <button
+                className="btn btn-blue"
+                onClick={() => setShowRating(true)}
+                style={{ fontSize: 14, padding: '10px 20px' }}
+              >
+                ⭐ How was your story?
+              </button>
+            )}
+            {rated && (
+              <span style={{ fontSize: 14, color: 'var(--accent-green)', fontWeight: 600 }}>
+                ✅ Rating submitted!
+              </span>
+            )}
           </div>
         </div>
       )}
 
-      {story && !rated && (
+      {story && showRating && (
         <RatingModal
           activity="story-machine"
           activityName="Story Machine"
           activityEmoji="📖"
           kidName={kidName}
-          onClose={() => setRated(true)}
+          onClose={() => { setShowRating(false); setRated(true); }}
         />
       )}
     </div>
