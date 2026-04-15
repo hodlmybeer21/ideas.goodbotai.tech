@@ -5,7 +5,6 @@ import Link from 'next/link';
 import DrawingCanvas from './components/DrawingCanvas';
 import StoryMachine from './components/StoryMachine';
 import AnimalMatch from './components/AnimalMatch';
-import RatingWidget from './components/RatingWidget';
 
 type View = 'home' | 'draw' | 'story' | 'match' | 'rate' | 'dashboard';
 
@@ -69,7 +68,6 @@ export default function Home() {
         {view === 'draw' && <DrawingCanvas onBack={() => setView('home')} kidName={kidName} />}
         {view === 'story' && <StoryMachine kidName={kidName} onBack={() => setView('home')} />}
         {view === 'match' && <AnimalMatch onBack={() => setView('home')} kidName={kidName} />}
-        {view === 'rate' && <RatingWidget kidName={kidName} onRated={() => {}} onBack={() => setView('home')} />}
       </main>
     </>
   );
@@ -118,7 +116,6 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'draw' as View, icon: '🎨', name: 'Magic Canvas', desc: 'Draw anything you imagine!', color: 'pink' },
     { id: 'story' as View, icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple' },
     { id: 'match' as View, icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow' },
-    { id: 'rate' as View, icon: '⭐', name: 'Rate Today', desc: 'Tell us what you liked!', color: 'blue' },
   ];
 
   return (
@@ -144,7 +141,6 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
         ))}
       </div>
 
-      <RatingWidget kidName={kidName} onRated={() => {}} compact />
     </div>
   );
 }
