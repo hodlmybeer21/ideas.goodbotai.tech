@@ -6,8 +6,9 @@ import DrawingCanvas from './components/DrawingCanvas';
 import StoryMachine from './components/StoryMachine';
 import AnimalMatch from './components/AnimalMatch';
 import SoundLab from './components/SoundLab';
+import MathLab from './components/MathLab';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -70,6 +71,7 @@ export default function Home() {
         {view === 'story' && <StoryMachine kidName={kidName} onBack={() => setView('home')} />}
         {view === 'match' && <AnimalMatch onBack={() => setView('home')} kidName={kidName} />}
         {view === 'sound' && <SoundLab onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'math' && <MathLab onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -119,6 +121,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'story' as View, icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple' },
     { id: 'match' as View, icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow' },
     { id: 'sound' as View, icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange' },
+    { id: 'math' as View, icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink' },
   ];
 
   return (
