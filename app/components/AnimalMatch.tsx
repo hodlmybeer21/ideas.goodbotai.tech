@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 const ANIMAL_EMOJIS = ['🐶', '🐱', '🐭', '🦁', '🐯', '🐻', '🐼', '🐨'];
 
@@ -14,7 +13,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export default function AnimalMatch() {
+export default function AnimalMatch({ onBack }: { onBack: () => void }) {
   const [cards, setCards] = useState<string[]>([]);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [matched, setMatched] = useState<number[]>([]);
@@ -56,7 +55,7 @@ export default function AnimalMatch() {
 
   return (
     <div className="canvas-page slide-up">
-      <Link href="/" className="back-btn">← Back</Link>
+      <button className="back-btn" onClick={onBack}>← Back</button>
       <h1 className="page-title">🧩 Animal Match</h1>
 
       <div className="match-score">

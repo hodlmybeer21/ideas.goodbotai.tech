@@ -16,9 +16,10 @@ interface Props {
   kidName: string;
   onRated: (rating: number) => void;
   compact?: boolean;
+  onBack?: () => void;
 }
 
-export default function RatingWidget({ kidName, onRated, compact = false }: Props) {
+export default function RatingWidget({ kidName, onRated, compact = false, onBack }: Props) {
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [history, setHistory] = useState<FeedbackEntry[]>([]);
@@ -77,6 +78,7 @@ export default function RatingWidget({ kidName, onRated, compact = false }: Prop
 
   return (
     <div className="canvas-page slide-up">
+      {onBack && <button className="back-btn" onClick={onBack}>← Back</button>}
       <h1 className="page-title">⭐ Rate Today&apos;s Website</h1>
 
       {!submitted && !alreadyRatedToday ? (

@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import Link from 'next/link';
 
 const COLORS = [
   '#FF6B9D', '#FFD93D', '#6BCBFF', '#6BCB77',
@@ -9,7 +8,7 @@ const COLORS = [
   '#FFFFFF', '#8B5CF6', '#06B6D4', '#84CC16',
 ];
 
-export default function DrawingCanvas() {
+export default function DrawingCanvas({ onBack }: { onBack: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#FF6B9D');
@@ -127,7 +126,7 @@ export default function DrawingCanvas() {
 
   return (
     <div className="canvas-page slide-up">
-      <Link href="/" className="back-btn">← Back</Link>
+      <button className="back-btn" onClick={onBack}>← Back</button>
       <h1 className="page-title">🎨 Magic Canvas</h1>
 
       <div className="canvas-toolbar">

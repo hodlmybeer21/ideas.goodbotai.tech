@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 const ANIMALS = ['🦁', '🐯', '🐻', '🦊', '🐰', '🐸', '🦄', '🐙', '🦋', '🐬'];
 const LOCATIONS = ['a magical forest', 'a castle made of clouds', 'an underwater kingdom', 'a candy land', 'a rocket ship going to the moon', 'a dinosaur island', 'a pirate ship sailing the seven seas', 'a treehouse village'];
@@ -61,7 +60,7 @@ The crystals sparkle back to life, and ${kid}, Thunder, and their new friend ${v
 And they all lived Happily Ever After. 🐾💛`,
 ];
 
-export default function StoryMachine({ kidName }: { kidName: string }) {
+export default function StoryMachine({ kidName, onBack }: { kidName: string; onBack: () => void }) {
   const [animal, setAnimal] = useState(ANIMALS[0]);
   const [location, setLocation] = useState(LOCATIONS[0]);
   const [story, setStory] = useState('');
@@ -85,7 +84,7 @@ export default function StoryMachine({ kidName }: { kidName: string }) {
 
   return (
     <div className="canvas-page slide-up">
-      <Link href="/" className="back-btn">← Back</Link>
+      <button className="back-btn" onClick={onBack}>← Back</button>
       <h1 className="page-title">📖 Story Machine</h1>
       <p style={{ color: 'var(--text-medium)', marginBottom: 20, fontSize: 15 }}>
         Pick your adventure, and I'll write a special story just for {kidName}!

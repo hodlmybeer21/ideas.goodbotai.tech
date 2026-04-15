@@ -66,10 +66,10 @@ export default function Home() {
 
       <main className="app-main">
         {view === 'home' && <HomeScreen setView={setView} kidName={kidName} />}
-        {view === 'draw' && <DrawingCanvas />}
-        {view === 'story' && <StoryMachine kidName={kidName} />}
-        {view === 'match' && <AnimalMatch />}
-        {view === 'rate' && <RatingWidget kidName={kidName} onRated={() => {}} />}
+        {view === 'draw' && <DrawingCanvas onBack={() => setView('home')} />}
+        {view === 'story' && <StoryMachine kidName={kidName} onBack={() => setView('home')} />}
+        {view === 'match' && <AnimalMatch onBack={() => setView('home')} />}
+        {view === 'rate' && <RatingWidget kidName={kidName} onRated={() => {}} onBack={() => setView('home')} />}
       </main>
     </>
   );
