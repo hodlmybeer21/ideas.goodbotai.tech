@@ -33,12 +33,20 @@ export default function RatingModal({ activity, activityName, activityEmoji, kid
 
   const submit = () => {
     if (rating === 0) return;
+    const entry = { date: new Date().toISOString(), name: kidName, activity, rating };
+    // Store locally as backup
     try {
       const saved = localStorage.getItem('goodbotkids_ratings_v2');
       const history: RatingEntry[] = saved ? JSON.parse(saved) : [];
-      history.unshift({ date: new Date().toISOString(), name: kidName, activity, rating });
+      history.unshift(entry);
       localStorage.setItem('goodbotkids_ratings_v2', JSON.stringify(history.slice(0, 200)));
     } catch {}
+    // POST to Google Sheets via webhook (best effort — localStorage always works)
+    fetch('https://kids-api.187.77.31.89.sslip.io/rating', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    }).catch(() => {}); // swallow — localStorage is the source of truth
     setSubmitted(true);
   };
 
