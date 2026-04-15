@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import RatingModal from './RatingModal';
 
 const ANIMALS = ['🦁', '🐯', '🐻', '🦊', '🐰', '🐸', '🦄', '🐙', '🦋', '🐬'];
 const LOCATIONS = ['a magical forest', 'a castle made of clouds', 'an underwater kingdom', 'a candy land', 'a rocket ship going to the moon', 'a dinosaur island', 'a pirate ship sailing the seven seas', 'a treehouse village'];
@@ -65,9 +66,11 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
   const [location, setLocation] = useState(LOCATIONS[0]);
   const [story, setStory] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [rated, setRated] = useState(false);
 
   const generate = () => {
     setIsGenerating(true);
+    setRated(false);
     const villain = VILLAINS[Math.floor(Math.random() * VILLAINS.length)];
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
     const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
@@ -79,6 +82,7 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
 
   const pickAnother = () => {
     setStory('');
+    setRated(false);
     generate();
   };
 
@@ -142,11 +146,21 @@ export default function StoryMachine({ kidName, onBack }: { kidName: string; onB
           <div className="story-output">{story}</div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
             <button className="btn btn-purple" onClick={pickAnother}>🔄 Another Story!</button>
-            <button className="btn btn-secondary" onClick={() => { setStory(''); }}>
+            <button className="btn btn-secondary" onClick={() => { setStory(''); setRated(false); }}>
               ✏️ Change Choices
             </button>
           </div>
         </div>
+      )}
+
+      {story && !rated && (
+        <RatingModal
+          activity="story-machine"
+          activityName="Story Machine"
+          activityEmoji="📖"
+          kidName={kidName}
+          onClose={() => setRated(true)}
+        />
       )}
     </div>
   );

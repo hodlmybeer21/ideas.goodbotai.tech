@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import RatingModal from './RatingModal';
 
 const COLORS = [
   '#FF6B9D', '#FFD93D', '#6BCBFF', '#6BCB77',
@@ -8,13 +9,15 @@ const COLORS = [
   '#FFFFFF', '#8B5CF6', '#06B6D4', '#84CC16',
 ];
 
-export default function DrawingCanvas({ onBack }: { onBack: () => void }) {
+export default function DrawingCanvas({ onBack, kidName }: { onBack: () => void; kidName: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#FF6B9D');
   const [brushSize, setBrushSize] = useState(8);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showRating, setShowRating] = useState(false);
+  const [rated, setRated] = useState(false);
 
   const saveState = () => {
     const canvas = canvasRef.current;
@@ -122,6 +125,7 @@ export default function DrawingCanvas({ onBack }: { onBack: () => void }) {
     link.download = 'my-drawing.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+    setShowRating(true);
   };
 
   return (
@@ -173,6 +177,16 @@ export default function DrawingCanvas({ onBack }: { onBack: () => void }) {
         <button className="btn btn-orange" onClick={clearCanvas}>🗑 Clear</button>
         <button className="btn btn-primary" onClick={saveDrawing}>💾 Save Picture</button>
       </div>
+
+      {showRating && !rated && (
+        <RatingModal
+          activity="magic-canvas"
+          activityName="Magic Canvas"
+          activityEmoji="🎨"
+          kidName={kidName}
+          onClose={() => { setShowRating(false); setRated(true); }}
+        />
+      )}
     </div>
   );
 }
