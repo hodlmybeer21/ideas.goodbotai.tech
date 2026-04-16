@@ -371,12 +371,6 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
           </button>
         </div>
 
-        <div style={{ marginTop: 32 }}>
-          <button
-            onClick={onBack}
-            style={{
-              
-        </div>
 
         {correctCount >= 7 && (
           <div style={{ marginTop: 24 }}>
@@ -507,10 +501,6 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
 
       {/* Header */}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <button
-          onClick={() => setScreen('menu')}
-          style={{
-            
         <div style={{
           fontSize: 14, color: '#aaa',
           background: '#fff', borderRadius: 20, padding: '4px 14px',
