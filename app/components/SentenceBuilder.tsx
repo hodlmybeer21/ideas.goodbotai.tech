@@ -234,7 +234,8 @@ export default function SentenceBuilder({ onBack, kidName }: { onBack: () => voi
 
   const startGame = (lvl: Level) => {
     const pool = lvl === 'easy' ? EASY_QUESTIONS : lvl === 'medium' ? MEDIUM_QUESTIONS : HARD_QUESTIONS;
-    setQuestions(shuffle(pool).slice(0, totalQuestions));
+    const qs = shuffle(pool).slice(0, totalQuestions).map(q => ({ ...q, options: shuffle(q.options) }));
+    setQuestions(qs);
     setLevel(lvl);
     setQuestionIndex(0);
     setScore(0);
