@@ -267,7 +267,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
 
     return (
       <div style={{
-        fontFamily: 'Fredoka', minHeight: '100vh', background: '#F0F9FF',
+        fontFamily: 'Fredoka', minHeight: '100vh', background: '#FFF8F0',
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
@@ -278,7 +278,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
         }}>← Back</button>
 
         <div style={{ fontSize: 64, marginBottom: 8 }}>🤖</div>
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: '#0EA5E9', margin: '0 0 8px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: '#C084FC', margin: '0 0 8px', textAlign: 'center' }}>
           Is the Robot Right?
         </h1>
         <p style={{ fontSize: 17, color: '#888', margin: '0 0 8px', textAlign: 'center', maxWidth: 300 }}>
@@ -292,7 +292,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
           <LevelButton
             label="🌟 Easy — for ages 4+"
             emoji="🌟"
-            color="#0EA5E9" shadowColor="#0369A1"
+            color="#C084FC" shadowColor="#7C3AED"
             onClick={() => startGame('easy')}
             bestScore={bestEasy}
           />
@@ -324,7 +324,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
   if (screen === 'results') {
     return (
       <div style={{
-        fontFamily: 'Fredoka', minHeight: '100vh', background: '#F0F9FF',
+        fontFamily: 'Fredoka', minHeight: '100vh', background: '#FFF8F0',
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
@@ -340,7 +340,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
           background: '#fff', borderRadius: 24, padding: 32,
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', minWidth: 280,
         }}>
-          <div style={{ fontSize: 48, fontWeight: 700, color: '#0EA5E9' }}>{correctCount}/{totalQuestions}</div>
+          <div style={{ fontSize: 48, fontWeight: 700, color: '#C084FC' }}>{correctCount}/{totalQuestions}</div>
           <div style={{ fontSize: 18, color: '#888' }}>correct</div>
 
           <div style={{ fontSize: 64, margin: '16px 0' }}>
@@ -358,8 +358,8 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
             style={{
               fontFamily: 'Fredoka', fontSize: 20, fontWeight: 600,
               padding: '14px 28px', border: 'none', borderRadius: 16,
-              background: '#0EA5E9', color: '#fff',
-              boxShadow: '0 6px 0 #0369A1', cursor: 'pointer',
+              background: '#C084FC', color: '#fff',
+              boxShadow: '0 6px 0 #7C3AED', cursor: 'pointer',
             }}
             onClick={() => startGame(level)}
           >
@@ -469,8 +469,8 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
       style={{
         fontFamily: 'Fredoka', fontSize: 20, fontWeight: 700,
         padding: '16px 40px', border: 'none', borderRadius: 20,
-        background: '#0EA5E9', color: '#fff',
-        boxShadow: '0 6px 0 #0369A1', cursor: 'pointer',
+        background: '#C084FC', color: '#fff',
+        boxShadow: '0 6px 0 #7C3AED', cursor: 'pointer',
         marginTop: 8,
       }}
     >
@@ -511,7 +511,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
 
   return (
     <div style={{
-      fontFamily: 'Fredoka', minHeight: '100vh', background: '#F0F9FF',
+      fontFamily: 'Fredoka', minHeight: '100vh', background: '#FFF8F0',
       padding: '16px 16px 32px', display: 'flex', flexDirection: 'column',
       alignItems: 'center', gap: 0,
     }}>
@@ -539,9 +539,9 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
       </div>
 
       {/* Progress bar */}
-      <div style={{ width: '100%', maxWidth: 320, height: 8, background: '#e0f0ff', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: 320, height: 8, background: '#F3E8FF', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
         <div style={{
-          height: '100%', background: '#0EA5E9', borderRadius: 4,
+          height: '100%', background: '#C084FC', borderRadius: 4,
           width: `${(questionIndex / totalQuestions) * 100}%`,
           transition: 'width 0.4s ease',
         }} />
@@ -549,8 +549,8 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
 
       {/* Level badge */}
       <div style={{
-        fontSize: 13, fontWeight: 600, color: '#0EA5E9',
-        background: '#e0f7ff', borderRadius: 20, padding: '4px 14px', marginBottom: 16,
+        fontSize: 13, fontWeight: 600, color: '#C084FC',
+        background: '#F3E8FF', borderRadius: 20, padding: '4px 14px', marginBottom: 16,
       }}>
         {level === 'easy' ? '🌟 Easy' : level === 'medium' ? '⭐ Medium' : '🚀 Hard'} — {currentQ.topic}
       </div>
@@ -566,8 +566,8 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>{currentQ.emoji}</div>
         <div style={{
-          fontSize: 11, fontWeight: 600, color: '#0EA5E9',
-          background: '#e0f7ff', borderRadius: 8, padding: '4px 10px',
+          fontSize: 11, fontWeight: 600, color: '#C084FC',
+          background: '#F3E8FF', borderRadius: 8, padding: '4px 10px',
           display: 'inline-block', marginBottom: 14,
           letterSpacing: '0.05em', textTransform: 'uppercase',
         }}>
@@ -590,7 +590,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
         {questions.map((q, i) => {
           let dot = '#E2E8F0';
           if (i < questionIndex) dot = '#6BCB77';
-          if (i === questionIndex) dot = '#0EA5E9';
+          if (i === questionIndex) dot = '#C084FC';
           return (
             <div key={q.id} style={{
               width: 10, height: 10, borderRadius: '50%', background: dot,
