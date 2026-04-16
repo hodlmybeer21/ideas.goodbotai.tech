@@ -24,10 +24,18 @@ interface Suggestion {
   added: string;
 }
 
-const ACTIVITIES: Record<string, { name: string; emoji: string; color: string }> = {
-  'magic-canvas':  { name: 'Magic Canvas',   emoji: '🎨', color: 'var(--accent-pink)' },
-  'story-machine': { name: 'Story Machine',  emoji: '📖', color: 'var(--accent-purple)' },
-  'animal-match':  { name: 'Animal Match',   emoji: '🧩', color: 'var(--accent-yellow)' },
+const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; bestKey: string }> = {
+  'magic-canvas':  { name: 'Magic Canvas',         emoji: '🎨',   color: 'var(--accent-pink)',    bestKey: '' },
+  'story-machine':  { name: 'Story Machine',          emoji: '📖',   color: 'var(--accent-purple)', bestKey: '' },
+  'animal-match':  { name: 'Animal Match',            emoji: '🧩',   color: 'var(--accent-yellow)', bestKey: '' },
+  'sound-lab':      { name: 'Sound Lab',              emoji: '🎵',   color: 'var(--accent-orange)', bestKey: '' },
+  'math-lab':       { name: 'Math Lab',               emoji: '🧮',   color: 'var(--accent-pink)',    bestKey: '' },
+  'mad-libs':       { name: 'Mad Libs',               emoji: '📝',   color: 'var(--accent-yellow)', bestKey: 'goodbotkids_madlibs_count' },
+  'readalong':      { name: 'Read Along',             emoji: '📖',   color: 'var(--accent-purple)', bestKey: '' },
+  'tell-time':      { name: 'Tell Time',              emoji: '🕐',   color: 'var(--accent-blue)',    bestKey: 'telltime_best_easy' },
+  'is-the-robot-right': { name: 'Is the Robot Right?', emoji: '🤖', color: 'var(--accent-purple)', bestKey: 'robotright_best_easy' },
+  'true-or-false':  { name: 'True or False?',         emoji: '✅❌', color: 'var(--accent-green)',  bestKey: 'truefalse_best_easy' },
+  'sentence-builder': { name: 'Sentence Builder',    emoji: '📝',   color: 'var(--accent-yellow)', bestKey: 'sentencebuilder_best_easy' },
 };
 
 export default function Dashboard() {
@@ -81,15 +89,26 @@ export default function Dashboard() {
   if (!mounted) return null;
 
   // Per-activity averages
-  const activityAvgs: Record<string, { avg: string; count: number; trend: number }> = {};
+  const activityAvgs: Record<string, { avg: string; count: number; trend: number; best: number }> = {};
   Object.keys(ACTIVITIES).forEach(key => {
     const rows = activityRatings.filter(r => r.activity === key);
+    const act = ACTIVITIES[key];
+    // Best score from localStorage (for scoring activities)
+    let best = 0;
+    if (act.bestKey) {
+      try {
+        const saved = localStorage.getItem(act.bestKey);
+        if (saved) best = parseInt(saved, 10) || 0;
+      } catch {}
+    }
     if (rows.length > 0) {
       const avg = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
       const recent = rows.slice(0, 3);
       const recentAvg = recent.reduce((s, r) => s + r.rating, 0) / recent.length;
       const trend = rows.length >= 3 ? recentAvg - avg : 0;
-      activityAvgs[key] = { avg: avg.toFixed(1), count: rows.length, trend };
+      activityAvgs[key] = { avg: avg.toFixed(1), count: rows.length, trend, best };
+    } else {
+      activityAvgs[key] = { avg: '—', count: 0, trend: 0, best };
     }
   });
 
@@ -124,8 +143,13 @@ export default function Dashboard() {
             }}>
               <div style={{ fontSize: 36, marginBottom: 4 }}>{act.emoji}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-medium)', marginBottom: 8 }}>{act.name}</div>
-              {data ? (
+              {data.avg !== '—' ? (
                 <>
+                  {data.best > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--text-medium)', marginBottom: 2 }}>
+                      🏆 Best: {data.best}/10
+                    </div>
+                  )}
                   <div style={{ fontSize: 32, fontWeight: 800, color: act.color }}>{data.avg}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-medium)' }}>out of 10</div>
                   <div style={{ fontSize: 11, color: 'var(--text-medium)', marginTop: 4 }}>
@@ -139,8 +163,18 @@ export default function Dashboard() {
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 24, color: '#CBD5E1' }}>—</div>
-                  <div style={{ fontSize: 11, color: '#CBD5E1)' }}>No ratings yet</div>
+                  {data.best > 0 ? (
+                    <>
+                      <div style={{ fontSize: 11, color: 'var(--text-medium)', marginBottom: 2 }}>🏆 Best score</div>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: act.color }}>{data.best}/10</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-medium)' }}>No ratings yet</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 24, color: '#CBD5E1' }}>—</div>
+                      <div style={{ fontSize: 11, color: '#CBD5E1)' }}>No data yet</div>
+                    </>
+                  )}
                 </>
               )}
             </div>
