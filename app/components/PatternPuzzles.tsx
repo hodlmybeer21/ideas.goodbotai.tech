@@ -140,8 +140,11 @@ function generateEasyQuestion(): Question {
   const items = pattern.map(i => itemMap[i]);
   const correctItem = itemMap[pattern[pattern.length - 1]];
 
-  const wrongPool = pool.filter(it => it.label !== correctItem.label);
-  const wrongs = shuffle(wrongPool).slice(0, 3);
+  // Wrong answers: first try the OTHER item in itemMap (same visual category),
+  // then fill remaining slots from the full pool to keep options related.
+  const itemMapWrongs = itemMap.filter(it => it.label !== correctItem.label);
+  const poolWrongs = shuffle(pool.filter(it => it.label !== correctItem.label));
+  const wrongs = [...itemMapWrongs, ...poolWrongs].slice(0, 3);
 
   const hint = useColors
     ? `Look at the colors — does it go ${itemA.label}, ${itemB.label}, ${itemA.label}, ${itemB.label}?`
@@ -200,11 +203,18 @@ function generateHardQuestion(): Question {
     const correctItem = makeNumberItem(correct);
 
     const step = countRules.step;
-    const wrongs = [
-      makeNumberItem(correct + step + 2),
-      makeNumberItem(correct + step * 2),
-      makeNumberItem(correct + (Math.floor(Math.random() * 6) - 3)),
-    ];
+    // Generate 3 unique wrong answers, all different from correct
+    const usedNums = new Set<number>([correct]);
+    const wrongs: PatternItem[] = [];
+    while (wrongs.length < 3) {
+      // offset from -6 to +6, excluding 0
+      const offset = (Math.floor(Math.random() * 12 + 1)) - 6;
+      const candidate = correct + offset;
+      if (candidate > 0 && !usedNums.has(candidate)) {
+        usedNums.add(candidate);
+        wrongs.push(makeNumberItem(candidate));
+      }
+    }
 
     const hint = `Count the numbers — what do you add each time? Try adding ${step}!`;
     return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: `Count by ${step}s` };
@@ -219,8 +229,9 @@ function generateHardQuestion(): Question {
     const items = pattern.map(i => itemMap[i]);
     const correctItem = items[items.length - 1];
 
-    const wrongPool = ARROW_ITEMS.filter(it => it.label !== correctItem.label);
-    const wrongs = shuffle(wrongPool).slice(0, 3);
+    const itemMapWrongs = itemMap.filter(it => it.label !== correctItem.label);
+    const poolWrongs = shuffle(ARROW_ITEMS.filter(it => it.label !== correctItem.label));
+    const wrongs = [...itemMapWrongs, ...poolWrongs].slice(0, 3);
 
     const hint = `Watch the arrows — which direction does it go next?`;
     return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: 'Arrow pattern' };
