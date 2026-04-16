@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import RatingModal from './RatingModal';
 
 // ─── Audio helpers ─────────────────────────────────────────────────────────────
@@ -38,7 +38,8 @@ function playWrong() {
 
 function playArpeggio() {
   const ctx = getCtx();
-  [523, 659, 784, 1047].forEach((hz, i) => {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((hz, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
@@ -54,54 +55,177 @@ function playArpeggio() {
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type Level = 'easy' | 'medium' | 'hard';
 type Screen = 'menu' | 'game' | 'results';
-type ItemType = 'color' | 'shape' | 'number';
 
-// ─── Item banks ────────────────────────────────────────────────────────────────
-const COLOR_ITEMS = [
-  { emoji: '🔴', label: 'Red', bg: '#FF6B9D', name: 'red' },
-  { emoji: '🔵', label: 'Blue', bg: '#6BCBFF', name: 'blue' },
-  { emoji: '🟢', label: 'Green', bg: '#6BCB77', name: 'green' },
-  { emoji: '🟡', label: 'Yellow', bg: '#FFD93D', name: 'yellow' },
-  { emoji: '🟣', label: 'Purple', bg: '#C084FC', name: 'purple' },
-  { emoji: '🟠', label: 'Orange', bg: '#FF9F43', name: 'orange' },
+interface PatternItem {
+  emoji: string;
+  bgColor: string;
+  label: string;
+  value: string | number;
+}
+
+interface Question {
+  items: PatternItem[];
+  correctAnswer: PatternItem;
+  wrongAnswers: PatternItem[];
+  hint: string;
+  ruleLabel: string;
+}
+
+// ─── Data sets ────────────────────────────────────────────────────────────────
+const COLOR_ITEMS: PatternItem[] = [
+  { emoji: '🔴', bgColor: '#FF6B6B', label: 'Red', value: 'red' },
+  { emoji: '🔵', bgColor: '#4DABF7', label: 'Blue', value: 'blue' },
+  { emoji: '🟢', bgColor: '#51CF66', label: 'Green', value: 'green' },
+  { emoji: '🟡', bgColor: '#FFD43B', label: 'Yellow', value: 'yellow' },
+  { emoji: '🟣', bgColor: '#C084FC', label: 'Purple', value: 'purple' },
+  { emoji: '🟠', bgColor: '#FF922B', label: 'Orange', value: 'orange' },
 ];
 
-const SHAPE_ITEMS = [
-  { emoji: '⬜', label: 'Square', bg: '#fff', border: '#ccc', name: 'square' },
-  { emoji: '⬛', label: 'Dark Square', bg: '#333', border: '#222', name: 'dark-square' },
-  { emoji: '🔺', label: 'Triangle', bg: '#FF6B9D', border: '#e91e63', name: 'triangle' },
-  { emoji: '🔻', label: 'Diamond', bg: '#6BCBFF', border: '#4fc3f7', name: 'diamond' },
-  { emoji: '🔷', label: 'Gem', bg: '#C084FC', border: '#a855f7', name: 'gem' },
-  { emoji: '🔶', label: 'Hexagon', bg: '#FF9F43', border: '#f97316', name: 'hexagon' },
+const SHAPE_ITEMS: PatternItem[] = [
+  { emoji: '⬜', bgColor: '#F8F9FA', label: 'White Square', value: 'wsq' },
+  { emoji: '⬛', bgColor: '#495057', label: 'Black Square', value: 'bsq' },
+  { emoji: '🔺', bgColor: '#FF6B6B', label: 'Red Triangle', value: 'rtri' },
+  { emoji: '🔻', bgColor: '#4DABF7', label: 'Blue Triangle', value: 'btri' },
+  { emoji: '🔷', bgColor: '#C084FC', label: 'Purple Diamond', value: 'pdia' },
+  { emoji: '🔶', bgColor: '#FF922B', label: 'Orange Hexagon', value: 'ohex' },
+  { emoji: '🟩', bgColor: '#51CF66', label: 'Green Square', value: 'gsq' },
+  { emoji: '🟪', bgColor: '#9775FA', label: 'Purple Square', value: 'psq' },
 ];
 
-// ─── Pattern rules ─────────────────────────────────────────────────────────────
-// rule: array of indices into the item bank, where answer index = rule[rule.length-1]
-type PR = { rule: number[]; hint: string; isSequence?: boolean; step?: number; isShape?: boolean; };
-const PATTERN_RULES: Record<Level, PR[]> = {
-  easy: [
-    { rule: [0, 1, 0, 1, 0], hint: 'It goes back and forth — first, second, first, second...' },
-    { rule: [0, 0, 1, 1, 0], hint: 'Two of the first thing, then two of the second...' },
-    { rule: [0, 1, 0, 1, 1], hint: 'Almost alternates, but the last one repeats...' },
-    { rule: [1, 0, 1, 0, 1], hint: 'Going back and forth between two things...' },
-  ],
-  medium: [
-    { rule: [0, 1, 2, 0, 1, 2], hint: 'Three things keep repeating in the same order...' },
-    { rule: [0, 0, 1, 1, 0, 0], hint: 'Two, two, then back to the start...' },
-    { rule: [0, 1, 1, 2, 0, 1], hint: 'The third one appears twice in a row...' },
-    { rule: [1, 2, 1, 2, 1, 2], hint: 'Two things keep alternating, but starting with the second one...' },
-  ],
-  hard: [
-    // Number sequences (shown as digit cards)
-    { rule: [2, 4, 6, 8, 10], hint: 'What do you add each time?', isSequence: true, step: 2 },
-    { rule: [3, 6, 9, 12, 15], hint: 'Counting by the same number each time...', isSequence: true, step: 3 },
-    { rule: [5, 10, 15, 20, 25], hint: 'Counting by 5s...', isSequence: true, step: 5 },
-    { rule: [10, 20, 30, 40, 50], hint: 'Each number is 10 more than the last...', isSequence: true, step: 10 },
-    // Shape + direction patterns
-    { rule: [0, 1, 0, 1, 0, 1], hint: 'Two shapes keep swapping places...', isShape: true },
-    { rule: [0, 0, 1, 1, 0, 0], hint: 'Two of one, two of the other, then repeats...', isShape: true },
-  ],
-};
+const ARROW_ITEMS: PatternItem[] = [
+  { emoji: '➡️', bgColor: '#339AF0', label: 'Right', value: 'right' },
+  { emoji: '⬆️', bgColor: '#FF6B6B', label: 'Up', value: 'up' },
+  { emoji: '⬇️', bgColor: '#51CF66', label: 'Down', value: 'down' },
+  { emoji: '⬅️', bgColor: '#FFD43B', label: 'Left', value: 'left' },
+  { emoji: '↗️', bgColor: '#C084FC', label: 'Up-Right', value: 'upright' },
+  { emoji: '↘️', bgColor: '#FF922B', label: 'Down-Right', value: 'downright' },
+];
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function makeNumberItem(n: number): PatternItem {
+  return { emoji: String(n), bgColor: '#E9ECEF', label: String(n), value: n };
+}
+
+// ─── Question generation ───────────────────────────────────────────────────────
+function generateQuestion(level: Level): Question {
+  if (level === 'easy') return generateEasyQuestion();
+  if (level === 'medium') return generateMediumQuestion();
+  return generateHardQuestion();
+}
+
+function generateEasyQuestion(): Question {
+  const rule = Math.random() < 0.6 ? 'abab' : 'aabb';
+  const pattern = rule === 'abab' ? [0, 1, 0, 1] : [0, 0, 1, 1];
+
+  const useColors = Math.random() < 0.6;
+  const pool = useColors ? COLOR_ITEMS : SHAPE_ITEMS;
+
+  const idx1 = Math.floor(Math.random() * pool.length);
+  let idx2 = Math.floor(Math.random() * pool.length);
+  while (idx2 === idx1) idx2 = Math.floor(Math.random() * pool.length);
+
+  const itemA = pool[idx1];
+  const itemB = pool[idx2];
+  const itemMap = [itemA, itemB];
+
+  const items = pattern.map(i => itemMap[i]);
+  const correctItem = itemMap[pattern[pattern.length - 1]];
+
+  const wrongPool = pool.filter(it => it.label !== correctItem.label);
+  const wrongs = shuffle(wrongPool).slice(0, 3);
+
+  const hint = useColors
+    ? `Look at the colors — does it go ${itemA.label}, ${itemB.label}, ${itemA.label}, ${itemB.label}?`
+    : `Look at the shapes — does it go ${itemA.label}, ${itemB.label}, ${itemA.label}, ${itemB.label}?`;
+
+  return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: rule === 'abab' ? 'ABAB pattern' : 'AABB pattern' };
+}
+
+function generateMediumQuestion(): Question {
+  const rules = shuffle(['abcabc', 'aabb', 'abbc']);
+  const rule = rules[0];
+  const pattern = rule === 'abcabc' ? [0, 1, 2, 0, 1, 2] : rule === 'aabb' ? [0, 0, 1, 1, 0, 1] : [0, 1, 1, 2, 0, 1];
+
+  const useMixed = Math.random() < 0.5;
+  let itemMap: PatternItem[];
+
+  if (useMixed) {
+    const c1 = COLOR_ITEMS[Math.floor(Math.random() * COLOR_ITEMS.length)];
+    const c2 = COLOR_ITEMS.filter(c => c.label !== c1.label)[Math.floor(Math.random() * (COLOR_ITEMS.length - 1))];
+    const s1 = SHAPE_ITEMS[Math.floor(Math.random() * SHAPE_ITEMS.length)];
+    itemMap = shuffle([c1, c2, s1]);
+  } else {
+    const idxs = shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, 3);
+    itemMap = idxs.map(i => SHAPE_ITEMS[i]);
+  }
+
+  const items = pattern.map(i => itemMap[i % itemMap.length]);
+  const correctItem = items[items.length - 1];
+
+  const wrongPool = itemMap.filter(it => it.label !== correctItem.label);
+  const wrongs = shuffle(wrongPool).slice(0, 3);
+
+  const themeLabel = useMixed ? 'colors and shapes' : 'shapes';
+  const hint = `Look at the ${themeLabel} — spot the rule and find what comes next!`;
+
+  return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: `${rule} pattern` };
+}
+
+function generateHardQuestion(): Question {
+  const type = Math.random();
+
+  if (type < 0.5) {
+    // Number sequence
+    const countRules = shuffle([
+      { rule: 'countBy2', step: 2 },
+      { rule: 'countBy3', step: 3 },
+      { rule: 'countBy5', step: 5 },
+      { rule: 'countBy10', step: 10 },
+    ])[0];
+
+    const start = Math.floor(Math.random() * 5) * countRules.step + countRules.step;
+    const shown = [start, start + countRules.step, start + countRules.step * 2, start + countRules.step * 3];
+    const correct = start + countRules.step * 4;
+
+    const items = shown.map(n => makeNumberItem(n));
+    const correctItem = makeNumberItem(correct);
+
+    const step = countRules.step;
+    const wrongs = [
+      makeNumberItem(correct + step + 2),
+      makeNumberItem(correct + step * 2),
+      makeNumberItem(correct + (Math.floor(Math.random() * 6) - 3)),
+    ];
+
+    const hint = `Count the numbers — what do you add each time? Try adding ${step}!`;
+    return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: `Count by ${step}s` };
+  } else {
+    // Arrow rotation
+    const arrowIdx = Math.floor(Math.random() * ARROW_ITEMS.length);
+    const itemA = ARROW_ITEMS[arrowIdx];
+    const itemB = ARROW_ITEMS[(arrowIdx + 1) % ARROW_ITEMS.length];
+    const itemMap = [itemA, itemB];
+
+    const pattern = [0, 0, 1, 0, 0];
+    const items = pattern.map(i => itemMap[i]);
+    const correctItem = items[items.length - 1];
+
+    const wrongPool = ARROW_ITEMS.filter(it => it.label !== correctItem.label);
+    const wrongs = shuffle(wrongPool).slice(0, 3);
+
+    const hint = `Watch the arrows — which direction does it go next?`;
+    return { items, correctAnswer: correctItem, wrongAnswers: wrongs, hint, ruleLabel: 'Arrow pattern' };
+  }
+}
 
 // ─── Confetti ─────────────────────────────────────────────────────────────────
 function Confetti({ active }: { active: boolean }) {
@@ -128,72 +252,9 @@ function Confetti({ active }: { active: boolean }) {
   );
 }
 
-// ─── Pattern Item ───────────────────────────────────────────────────────────────
-function PatternItem({ item, isQuestion }: { item: { emoji?: string; label: string; bg: string; border?: string; value?: number }; isQuestion?: boolean }) {
-  const isNumberItem = item.value !== undefined;
-  return (
-    <div style={{
-      width: 60, height: 60,
-      borderRadius: 14,
-      background: isNumberItem ? '#fff' : item.bg,
-      border: isQuestion ? '3px dashed #C084FC' : (item.border ? `2px solid ${item.border}` : '2px solid #e0e0e0'),
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Fredoka', fontSize: isNumberItem ? 22 : 28, fontWeight: 700,
-      color: isNumberItem ? '#333' : 'inherit',
-      boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
-      flexShrink: 0,
-    }}>
-      {isQuestion ? (
-        <span style={{ fontFamily: 'Fredoka', fontSize: 28, fontWeight: 700, color: '#C084FC' }}>?</span>
-      ) : isNumberItem ? (
-        <span style={{ fontFamily: 'Fredoka', fontSize: 22, fontWeight: 700, color: '#333' }}>{item.value}</span>
-      ) : (
-        <span style={{ fontSize: 28 }}>{item.emoji}</span>
-      )}
-    </div>
-  );
-}
-
-// Number card for hard level sequences
-function NumberCard({ value, isQuestion }: { value?: number; isQuestion?: boolean }) {
-  return (
-    <div style={{
-      width: 60, height: 60,
-      borderRadius: 14,
-      background: isQuestion ? '#F3E8FF' : '#fff',
-      border: isQuestion ? '3px dashed #C084FC' : '2px solid #e0e0e0',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Fredoka', fontSize: isQuestion ? 28 : 26, fontWeight: 700,
-      color: isQuestion ? '#C084FC' : '#333',
-      boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
-      flexShrink: 0,
-    }}>
-      {isQuestion ? '?' : value}
-    </div>
-  );
-}
-
-// Question mark slot (dashed box, used for the ? at end of pattern)
-function QuestionSlot() {
-  return (
-    <div style={{
-      width: 60, height: 60,
-      borderRadius: 14,
-      background: '#F3E8FF',
-      border: '3px dashed #C084FC',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Fredoka', fontSize: 28, fontWeight: 700,
-      color: '#C084FC',
-      flexShrink: 0,
-    }}>
-      ?
-    </div>
-  );
-}
-
-// ─── Level Button ─────────────────────────────────────────────────────────────
-function LevelButton({ label, color, shadowColor, onClick }: {
-  label: string; color: string; shadowColor: string; onClick: () => void;
+// ─── Level button ─────────────────────────────────────────────────────────────
+function LevelButton({ label, color, shadowColor, onClick, bestScore }: {
+  label: string; color: string; shadowColor: string; onClick: () => void; bestScore?: number;
 }) {
   const [pressed, setPressed] = useState(false);
   return (
@@ -204,7 +265,8 @@ function LevelButton({ label, color, shadowColor, onClick }: {
         background: color, color: '#fff',
         boxShadow: `0 6px 0 ${shadowColor}`,
         transform: pressed ? 'translateY(4px)' : 'translateY(0)',
-        cursor: 'pointer', transition: 'transform 0.1s', width: '100%',
+        cursor: 'pointer', transition: 'transform 0.1s',
+        width: '100%',
       }}
       onClick={onClick}
       onPointerDown={() => setPressed(true)}
@@ -212,136 +274,90 @@ function LevelButton({ label, color, shadowColor, onClick }: {
       onPointerLeave={() => setPressed(false)}
     >
       {label}
+      {bestScore !== undefined && bestScore > 0 && (
+        <span style={{ marginLeft: 12, opacity: 0.9, fontSize: 16 }}>🏆 {bestScore}</span>
+      )}
     </button>
   );
 }
 
-// ─── Question generator ───────────────────────────────────────────────────────
-interface Question {
-  items: Array<{ emoji: string; label: string; bg: string; border?: string; value?: number }>;
-  correctAnswer: number;
-  options: Array<{ emoji: string; label: string; bg: string; border?: string; value?: number; isCorrect: boolean }>;
-  hint: string;
-  rule: number[];
-  itemBank: Array<{ emoji: string; label: string; bg: string; border?: string }>;
+// ─── Pattern Slot ─────────────────────────────────────────────────────────────
+function PatternSlot({ item, isLast }: { item: PatternItem; isLast?: boolean }) {
+  return (
+    <div style={{
+      width: 60, height: 60,
+      borderRadius: 12,
+      background: isLast ? '#F3E8FF' : item.bgColor,
+      border: isLast ? '3px dashed #C084FC' : 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 30,
+      boxShadow: isLast ? 'none' : '0 3px 8px rgba(0,0,0,0.12)',
+      flexShrink: 0,
+    }}>
+      {isLast ? (
+        <span style={{ fontFamily: 'Fredoka', fontSize: 32, fontWeight: 700, color: '#C084FC' }}>?</span>
+      ) : (
+        item.emoji
+      )}
+    </div>
+  );
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+// ─── Answer Option Button ─────────────────────────────────────────────────────
+type AnswerState = 'idle' | 'correct' | 'wrong' | 'revealed';
 
-function generateQuestion(level: Level): Question {
-  const rules = PATTERN_RULES[level];
-  const ruleEntry = rules[Math.floor(Math.random() * rules.length)];
-
-  if (ruleEntry.isSequence) {
-    const step = ruleEntry.step!;
-    const starts = step === 3 ? [3] : step === 5 ? [5] : step === 10 ? [10] : [2, 4, 6, 8];
-    const start = starts[Math.floor(Math.random() * starts.length)];
-
-    const items = [];
-    for (let i = 0; i < 4; i++) {
-      items.push({ emoji: '', label: String(start + i * step), bg: '#fff', value: start + i * step });
-    }
-
-    const correct = start + 4 * step;
-    const candidates: number[] = [];
-    for (const delta of [-(step * 2), -step, step, step * 2, -(step * 3), step * 3]) {
-      const v = correct + delta;
-      if (v > 0 && v !== correct && !candidates.includes(v)) candidates.push(v);
-    }
-    const wrongAnswers = shuffle(candidates).slice(0, 3);
-
-    const allOptions = shuffle([
-      { emoji: '', label: String(correct), bg: '#fff', value: correct, isCorrect: true },
-      ...wrongAnswers.map(v => ({ emoji: '', label: String(v), bg: '#fff', value: v, isCorrect: false })),
-    ]);
-
-    return { items, correctAnswer: correct, options: allOptions, hint: ruleEntry.hint, rule: ruleEntry.rule, itemBank: [] };
-  }
-
-  // Color / shape pattern: use full shuffled bank for maximum diversity
-  const useColors = Math.random() < 0.5;
-  const fullBank = shuffle(useColors ? COLOR_ITEMS : SHAPE_ITEMS);
-  const itemBank = fullBank.slice(0, Math.min(fullBank.length, level === 'easy' ? 4 : level === 'medium' ? 5 : 6));
-
-  const rule = ruleEntry.rule;
-  const displayRule = rule.slice(0, rule.length - 1);
-  const correctRuleIdx = rule[rule.length - 1];
-
-  const correctBankIdx = correctRuleIdx % itemBank.length;
-  const items = displayRule.map(ridx => itemBank[ridx % itemBank.length]);
-  const correctItem = itemBank[correctBankIdx];
-
-  // Build 3 DISTINCT wrong options — different from correct AND from each other
-  const wrongPool = itemBank
-    .map((item, idx) => ({ item, idx }))
-    .filter(({ idx }) => idx !== correctBankIdx)
-    .map(({ item }) => item);
-
-  // If pool is too small, add near-miss variants
-  while (wrongPool.length < 3) {
-    wrongPool.push({ ...correctItem, label: correctItem.label + ' option' });
-  }
-
-  const wrongOptions = shuffle(wrongPool).slice(0, 3);
-  const allOptions = shuffle([
-    { ...correctItem, isCorrect: true },
-    ...wrongOptions.map(item => ({ ...item, isCorrect: false })),
-  ]);
-
-  return {
-    items,
-    correctAnswer: correctBankIdx,
-    options: allOptions,
-    hint: ruleEntry.hint,
-    rule: ruleEntry.rule,
-    itemBank,
-  };
-}
-
-
-function OptionButton({
-  option, state, onClick,
+function AnswerButton({
+  item, onClick, state, disabled, isCorrectItem
 }: {
-  option: Question['options'][0];
-  state: 'idle' | 'correct' | 'wrong' | 'revealed';
+  item: PatternItem;
   onClick: () => void;
+  state: AnswerState;
+  disabled: boolean;
+  isCorrectItem: boolean;
 }) {
-  const bg = state === 'correct' ? '#6BCB77' : state === 'wrong' ? '#FF6B9D' : state === 'revealed' ? '#FFD93D' : '#fff';
-  const shadow = state === 'correct' ? '#4CAF50' : state === 'wrong' ? '#E91E63' : state === 'revealed' ? '#F9A825' : '#ddd';
-  const color = state === 'correct' || state === 'wrong' || state === 'revealed' ? '#fff' : '#333';
   const [pressed, setPressed] = useState(false);
+
+  let bgColor = '#fff';
+  let shadowColor = '#ddd';
+  let textColor = '#333';
+  let border = '2px solid #eee';
+
+  if (state === 'correct') { bgColor = '#6BCB77'; shadowColor = '#4CAF50'; textColor = '#fff'; border = 'none'; }
+  if (state === 'wrong') { bgColor = '#FF6B9D'; shadowColor = '#E91E63'; textColor = '#fff'; border = 'none'; }
+  if (state === 'revealed' && isCorrectItem) { bgColor = '#C8F7C5'; shadowColor = '#4CAF50'; textColor = '#2E7D32'; border = '2px solid #6BCB77'; }
 
   return (
     <button
       style={{
-        fontFamily: 'Fredoka', fontSize: 18, fontWeight: 600,
-        padding: '14px 16px', border: 'none', borderRadius: 14,
-        background: bg, color,
-        boxShadow: `0 5px 0 ${shadow}`,
-        transform: pressed ? 'translateY(3px)' : 'translateY(0)',
-        cursor: 'pointer', transition: 'background 0.2s, transform 0.1s',
-        display: 'flex', alignItems: 'center', gap: 12,
-        width: '100%', textAlign: 'left',
-        animation: state === 'wrong' ? 'shake 0.4s ease' : undefined,
+        fontFamily: 'Fredoka',
+        fontSize: 16,
+        fontWeight: 600,
+        padding: '12px 16px',
+        border: border,
+        borderRadius: 14,
+        background: bgColor,
+        color: textColor,
+        boxShadow: `0 5px 0 ${shadowColor}`,
+        transform: pressed && state === 'idle' ? 'translateY(3px)' : 'translateY(0)',
+        cursor: disabled && state === 'idle' ? 'default' : 'pointer',
+        transition: 'transform 0.1s, background 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        opacity: disabled && state === 'idle' ? 0.6 : 1,
       }}
       onClick={onClick}
-      disabled={state === 'correct' || state === 'revealed'}
       onPointerDown={() => setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
+      disabled={disabled}
     >
-      <span style={{ fontSize: 26 }}>{option.emoji}</span>
-      <span>{option.label}</span>
-      {state === 'correct' && <span style={{ marginLeft: 'auto' }}>✅</span>}
-      {state === 'wrong' && <span style={{ marginLeft: 'auto' }}>❌</span>}
-      {state === 'revealed' && <span style={{ marginLeft: 'auto' }}>✅</span>}
+      <span style={{ fontSize: 28 }}>{item.emoji}</span>
+      <span>{item.label}</span>
+      {state === 'correct' && <span style={{ marginLeft: 'auto' }}>✓</span>}
+      {state === 'wrong' && <span style={{ marginLeft: 'auto' }}>✗</span>}
+      {state === 'revealed' && isCorrectItem && <span style={{ marginLeft: 'auto' }}>✓</span>}
     </button>
   );
 }
@@ -354,32 +370,40 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
   const [score, setScore] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [question, setQuestion] = useState<Question | null>(null);
-  const [optionStates, setOptionStates] = useState<Record<number, 'idle' | 'correct' | 'wrong' | 'revealed'>>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<PatternItem | null>(null);
+  const [answerState, setAnswerState] = useState<AnswerState>('idle');
   const [hint, setHint] = useState('');
-  const [isCorrect, setIsCorrect] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [shake, setShake] = useState(false);
   const [totalQuestions] = useState(10);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [options, setOptions] = useState<PatternItem[]>([]);
 
   const getBestScore = (lvl: Level): number => {
     if (typeof window === 'undefined') return 0;
-    return parseInt(localStorage.getItem(`pattern_best_${lvl}`) || '0', 10);
+    return parseInt(localStorage.getItem(`patternpuzzles_best_${lvl}`) || '0', 10);
   };
+
   const saveBestScore = (lvl: Level, s: number) => {
     const current = getBestScore(lvl);
-    if (s > current) localStorage.setItem(`pattern_best_${lvl}`, String(s));
+    if (s > current) localStorage.setItem(`patternpuzzles_best_${lvl}`, String(s));
   };
+
+  const loadQuestion = useCallback((lvl: Level) => {
+    const q = generateQuestion(lvl);
+    setQuestion(q);
+    setAttempts(0);
+    setHint('');
+    setSelectedAnswer(null);
+    setAnswerState('idle');
+    setOptions(shuffle([q.correctAnswer, ...q.wrongAnswers]));
+  }, []);
 
   const startGame = (lvl: Level) => {
     setLevel(lvl);
-    setQuestion(generateQuestion(lvl));
     setQuestionIndex(0);
     setScore(0);
-    setAttempts(0);
-    setHint('');
-    setIsCorrect(false);
-    setOptionStates({});
+    loadQuestion(lvl);
     setScreen('game');
   };
 
@@ -388,67 +412,56 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
       setScreen('results');
       return;
     }
-    const q = generateQuestion(level);
-    setQuestion(q);
     setQuestionIndex(i => i + 1);
-    setAttempts(0);
-    setHint('');
-    setIsCorrect(false);
-    setOptionStates({});
-  }, [questionIndex, level]);
+    loadQuestion(level);
+  }, [questionIndex, level, loadQuestion]);
 
-  const handleOptionClick = (idx: number) => {
-    if (!question || isCorrect) return;
-    const option = question.options[idx];
+  const handleAnswer = (item: PatternItem) => {
+    if (answerState === 'correct' || answerState === 'revealed') return;
+    if (!question) return;
+
     const newAttempts = attempts + 1;
     setAttempts(newAttempts);
+    setSelectedAnswer(item);
 
-    if (option.isCorrect) {
-      setOptionStates({ [idx]: 'correct' });
-      setIsCorrect(true);
-      setShowConfetti(true);
+    if (item.label === question.correctAnswer.label) {
+      setAnswerState('correct');
       const earned = newAttempts === 1 ? 10 : newAttempts === 2 ? 5 : 2;
       setScore(s => s + earned);
-      setHint('🎉 Correct!');
+      setHint(newAttempts === 1 ? '🎉 Perfect! +10!' : newAttempts === 2 ? '👍 Good job! +5!' : '✓ You got it! +2!');
       playCorrect();
+      setShowConfetti(true);
       setTimeout(() => {
         setShowConfetti(false);
         advanceQuestion();
       }, 1500);
     } else {
       setShake(true);
-      setTimeout(() => setShake(false), 400);
+      setTimeout(() => setShake(false), 500);
       playWrong();
-      setOptionStates({ [idx]: 'wrong' });
-      setHint(question.hint);
+
       if (newAttempts >= 3) {
-        // Reveal correct answer
-        const correctIdx = question.options.findIndex(o => o.isCorrect);
-        setTimeout(() => {
-          setOptionStates({ [correctIdx]: 'revealed' });
-          setHint(`The answer was: ${question.options[correctIdx].label}`);
-        }, 600);
+        setAnswerState('revealed');
+        setHint(question.hint + ` (The answer was: ${question.correctAnswer.label})`);
+        setTimeout(() => advanceQuestion(), 2500);
+      } else {
+        setAnswerState('wrong');
+        setHint(question.hint + ` (Try again! ${3 - newAttempts} tries left)`);
+        setTimeout(() => setAnswerState('idle'), 800);
       }
     }
   };
 
-  useEffect(() => {
-    if (screen === 'results') {
-      saveBestScore(level, score);
-      if (score >= 80) {
-        setShowConfetti(true);
-        playArpeggio();
-      }
-    }
-  }, [screen, level, score]);
+  // Results side effects
+  if (screen === 'results' && score > 0) {
+    // saved in render below
+  }
 
-  const pct = Math.round((score / (totalQuestions * 10)) * 100);
-  const stars = pct >= 95 ? 3 : pct >= 70 ? 2 : pct >= 40 ? 1 : 0;
   const bestEasy = getBestScore('easy');
   const bestMedium = getBestScore('medium');
   const bestHard = getBestScore('hard');
 
-  // ─── MENU ───────────────────────────────────────────────────────────────────
+  // ─── MENU ────────────────────────────────────────────────────────────────────
   if (screen === 'menu') {
     return (
       <div style={{
@@ -456,39 +469,41 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
-        <style>{`@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }`}</style>
-
         <button onClick={onBack} style={{
           position: 'absolute', top: 20, left: 20,
           fontFamily: 'Fredoka', fontSize: 16, background: 'none',
           border: 'none', cursor: 'pointer', color: '#aaa',
         }}>← Back</button>
 
-        <div style={{ fontSize: 64, marginBottom: 8 }}>🧩</div>
-        <h1 style={{ fontSize: 40, fontWeight: 700, color: '#C084FC', margin: '0 0 8px', textAlign: 'center' }}>Pattern Puzzles!</h1>
-        <p style={{ fontSize: 17, color: '#888', margin: '0 0 28px', textAlign: 'center' }}>
+        <div style={{ fontSize: 60, marginBottom: 8 }}>🧩</div>
+        <h1 style={{ fontSize: 38, fontWeight: 700, color: '#C084FC', margin: '0 0 8px' }}>Pattern Puzzles!</h1>
+        <p style={{ fontSize: 17, color: '#888', margin: '0 0 32px', textAlign: 'center' }}>
           What comes next in the pattern?
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 300 }}>
-          <LevelButton label="🌟 Easy — Colors & Shapes" color="#6BCB77" shadowColor="#4CAF50" onClick={() => startGame('easy')} />
-          <LevelButton label="⭐ Medium — ABC Patterns" color="#FFD93D" shadowColor="#F9A825" onClick={() => startGame('medium')} />
-          <LevelButton label="🚀 Hard — Number Sequences" color="#C084FC" shadowColor="#9333EA" onClick={() => startGame('hard')} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 300 }}>
+          <LevelButton
+            label="🌟 Easy — ABAB & AABB"
+            color="#C084FC" shadowColor="#7C3AED"
+            onClick={() => startGame('easy')}
+            bestScore={bestEasy}
+          />
+          <LevelButton
+            label="⭐ Medium — Colors & Shapes"
+            color="#FFD93D" shadowColor="#F9A825"
+            onClick={() => startGame('medium')}
+            bestScore={bestMedium}
+          />
+          <LevelButton
+            label="🚀 Hard — Numbers & Arrows"
+            color="#FF6B9D" shadowColor="#E91E63"
+            onClick={() => startGame('hard')}
+            bestScore={bestHard}
+          />
         </div>
 
-        {(bestEasy > 0 || bestMedium > 0 || bestHard > 0) && (
-          <div style={{ marginTop: 28, background: '#fff', borderRadius: 16, padding: '16px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 14, color: '#aaa', marginBottom: 8, textAlign: 'center' }}>🏆 Best Scores</div>
-            <div style={{ display: 'flex', gap: 24 }}>
-              {bestEasy > 0 && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#6BCB77' }}>{bestEasy}</div><div style={{ fontSize: 12, color: '#aaa' }}>Easy</div></div>}
-              {bestMedium > 0 && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#FFD93D' }}>{bestMedium}</div><div style={{ fontSize: 12, color: '#aaa' }}>Medium</div></div>}
-              {bestHard > 0 && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: '#C084FC' }}>{bestHard}</div><div style={{ fontSize: 12, color: '#aaa' }}>Hard</div></div>}
-            </div>
-          </div>
-        )}
-
         <button onClick={onBack} style={{
-          marginTop: 24, fontFamily: 'Fredoka', fontSize: 15,
+          marginTop: 28, fontFamily: 'Fredoka', fontSize: 15,
           background: 'none', border: 'none', cursor: 'pointer', color: '#ccc',
         }}>← Back to Home</button>
       </div>
@@ -497,32 +512,47 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
 
   // ─── RESULTS ────────────────────────────────────────────────────────────────
   if (screen === 'results') {
+    const finalScore = score;
+    const finalPct = Math.round((finalScore / (totalQuestions * 10)) * 100);
+    const stars = finalPct >= 95 ? 3 : finalPct >= 70 ? 2 : finalPct >= 40 ? 1 : 0;
+    const correctCount = Math.round(finalScore / 10);
+
+    // Save best score
+    if (typeof window !== 'undefined' && finalScore > 0) {
+      saveBestScore(level, finalScore);
+    }
+
     return (
       <div style={{
         fontFamily: 'Fredoka', minHeight: '100vh', background: '#FFF8F0',
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
-        <Confetti active={showConfetti} />
-        <style>{`@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }`}</style>
-
-        <div style={{ fontSize: 80, marginBottom: 8 }}>{stars === 3 ? '🏆' : stars === 2 ? '🌟' : stars === 1 ? '👍' : '💪'}</div>
-        <h1 style={{ fontSize: 36, fontWeight: 700, color: '#333', margin: '0 0 24px', textAlign: 'center' }}>
-          {kidName ? `${kidName}, ` : ''}{stars === 3 ? 'Perfect!' : stars === 2 ? 'Great job!' : stars === 1 ? 'Good try!' : 'Keep practicing!'}
+        <Confetti active={stars === 3} />
+        <div style={{ fontSize: 80, marginBottom: 8 }}>
+          {stars === 3 ? '🏆' : stars === 2 ? '🌟' : stars === 1 ? '👍' : '💪'}
+        </div>
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: '#333', margin: '0 0 24px', textAlign: 'center' }}>
+          {kidName ? `${kidName}, you did it!` : 'You did it!'}
         </h1>
 
         <div style={{
           background: '#fff', borderRadius: 24, padding: 32,
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', minWidth: 280,
         }}>
-          <div style={{ fontSize: 48, fontWeight: 700, color: '#C084FC' }}>{score}</div>
+          <div style={{ fontSize: 48, fontWeight: 700, color: '#C084FC' }}>{finalScore}</div>
           <div style={{ fontSize: 18, color: '#888' }}>points</div>
-          <div style={{ fontSize: 64, margin: '16px 0' }}>{'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}</div>
-          <div style={{ fontSize: 20, color: '#555' }}>{pct}% correct</div>
-          {stars === 3 && <div style={{ fontSize: 22, color: '#FFD93D', fontWeight: 700, marginTop: 8 }}>🌟 Pattern Master! 🌟</div>}
-          {stars === 2 && <div style={{ fontSize: 22, color: '#6BCB77', fontWeight: 700, marginTop: 8 }}>Awesome pattern spotter!</div>}
-          {stars === 1 && <div style={{ fontSize: 22, color: '#6BCBFF', fontWeight: 700, marginTop: 8 }}>Good effort, keep going!</div>}
-          {stars === 0 && <div style={{ fontSize: 22, color: '#888', fontWeight: 700, marginTop: 8 }}>You'll get it next time!</div>}
+
+          <div style={{ fontSize: 64, margin: '16px 0' }}>
+            {'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}
+          </div>
+
+          <div style={{ fontSize: 20, color: '#555' }}>{correctCount} of {totalQuestions} correct</div>
+
+          {stars === 3 && <div style={{ fontSize: 22, color: '#FFD93D', fontWeight: 700, marginTop: 8 }}>🌟 Perfect! 🌟</div>}
+          {stars === 2 && <div style={{ fontSize: 22, color: '#6BCB77', fontWeight: 700, marginTop: 8 }}>Awesome work!</div>}
+          {stars === 1 && <div style={{ fontSize: 22, color: '#6BCBFF', fontWeight: 700, marginTop: 8 }}>Good job, keep practicing!</div>}
+          {stars === 0 && <div style={{ fontSize: 22, color: '#888', fontWeight: 700, marginTop: 8 }}>Try again, you can do it!</div>}
         </div>
 
         <div style={{ display: 'flex', gap: 16, marginTop: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -531,9 +561,9 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
               fontFamily: 'Fredoka', fontSize: 20, fontWeight: 600,
               padding: '14px 28px', border: 'none', borderRadius: 16,
               background: '#C084FC', color: '#fff',
-              boxShadow: '0 6px 0 #9333EA', cursor: 'pointer',
+              boxShadow: '0 6px 0 #7C3AED', cursor: 'pointer',
             }}
-            onClick={() => { setShowConfetti(false); startGame(level); }}
+            onClick={() => startGame(level)}
           >
             Play Again 🔄
           </button>
@@ -550,13 +580,20 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
           </button>
         </div>
 
-        <button onClick={onBack} style={{
-          marginTop: 24, fontFamily: 'Fredoka', fontSize: 16,
-          background: 'none', border: 'none', cursor: 'pointer', color: '#888',
-        }}>← Back to Home</button>
+        <div style={{ marginTop: 32 }}>
+          <button
+            onClick={onBack}
+            style={{
+              fontFamily: 'Fredoka', fontSize: 16, background: 'none',
+              border: 'none', cursor: 'pointer', color: '#888',
+            }}
+          >
+            ← Back to Home
+          </button>
+        </div>
 
-        {score >= 60 && (
-          <div style={{ marginTop: 20 }}>
+        {finalScore >= 60 && (
+          <div style={{ marginTop: 24 }}>
             <button
               onClick={() => setRatingModalOpen(true)}
               style={{
@@ -582,93 +619,109 @@ export default function PatternPuzzles({ onBack, kidName }: { onBack: () => void
   }
 
   // ─── GAME ───────────────────────────────────────────────────────────────────
+  if (!question) return null;
+
   return (
     <div style={{
       fontFamily: 'Fredoka', minHeight: '100vh', background: '#FFF8F0',
       padding: '16px 16px 32px', display: 'flex', flexDirection: 'column',
       alignItems: 'center', gap: 0,
     }}>
-      <style>{`@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }`}</style>
       <Confetti active={showConfetti} />
 
       {/* Header */}
-      <div style={{ width: '100%', maxWidth: 400, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <button onClick={() => setScreen('menu')} style={{
-          fontFamily: 'Fredoka', fontSize: 15, background: 'none',
-          border: 'none', cursor: 'pointer', color: '#aaa',
-        }}>← Back</button>
-        <div style={{ fontSize: 14, color: '#aaa', background: '#fff', borderRadius: 20, padding: '4px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <button
+          onClick={() => setScreen('menu')}
+          style={{
+            fontFamily: 'Fredoka', fontSize: 15, background: 'none',
+            border: 'none', cursor: 'pointer', color: '#aaa',
+          }}
+        >
+          ← Back
+        </button>
+        <div style={{
+          fontSize: 14, color: '#aaa',
+          background: '#fff', borderRadius: 20, padding: '4px 14px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        }}>
           Q{questionIndex + 1} of {totalQuestions}
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD93D' }}>⭐ {score}</div>
       </div>
 
       {/* Progress bar */}
-      <div style={{ width: '100%', maxWidth: 400, height: 8, background: '#eee', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: 320, height: 8, background: '#eee', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
         <div style={{
           height: '100%', background: '#C084FC', borderRadius: 4,
-          width: `${((questionIndex + (isCorrect ? 1 : 0)) / totalQuestions) * 100}%`,
+          width: `${(questionIndex / totalQuestions) * 100}%`,
           transition: 'width 0.4s ease',
         }} />
       </div>
 
-      {question && (
-        <>
-          {/* Pattern display */}
-          <div style={{
-            background: '#fff', borderRadius: 20, padding: '20px 16px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            marginBottom: 16,
-            transform: shake ? 'translateX(-6px)' : 'translateX(0)',
-            transition: 'transform 0.1s',
-          }}>
-            {/* Pattern row */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-              {question.items.map((item, idx) => (
-                <PatternItem key={idx} item={item} />
-              ))}
-              {/* Question mark slot */}
-              <QuestionSlot />
-            </div>
+      {/* Level badge */}
+      <div style={{
+        fontSize: 13, fontWeight: 600, color: '#C084FC',
+        background: '#F3E8FF', borderRadius: 20, padding: '4px 14px', marginBottom: 12,
+      }}>
+        {level === 'easy' ? '🌟 Easy' : level === 'medium' ? '⭐ Medium' : '🚀 Hard'} — {question.ruleLabel}
+      </div>
 
-            <div style={{ fontSize: 13, color: '#aaa', textAlign: 'center', marginTop: 4 }}>
-              Tap the answer below 👇
-            </div>
-          </div>
+      {/* Pattern display */}
+      <div style={{
+        background: '#fff', borderRadius: 20, padding: '20px 16px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        marginBottom: 16,
+        transform: shake ? 'translateX(-6px)' : 'translateX(0)',
+        transition: 'transform 0.1s',
+      }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {question.items.map((item, i) => (
+            <PatternSlot key={i} item={item} isLast={false} />
+          ))}
+          <PatternSlot item={question.correctAnswer} isLast={true} />
+        </div>
+      </div>
 
-          {/* Hint */}
-          {hint && (
-            <div style={{
-              background: hint.includes('🎉') ? '#E8F5E9' : '#FFF3E0',
-              color: hint.includes('🎉') ? '#2E7D32' : '#E65100',
-              borderRadius: 12, padding: '8px 16px', marginBottom: 12,
-              fontSize: 15, fontWeight: 600, textAlign: 'center',
-              maxWidth: 400, width: '100%',
-            }}>
-              {hint}
-            </div>
-          )}
+      {/* Prompt */}
+      <div style={{ fontSize: 17, color: '#888', marginBottom: 12, textAlign: 'center' }}>
+        What comes <strong style={{ color: '#C084FC' }}>next</strong>?
+      </div>
 
-          {/* Options */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 400 }}>
-            {question.options.map((option, idx) => (
-              <OptionButton
-                key={idx}
-                option={option}
-                state={optionStates[idx] || 'idle'}
-                onClick={() => handleOptionClick(idx)}
-              />
-            ))}
-          </div>
-
-          {/* Attempts indicator */}
-          {attempts > 0 && !isCorrect && (
-            <div style={{ marginTop: 12, fontSize: 13, color: '#ccc' }}>
-              Try {attempts} of 3 — hint above ↑ 
-            </div>
-          )}
-        </>
+      {/* Hint */}
+      {hint && (
+        <div style={{
+          background: hint.startsWith('🎉') ? '#E8F5E9' : '#FFF3E0',
+          color: hint.startsWith('🎉') ? '#2E7D32' : '#E65100',
+          borderRadius: 12, padding: '8px 16px', marginBottom: 12,
+          fontSize: 14, fontWeight: 600, textAlign: 'center', maxWidth: 320,
+        }}>
+          {hint}
+        </div>
       )}
+
+      {/* Answer options */}
+      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {options.map((item) => {
+          let state: AnswerState = 'idle';
+          if (answerState === 'correct' && item.label === question.correctAnswer.label) state = 'correct';
+          if (answerState === 'wrong' && selectedAnswer?.label === item.label) state = 'wrong';
+          if (answerState === 'revealed' && item.label === question.correctAnswer.label) state = 'revealed';
+
+          const disabled = answerState === 'correct' || answerState === 'revealed' || answerState === 'wrong';
+
+          return (
+            <AnswerButton
+              key={item.label}
+              item={item}
+              state={state}
+              disabled={disabled}
+              isCorrectItem={item.label === question.correctAnswer.label}
+              onClick={() => handleAnswer(item)}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
