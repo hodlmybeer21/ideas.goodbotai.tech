@@ -423,25 +423,29 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
     ? (selectedAnswer === currentQ.isSilly ? '#6BCB77' : '#FF6B9D')
     : undefined;
 
-  const didCorrect = selectedAnswer !== null && selectedAnswer === currentQ.isSilly;
-  const didWrong = selectedAnswer !== null && selectedAnswer !== currentQ.isSilly;
+  // isCorrect: did the kid's answer match reality?
+  // selectedAnswer=true  = kid said "robot is silly"
+  // selectedAnswer=false = kid said "robot is right"
+  // currentQ.isSilly=true  = robot's claim IS wrong
+  // currentQ.isSilly=false = robot's claim IS right
+  const isCorrect = selectedAnswer === currentQ.isSilly;
 
   const resultBanner = selectedAnswer !== null ? (
     <div style={{
-      background: didCorrect ? '#E8F5E9' : '#FFF0F0',
+      background: isCorrect ? '#E8F5E9' : '#FFF0F0',
       borderRadius: 16, padding: '14px 20px', marginBottom: 12,
       textAlign: 'center', width: '100%', maxWidth: 340,
-      border: `2px solid ${didCorrect ? '#6BCB77' : '#FF6B9D'}`,
+      border: `2px solid ${isCorrect ? '#6BCB77' : '#FF6B9D'}`,
     }}>
-      {didCorrect ? (
+      {isCorrect ? (
         <>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#2E7D32', marginBottom: 4 }}>
             🎉 {kidName ? `${kidName}, ` : ''}You got it!
           </div>
           <div style={{ fontSize: 15, color: '#555' }}>
             {currentQ.isSilly
-              ? `✓ Silly! ${currentQ.whySilly}`
-              : `✓ Right! ${currentQ.funFact}`}
+              ? `Silly robot! ${currentQ.whySilly}`
+              : `Correct! ${currentQ.funFact}`}
           </div>
         </>
       ) : (
@@ -451,8 +455,8 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
           </div>
           <div style={{ fontSize: 15, color: '#555' }}>
             {currentQ.isSilly
-              ? `That was silly! ${currentQ.whySilly}`
-              : `That was right! ${currentQ.funFact}`}
+              ? `Nope — the robot was wrong! ${currentQ.whySilly}`
+              : `Nope — the robot was right! ${currentQ.funFact}`}
           </div>
         </>
       )}
@@ -477,7 +481,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
   const answerButtons = selectedAnswer === null ? (
     <div style={{ display: 'flex', gap: 14, width: '100%', maxWidth: 340, marginTop: 8 }}>
       <button
-        onClick={() => handleAnswer(false)}
+        onClick={() => handleAnswer(true)}
         style={{
           flex: 1, fontFamily: 'Fredoka', fontSize: 22, fontWeight: 700,
           padding: '20px 12px', border: 'none', borderRadius: 20,
@@ -490,7 +494,7 @@ export default function IsTheRobotRight({ onBack, kidName }: { onBack: () => voi
         <span>That's Silly!</span>
       </button>
       <button
-        onClick={() => handleAnswer(true)}
+        onClick={() => handleAnswer(false)}
         style={{
           flex: 1, fontFamily: 'Fredoka', fontSize: 22, fontWeight: 700,
           padding: '20px 12px', border: 'none', borderRadius: 20,
