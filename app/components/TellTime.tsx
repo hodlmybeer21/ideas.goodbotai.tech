@@ -488,11 +488,7 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
-        <button onClick={onBack} style={{
-          position: 'absolute', top: 20, left: 20,
-          fontFamily: 'Fredoka', fontSize: 16, background: 'none',
-          border: 'none', cursor: 'pointer', color: '#aaa',
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
 
         <div style={{ fontSize: 60, marginBottom: 8 }}>🕐</div>
         <h1 style={{ fontSize: 42, fontWeight: 700, color: '#6BCBFF', margin: '0 0 8px' }}>Tell Time!</h1>
@@ -517,10 +513,7 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
           </div>
         )}
 
-        <button onClick={onBack} style={{
-          marginTop: 24, fontFamily: 'Fredoka', fontSize: 15,
-          background: 'none', border: 'none', cursor: 'pointer', color: '#ccc',
-        }}>← Back to Home</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
       </div>
     );
   }

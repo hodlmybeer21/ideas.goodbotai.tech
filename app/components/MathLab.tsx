@@ -281,11 +281,7 @@ function NumberBonds({ onBack, onScore }: { onBack: () => void; onScore: (s: num
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
       <Confetti active={showConfetti} />
       <div style={{ marginBottom: 16 }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-          padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-          fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: '#FF6B9D', margin: 0 }}>🧮 Number Bonds</h2>
         <p style={{ fontSize: 14, color: '#64748B', margin: '4px 0 0' }}>Fill in the missing number!</p>
       </div>
@@ -465,11 +461,7 @@ function TrueFalse({ onBack, onScore }: { onBack: () => void; onScore: (s: numbe
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
       <Confetti active={showConfetti} />
       <div style={{ marginBottom: 16 }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-          padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-          fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: '#6BCBFF', margin: 0 }}>🎯 True or False</h2>
         <p style={{ fontSize: 14, color: '#64748B', margin: '4px 0 0' }}>Is the equation correct?</p>
       </div>
@@ -622,11 +614,7 @@ function CountAnimals({ onBack, onScore }: { onBack: () => void; onScore: (s: nu
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
       <Confetti active={showConfetti} />
       <div style={{ marginBottom: 16 }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-          padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-          fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: '#6BCB77', margin: 0 }}>🔢 Count the Animals</h2>
         <p style={{ fontSize: 14, color: '#64748B', margin: '4px 0 0' }}>Count them all and tap the right number!</p>
       </div>
@@ -775,11 +763,7 @@ function QuickMath({ onBack, onScore }: { onBack: () => void; onScore: (s: numbe
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
       <Confetti active={showConfetti} />
       <div style={{ marginBottom: 16 }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-          padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-          fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: '#C084FC', margin: 0 }}>➕➖ Quick Math</h2>
         <p style={{ fontSize: 14, color: '#64748B', margin: '4px 0 0' }}>Solve the equation!</p>
       </div>
@@ -880,11 +864,7 @@ export default function MathLab({ onBack, kidName }: { onBack: () => void; kidNa
   if (screen === 'menu') {
     return (
       <div style={{ maxWidth: 560, margin: '0 auto', padding: 24, background: '#FFF8F0', minHeight: '100vh' }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-          padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-          fontSize: 15, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
 
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧮</div>

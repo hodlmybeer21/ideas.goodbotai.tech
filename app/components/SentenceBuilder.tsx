@@ -291,11 +291,7 @@ export default function SentenceBuilder({ onBack, kidName }: { onBack: () => voi
         padding: 24, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 0,
       }}>
-        <button onClick={onBack} style={{
-          position: 'absolute', top: 20, left: 20,
-          fontFamily: 'Fredoka', fontSize: 16, background: 'none',
-          border: 'none', cursor: 'pointer', color: '#aaa',
-        }}>← Back</button>
+        <button onClick={onBack} className="back-btn">← Back</button>
 
         <div style={{ fontSize: 64, marginBottom: 8 }}>📝</div>
         <h1 style={{ fontSize: 34, fontWeight: 700, color: '#C084FC', margin: '0 0 8px', textAlign: 'center' }}>
