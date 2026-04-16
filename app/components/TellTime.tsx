@@ -78,6 +78,31 @@ function formatTime(hour: number, minute: number): string {
   return `${hour}:${minute.toString().padStart(2, '0')}`;
 }
 
+// Generate a WRONG starting time (different from the answer)
+function generateStartingTime(targetHour: number, targetMinute: number, level: Level): { hour: number; minute: number } {
+  if (level === 'easy') {
+    // Pick a different hour, minute always 0
+    let h;
+    do { h = Math.floor(Math.random() * 12) + 1; } while (h === targetHour);
+    return { hour: h, minute: 0 };
+  } else if (level === 'medium') {
+    // Pick a different hour OR different minute half (0 vs 30)
+    const minuteOptions = [0, 30];
+    const minute = minuteOptions[Math.floor(Math.random() * 2)];
+    let h;
+    do { h = Math.floor(Math.random() * 12) + 1; } while (h === targetHour && minute === targetMinute);
+    return { hour: h, minute };
+  } else {
+    // Hard: pick a different hour, minute can be any 5-min interval (but different from target)
+    const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+    let m;
+    do { m = minuteOptions[Math.floor(Math.random() * minuteOptions.length)]; } while (m === targetMinute);
+    let h;
+    do { h = Math.floor(Math.random() * 12) + 1; } while (h === targetHour);
+    return { hour: h, minute: m };
+  }
+}
+
 // ─── Rotation math ─────────────────────────────────────────────────────────────
 function minuteRotation(minute: number): number {
   return minute * 6;
@@ -364,8 +389,9 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
     const q = generateQuestion(lvl);
     setTargetHour(q.hour);
     setTargetMinute(q.minute);
-    setCurrentHour(q.hour);
-    setCurrentMinute(q.minute);
+    const start = generateStartingTime(q.hour, q.minute, lvl);
+    setCurrentHour(start.hour);
+    setCurrentMinute(start.minute);
     setQuestionIndex(0);
     setScore(0);
     setAttempts(0);
@@ -382,8 +408,9 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
     const q = generateQuestion(level);
     setTargetHour(q.hour);
     setTargetMinute(q.minute);
-    setCurrentHour(q.hour);
-    setCurrentMinute(q.minute);
+    const start = generateStartingTime(q.hour, q.minute, level);
+    setCurrentHour(start.hour);
+    setCurrentMinute(start.minute);
     setQuestionIndex(i => i + 1);
     setAttempts(0);
     setHint('');
