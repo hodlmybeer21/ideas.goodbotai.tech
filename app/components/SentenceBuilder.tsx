@@ -328,10 +328,7 @@ export default function SentenceBuilder({ onBack, kidName }: { onBack: () => voi
           />
         </div>
 
-        <button onClick={onBack} style={{
-          marginTop: 28, fontFamily: 'Fredoka', fontSize: 15,
-          background: 'none', border: 'none', cursor: 'pointer', color: '#ccc',
-        }}>← Back to Home</button>
+        
       </div>
     );
   }
@@ -398,12 +395,7 @@ export default function SentenceBuilder({ onBack, kidName }: { onBack: () => voi
           <button
             onClick={onBack}
             style={{
-              fontFamily: 'Fredoka', fontSize: 16, background: 'none',
-              border: 'none', cursor: 'pointer', color: '#888',
-            }}
-          >
-            ← Back to Home
-          </button>
+              
         </div>
 
         {correctCount >= 7 && (
@@ -556,12 +548,7 @@ export default function SentenceBuilder({ onBack, kidName }: { onBack: () => voi
         <button
           onClick={() => setScreen('menu')}
           style={{
-            fontFamily: 'Fredoka', fontSize: 15, background: 'none',
-            border: 'none', cursor: 'pointer', color: '#aaa',
-          }}
-        >
-          ← Back
-        </button>
+            
         <div style={{
           fontSize: 14, color: '#aaa',
           background: '#fff', borderRadius: 20, padding: '4px 14px',

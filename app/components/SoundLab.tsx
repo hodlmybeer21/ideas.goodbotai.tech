@@ -190,13 +190,7 @@ const VALVE_MAP: Record<string, [string, number]> = {
 function ScreenHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <button onClick={onBack} style={{
-        background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-        padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-        fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-      }}>
-        ← Back
-      </button>
+      <button onClick={onBack} className="back-btn">← Back</button>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: '#FF6B9D', margin: 0 }}>{title}</h1>
     </div>
   );
@@ -252,13 +246,7 @@ function MenuScreen({ onBack, setActiveScreen, rated, setRated, lastPlayed, play
 }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
-      <button onClick={onBack} style={{
-        background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-        padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-        fontSize: 15, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6,
-      }}>
-        ← Back
-      </button>
+      <button onClick={onBack} className="back-btn">← Back</button>
 
       <div style={{ textAlign: 'center', marginBottom: 8 }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>🎵</div>

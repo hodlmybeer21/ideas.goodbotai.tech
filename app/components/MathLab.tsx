@@ -825,11 +825,7 @@ function QuickMath({ onBack, onScore }: { onBack: () => void; onScore: (s: numbe
 function MenuScreen({ onBack, kidName }: { onBack: () => void; kidName: string }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: 24 }}>
-      <button onClick={onBack} style={{
-        background: 'none', border: '2px solid #E5E0D8', borderRadius: 12,
-        padding: '8px 16px', cursor: 'pointer', fontFamily: 'Fredoka',
-        fontSize: 15, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6,
-      }}>← Back</button>
+      
 
       <div style={{ textAlign: 'center', marginBottom: 8 }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>🧮</div>

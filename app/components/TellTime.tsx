@@ -580,12 +580,7 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
           <button
             onClick={onBack}
             style={{
-              fontFamily: 'Fredoka', fontSize: 16, background: 'none',
-              border: 'none', cursor: 'pointer', color: '#888',
-            }}
-          >
-            ← Back to Home
-          </button>
+              
         </div>
 
         {score >= 60 && (
@@ -628,12 +623,7 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
         <button
           onClick={handleBack}
           style={{
-            fontFamily: 'Fredoka', fontSize: 15, background: 'none',
-            border: 'none', cursor: 'pointer', color: '#aaa',
-          }}
-        >
-          ← Back
-        </button>
+            
         <div style={{
           fontSize: 14, color: '#aaa',
           background: '#fff', borderRadius: 20, padding: '4px 14px',
