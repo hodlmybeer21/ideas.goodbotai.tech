@@ -226,107 +226,86 @@ interface Question {
   itemBank: Array<{ emoji: string; label: string; bg: string; border?: string }>;
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function generateQuestion(level: Level): Question {
   const rules = PATTERN_RULES[level];
   const ruleEntry = rules[Math.floor(Math.random() * rules.length)];
 
   if (ruleEntry.isSequence) {
-    // Number sequence pattern
     const step = ruleEntry.step!;
-    const startValues = [2, 3, 5, 10];
-    let start = startValues[Math.floor(Math.random() * startValues.length)];
-    if (step === 3) start = 3;
-    if (step === 5) start = 5;
-    if (step === 10) start = 10;
+    const starts = step === 3 ? [3] : step === 5 ? [5] : step === 10 ? [10] : [2, 4, 6, 8];
+    const start = starts[Math.floor(Math.random() * starts.length)];
 
     const items = [];
     for (let i = 0; i < 4; i++) {
       items.push({ emoji: '', label: String(start + i * step), bg: '#fff', value: start + i * step });
     }
 
-    const correctAnswer = start + 4 * step;
-    const wrongAnswers = [
-      correctAnswer - step,
-      correctAnswer + step,
-      correctAnswer + step * 2,
-    ].filter(w => w !== correctAnswer && w > 0);
-
-    const allOptions = [
-      { emoji: '', label: String(correctAnswer), bg: '#fff', value: correctAnswer, isCorrect: true },
-      ...wrongAnswers.slice(0, 3).map(v => ({ emoji: '', label: String(v), bg: '#fff', value: v, isCorrect: false })),
-    ];
-
-    // Shuffle
-    for (let i = allOptions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+    const correct = start + 4 * step;
+    const candidates: number[] = [];
+    for (const delta of [-(step * 2), -step, step, step * 2, -(step * 3), step * 3]) {
+      const v = correct + delta;
+      if (v > 0 && v !== correct && !candidates.includes(v)) candidates.push(v);
     }
+    const wrongAnswers = shuffle(candidates).slice(0, 3);
 
-    return {
-      items,
-      correctAnswer,
-      options: allOptions,
-      hint: ruleEntry.hint,
-      rule: ruleEntry.rule,
-      itemBank: [],
-    };
+    const allOptions = shuffle([
+      { emoji: '', label: String(correct), bg: '#fff', value: correct, isCorrect: true },
+      ...wrongAnswers.map(v => ({ emoji: '', label: String(v), bg: '#fff', value: v, isCorrect: false })),
+    ]);
+
+    return { items, correctAnswer: correct, options: allOptions, hint: ruleEntry.hint, rule: ruleEntry.rule, itemBank: [] };
   }
 
-  // Color / shape / mixed pattern
-  const itemSets = [
-    { items: COLOR_ITEMS.slice(0, 3), type: 'color' as ItemType },
-    { items: SHAPE_ITEMS.slice(0, 4), type: 'shape' as ItemType },
-  ];
-
-  let itemBank: Array<{ emoji: string; label: string; bg: string; border?: string }>;
-  if (level === 'easy') {
-    itemBank = itemSets[Math.random() < 0.5 ? 0 : 1].items.slice(0, 2);
-  } else if (level === 'medium') {
-    itemBank = itemSets[Math.random() < 0.5 ? 0 : 1].items.slice(0, 3);
-  } else {
-    itemBank = itemSets[Math.floor(Math.random() * 2)].items.slice(0, 3);
-  }
+  // Color / shape pattern: use full shuffled bank for maximum diversity
+  const useColors = Math.random() < 0.5;
+  const fullBank = shuffle(useColors ? COLOR_ITEMS : SHAPE_ITEMS);
+  const itemBank = fullBank.slice(0, Math.min(fullBank.length, level === 'easy' ? 4 : level === 'medium' ? 5 : 6));
 
   const rule = ruleEntry.rule;
-  const displayRule = rule.slice(0, rule.length - 1); // show all but last as "?"
-  const correctIdx = rule[rule.length - 1];
+  const displayRule = rule.slice(0, rule.length - 1);
+  const correctRuleIdx = rule[rule.length - 1];
 
-  const items = displayRule.map(idx => itemBank[idx]);
-  const correctItem = itemBank[correctIdx];
+  const correctBankIdx = correctRuleIdx % itemBank.length;
+  const items = displayRule.map(ridx => itemBank[ridx % itemBank.length]);
+  const correctItem = itemBank[correctBankIdx];
 
-  // Wrong options: pick from itemBank but not the correct one
-  const wrongOptions = itemBank
-    .filter((_, idx) => idx !== correctIdx)
-    .map(item => ({ ...item, isCorrect: false }));
+  // Build 3 DISTINCT wrong options — different from correct AND from each other
+  const wrongPool = itemBank
+    .map((item, idx) => ({ item, idx }))
+    .filter(({ idx }) => idx !== correctBankIdx)
+    .map(({ item }) => item);
 
-  // If we need more wrong options, create plausible variants
-  while (wrongOptions.length < 3) {
-    const randomItem = itemBank[Math.floor(Math.random() * itemBank.length)];
-    wrongOptions.push({ ...randomItem, isCorrect: false, label: randomItem.label + '?' });
+  // If pool is too small, add near-miss variants
+  while (wrongPool.length < 3) {
+    wrongPool.push({ ...correctItem, label: correctItem.label + ' option' });
   }
 
-  const allOptions = [
+  const wrongOptions = shuffle(wrongPool).slice(0, 3);
+  const allOptions = shuffle([
     { ...correctItem, isCorrect: true },
-    ...wrongOptions.slice(0, 3),
-  ];
-
-  // Shuffle options
-  for (let i = allOptions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
-  }
+    ...wrongOptions.map(item => ({ ...item, isCorrect: false })),
+  ]);
 
   return {
     items,
-    correctAnswer: correctIdx,
+    correctAnswer: correctBankIdx,
     options: allOptions,
     hint: ruleEntry.hint,
-    rule,
+    rule: ruleEntry.rule,
     itemBank,
   };
 }
 
-// ─── Answer option button ───────────────────────────────────────────────────────
+
 function OptionButton({
   option, state, onClick,
 }: {
