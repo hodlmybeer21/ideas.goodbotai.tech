@@ -173,9 +173,9 @@ function generateMediumQuestion(): Question {
   }
 
   const items = pattern.map(i => itemMap[i % itemMap.length]);
-  const correctItem = items[items.length - 1];
+  const correctItem = items[items.length % pattern.length];
 
-  const wrongPool = itemMap.filter(it => it.label !== correctItem.label);
+  const wrongPool = itemMap.filter(it => it.bgColor !== correctItem.bgColor);
   const wrongs = shuffle(wrongPool).slice(0, 3);
 
   const themeLabel = useMixed ? 'colors and shapes' : 'shapes';
@@ -228,10 +228,10 @@ function generateHardQuestion(): Question {
 
     const pattern = [0, 0, 1, 0, 0];
     const items = pattern.map(i => itemMap[i]);
-    const correctItem = items[items.length - 1];
+    const correctItem = items[items.length % pattern.length];
 
-    const itemMapWrongs = itemMap.filter(it => it.label !== correctItem.label);
-    const poolWrongs = shuffle(ARROW_ITEMS.filter(it => it.label !== correctItem.label));
+    const itemMapWrongs = itemMap.filter(it => it.bgColor !== correctItem.bgColor);
+    const poolWrongs = shuffle(ARROW_ITEMS.filter(it => it.bgColor !== correctItem.bgColor));
     const wrongs = [...itemMapWrongs, ...poolWrongs].slice(0, 3);
 
     const hint = `Watch the arrows — which direction does it go next?`;
