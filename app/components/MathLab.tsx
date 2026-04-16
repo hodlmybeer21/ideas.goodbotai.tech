@@ -194,14 +194,33 @@ function genBondsProblem(level: number): BondsProblem {
   return { a, b, missing };
 }
 
-function genChoices(correct: number, level: number): number[] {
+function genChoices(correct: number, _level: number): number[] {
+  // Guarantee 4 unique choices with no infinite loop.
+  // Strategy: correct + nearby in-bounds + fill from remaining ints.
   const choices = new Set<number>([correct]);
-  const range = Math.max(3, 5 - Math.floor(level / 3));
-  while (choices.size < 4) {
-    let c = correct + Math.floor(Math.random() * range) - Math.floor(range / 2);
-    if (c >= 0 && c <= 10) choices.add(c);
+
+  // Nearby wrong answers (always in bounds since correct ∈ [0,10])
+  const offsets = [-2, -1, 1, 2, 3, 4, -3, -4];
+  for (const offset of offsets) {
+    const c = correct + offset;
+    if (c >= 0 && c <= 10 && c !== correct) choices.add(c);
+    if (choices.size >= 4) break;
   }
-  return Array.from(choices).sort(() => Math.random() - 0.5);
+
+  // Fill remaining with any other in-bounds integers
+  if (choices.size < 4) {
+    for (let c = 0; c <= 10 && choices.size < 4; c++) {
+      if (c !== correct) choices.add(c);
+    }
+  }
+
+  const result = Array.from(choices);
+  // Shuffle
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function NumberBonds({ onBack, onScore }: { onBack: () => void; onScore: (s: number) => void }) {
