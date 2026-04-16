@@ -138,14 +138,15 @@ function generateEasyQuestion(): Question {
   const itemMap = [itemA, itemB];
 
   const items = pattern.map(i => itemMap[i]);
-  const correctItem = itemMap[pattern[pattern.length - 1]];
-
-  // Wrong answers: first try the OTHER item in itemMap (same visual category),
-  // then fill remaining slots from the full pool to keep options related.
-  const itemMapWrongs = itemMap.filter(it => it.label !== correctItem.label);
-  const poolWrongs = shuffle(pool.filter(it => it.label !== correctItem.label));
+  // NEXT item = pattern[items.length % pattern.length]
+  // ABAB [0,1,0,1]: pattern[4%4]=0=itemA ✓; AABB [0,0,1,1]: pattern[4%4]=0=itemA ✓
+  // Previously used pattern[pattern.length-1] which always returned itemB — wrong for both.
+  const correctItem = itemMap[items.length % pattern.length];
+  // Wrong answers: filter by bgColor (not label) to prevent visually identical duplicates
+  // like two purple items from COLOR_ITEMS and SHAPE_ITEMS appearing together.
+  const itemMapWrongs = itemMap.filter(it => it.bgColor !== correctItem.bgColor);
+  const poolWrongs = shuffle(pool.filter(it => it.bgColor !== correctItem.bgColor));
   const wrongs = [...itemMapWrongs, ...poolWrongs].slice(0, 3);
-
   const hint = useColors
     ? `Look at the colors — does it go ${itemA.label}, ${itemB.label}, ${itemA.label}, ${itemB.label}?`
     : `Look at the shapes — does it go ${itemA.label}, ${itemB.label}, ${itemA.label}, ${itemB.label}?`;
