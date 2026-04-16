@@ -260,7 +260,7 @@ function ReadingScreen({
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     touchMoved.current = true;
     const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const el = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null;
     if (el && el.dataset.wordIdx !== undefined) {
       const idx = parseInt(el.dataset.wordIdx);
       const word = words[idx];
