@@ -173,10 +173,11 @@ function Clock({
   };
 
   // Hour numbers
+  // 12 numbers, i=0 → 12 (at top/-90°), i=1 → 1, ..., i=11 → 11
   const hourNumbers = Array.from({ length: 12 }, (_, i) => {
-    const num = i + 1;
-    const angle = i * 30;
-    const rad = (angle - 90) * (Math.PI / 180);
+    const num = i === 0 ? 12 : i;
+    const angle = i * 30 - 90;
+    const rad = angle * (Math.PI / 180);
     const r = 110;
     return {
       num,
@@ -185,11 +186,11 @@ function Clock({
     };
   });
 
-  // Tick marks
+  // Tick marks: i=0 → tick at 12 o'clock (top), i=15 → tick at 3, etc.
   const ticks = Array.from({ length: 60 }, (_, i) => {
-    const angle = i * 6;
+    const angle = i * 6 - 90;
     const isMain = i % 5 === 0;
-    const rad = (angle - 90) * (Math.PI / 180);
+    const rad = angle * (Math.PI / 180);
     const innerR = isMain ? 100 : 108;
     const outerR = 118;
     return {
