@@ -252,16 +252,8 @@ function Clock({
         </div>
       </div>
 
-      {/* Current digital readout */}
-      <div style={{
-        fontFamily: 'Fredoka', fontSize: 28, fontWeight: 700,
-        color: '#555', marginTop: 8, letterSpacing: 2,
-      }}>
-        {formatTime(currentHour, currentMinute)}
-      </div>
-
       {/* Control buttons */}
-      <div style={{ display: 'flex', gap: 40, marginTop: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 40, marginTop: 12, alignItems: 'center' }}>
         {/* Hour controls */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <div style={{ ...labelStyle, marginBottom: 2 }}>HOUR</div>
@@ -286,13 +278,13 @@ function Clock({
 
       {/* Hint text for easy level */}
       {level === 'easy' && (
-        <div style={{ fontFamily: 'Fredoka', fontSize: 13, color: '#aaa', marginTop: 10 }}>
-          ↑ just tap the HOUR buttons (minutes always at 00)
+        <div style={{ fontFamily: 'Fredoka', fontSize: 13, color: '#aaa', marginTop: 8 }}>
+          Use the pink buttons to change the hour ↑
         </div>
       )}
       {level === 'medium' && (
-        <div style={{ fontFamily: 'Fredoka', fontSize: 13, color: '#aaa', marginTop: 10 }}>
-          ↑ minutes snap to :00 or :30
+        <div style={{ fontFamily: 'Fredoka', fontSize: 13, color: '#aaa', marginTop: 8 }}>
+          Minutes snap to :00 or :30 ↑
         </div>
       )}
     </div>
