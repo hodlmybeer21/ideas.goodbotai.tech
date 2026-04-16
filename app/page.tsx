@@ -13,8 +13,9 @@ import TellTime from './components/TellTime';
 import PatternPuzzles from './components/PatternPuzzles';
 import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
+import SentenceBuilder from './components/SentenceBuilder';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'pattern' | 'robot' | 'truefalse' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'pattern' | 'robot' | 'truefalse' | 'sentence' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -84,6 +85,7 @@ export default function Home() {
         {view === 'pattern' && <PatternPuzzles onBack={() => setView('home')} kidName={kidName} />}
         {view === 'robot' && <IsTheRobotRight onBack={() => setView('home')} kidName={kidName} />}
         {view === 'truefalse' && <TrueFalse onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -140,6 +142,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'pattern' as View, icon: '🧩', name: 'Pattern Puzzles', desc: 'Complete the sequence!', color: 'purple' },
     { id: 'robot' as View, icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple' },
     { id: 'truefalse' as View, icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green' },
+    { id: 'sentence' as View, icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow' },
   ];
 
   return (
