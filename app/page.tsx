@@ -8,8 +8,9 @@ import AnimalMatch from './components/AnimalMatch';
 import SoundLab from './components/SoundLab';
 import MathLab from './components/MathLab';
 import MadLibs from './components/MadLibs';
+import ReadAlong from './components/ReadAlong';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -74,6 +75,7 @@ export default function Home() {
         {view === 'sound' && <SoundLab onBack={() => setView('home')} kidName={kidName} />}
         {view === 'math' && <MathLab onBack={() => setView('home')} kidName={kidName} />}
         {view === 'madlib' && <MadLibs onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'readalong' && <ReadAlong onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -125,6 +127,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'sound' as View, icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange' },
     { id: 'math' as View, icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink' },
     { id: 'madlib' as View, icon: '📝', name: 'Mad Libs', desc: 'Fill in the blanks for silly stories!', color: 'yellow' },
+    { id: 'readalong' as View, icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple' },
   ];
 
   return (
