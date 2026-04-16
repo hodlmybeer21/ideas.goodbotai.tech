@@ -8,13 +8,14 @@ import AnimalMatch from './components/AnimalMatch';
 import SoundLab from './components/SoundLab';
 import MathLab from './components/MathLab';
 import MadLibs from './components/MadLibs';
+import SpotDifference from './components/SpotDifference';
 import ReadAlong from './components/ReadAlong';
 import TellTime from './components/TellTime';
 import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'diff' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -84,6 +85,7 @@ export default function Home() {
         {view === 'robot' && <IsTheRobotRight onBack={() => setView('home')} kidName={kidName} />}
         {view === 'truefalse' && <TrueFalse onBack={() => setView('home')} kidName={kidName} />}
         {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'diff' && <SpotDifference onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -140,6 +142,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'robot' as View, icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple' },
     { id: 'truefalse' as View, icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green' },
     { id: 'sentence' as View, icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow' },
+    { id: 'diff' as View, icon: '🔍', name: 'Spot the Difference', desc: 'Find the differences between two pictures!', color: 'pink' },
   ];
 
   return (
