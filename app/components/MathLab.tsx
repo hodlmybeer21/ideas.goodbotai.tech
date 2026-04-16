@@ -374,14 +374,29 @@ function genTFProblem(level: number): TFPProblem {
     const b = Math.floor(Math.random() * (level <= 1 ? 10 : 10)) + 1;
     const correct = a + b;
     isTrue = Math.random() < 0.5;
-    const wrong = isTrue ? correct : correct + Math.floor(Math.random() * 5) - 2;
+    let wrong: number;
+    if (isTrue) {
+      wrong = correct;
+    } else {
+      // Keep generating wrong values until they actually differ from correct
+      do {
+        wrong = correct + Math.floor(Math.random() * 5) - 2;
+      } while (wrong === correct);
+    }
     text = `${a} + ${b} = ${wrong}`;
   } else {
     const a = Math.floor(Math.random() * (level <= 1 ? 10 : 15)) + 2;
     const b = Math.floor(Math.random() * Math.min(a - 1, level <= 1 ? 9 : 12)) + 1;
     const correct = a - b;
     isTrue = Math.random() < 0.5;
-    const wrong = isTrue ? correct : correct + Math.floor(Math.random() * 5) - 2;
+    let wrong: number;
+    if (isTrue) {
+      wrong = correct;
+    } else {
+      do {
+        wrong = correct + Math.floor(Math.random() * 5) - 2;
+      } while (wrong === correct);
+    }
     text = `${a} - ${b} = ${wrong}`;
   }
   return { text, isTrue };
