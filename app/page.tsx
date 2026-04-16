@@ -12,8 +12,9 @@ import ReadAlong from './components/ReadAlong';
 import TellTime from './components/TellTime';
 import PatternPuzzles from './components/PatternPuzzles';
 import IsTheRobotRight from './components/IsTheRobotRight';
+import TrueFalse from './components/TrueFalse';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'pattern' | 'robot' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'pattern' | 'robot' | 'truefalse' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -82,6 +83,7 @@ export default function Home() {
         {view === 'time' && <TellTime onBack={() => setView('home')} kidName={kidName} />}
         {view === 'pattern' && <PatternPuzzles onBack={() => setView('home')} kidName={kidName} />}
         {view === 'robot' && <IsTheRobotRight onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'truefalse' && <TrueFalse onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -136,7 +138,8 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'readalong' as View, icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple' },
     { id: 'time' as View, icon: '🕐', name: 'Tell Time', desc: 'Learn to read the clock!', color: 'blue' },
     { id: 'pattern' as View, icon: '🧩', name: 'Pattern Puzzles', desc: 'Complete the sequence!', color: 'purple' },
-    { id: 'robot' as View, icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'blue' },
+    { id: 'robot' as View, icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple' },
+    { id: 'truefalse' as View, icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green' },
   ];
 
   return (
