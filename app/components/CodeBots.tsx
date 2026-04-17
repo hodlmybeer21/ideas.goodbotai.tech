@@ -29,17 +29,17 @@ const COMMANDS: Command[] = [
 ];
 
 const EASY_LEVELS: Level[] = [
-  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 1, y: 0 }, walls: [], minCommands: 1, maxCommands: 4 },
-  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 0 }, walls: [], minCommands: 2, maxCommands: 4 },
-  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 1, y: 1 }, walls: [], minCommands: 3, maxCommands: 4 },
-  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 1 }, walls: [], minCommands: 4, maxCommands: 4 },
+  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 1, y: 0 }, walls: [], minCommands: 1, maxCommands: 20 },
+  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 0 }, walls: [], minCommands: 2, maxCommands: 20 },
+  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 1, y: 1 }, walls: [], minCommands: 3, maxCommands: 20 },
+  { gridCols: 3, gridRows: 4, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 1 }, walls: [], minCommands: 4, maxCommands: 20 },
 ];
 
 const HARD_LEVELS: Level[] = [
-  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 0 }, walls: [], minCommands: 2, maxCommands: 8 },
-  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 4, y: 0 }, walls: [{ x: 2, y: 0 }], minCommands: 4, maxCommands: 8 },
-  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 2 }, goal: { x: 4, y: 2 }, walls: [{ x: 2, y: 2 }, { x: 3, y: 2 }], minCommands: 5, maxCommands: 8 },
-  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 4, y: 4 }, walls: [{ x: 1, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }], minCommands: 8, maxCommands: 8 },
+  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 2, y: 0 }, walls: [], minCommands: 2, maxCommands: 20 },
+  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 4, y: 0 }, walls: [{ x: 2, y: 0 }], minCommands: 4, maxCommands: 20 },
+  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 2 }, goal: { x: 4, y: 2 }, walls: [{ x: 2, y: 2 }, { x: 3, y: 2 }], minCommands: 5, maxCommands: 20 },
+  { gridCols: 5, gridRows: 5, botStart: { x: 0, y: 0 }, goal: { x: 4, y: 4 }, walls: [{ x: 1, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }], minCommands: 8, maxCommands: 20 },
 ];
 
 const DIRECTION_ORDER: Direction[] = ['up', 'right', 'down', 'left'];
@@ -410,7 +410,7 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
               );
             })
           )}
-          {sequence.length >= maxSeq && (
+          {sequence.length >= 20 && (
             <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>Max!</span>
           )}
         </div>
