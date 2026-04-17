@@ -10,13 +10,14 @@ import MathLab from './components/MathLab';
 import MadLibs from './components/MadLibs';
 import EqualParts from './components/EqualParts';
 import SyllableScooper from './components/SyllableScooper';
+import CharacterTraits from './components/CharacterTraits';
 import ReadAlong from './components/ReadAlong';
 import TellTime from './components/TellTime';
 import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'character' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -88,6 +89,7 @@ export default function Home() {
         {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
         {view === 'equal' && <EqualParts />}
         {view === 'syllable' && <SyllableScooper />}
+        {view === 'character' && <CharacterTraits onBack={() => setView('home')} />}
       </main>
     </>
   );
@@ -146,6 +148,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'sentence' as View, icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow' },
     { id: 'equal' as View, icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple' },
     { id: 'syllable' as View, icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo' },
+    { id: 'character' as View, icon: '👸', name: 'Character Traits', desc: 'Sort good and evil traits from Cinderella!', color: 'pink' },
   ];
 
   return (
