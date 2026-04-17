@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import RatingModal from './RatingModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ interface Level {
   botStart: { x: number; y: number };
   goal: { x: number; y: number };
   walls: { x: number; y: number }[];
-  minCommands: number; // for 3-star rating
+  minCommands: number;
   maxCommands: number;
 }
 
@@ -30,18 +30,12 @@ interface Position {
   y: number;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Level Data ────────────────────────────────────────────────────────────────
 
 const COMMANDS_EASY: Command[] = [
-  { id: 'forward',   label: 'Forward',   icon: '↑', color: '#3B82F6' },
+  { id: 'forward',   label: 'Forward',    icon: '↑', color: '#3B82F6' },
   { id: 'turnRight', label: 'Turn Right', icon: '↻', color: '#F59E0B' },
   { id: 'turnLeft',  label: 'Turn Left',  icon: '↺', color: '#F97316' },
-];
-
-const COMMANDS_HARD: Command[] = [
-  { id: 'forward',   label: 'Forward',    icon: '↑', color: '#3B82F6' },
-  { id: 'turnRight', label: 'Turn Right',  icon: '↻', color: '#F59E0B' },
-  { id: 'turnLeft',  label: 'Turn Left',   icon: '↺', color: '#F97316' },
 ];
 
 const EASY_LEVELS: Level[] = [
@@ -107,75 +101,77 @@ const HARD_LEVELS: Level[] = [
 ];
 
 const DIRECTION_ORDER: Direction[] = ['up', 'right', 'down', 'left'];
-const GRID_CELL = 64; // px per cell
+const GRID_CELL = 64;
+const STEP_DELAY_MS = 600;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function directionDelta(dir: Direction): Position {
-  switch (dir) {
-    case 'up':    return { x: 0,  y: -1 };
-    case 'right': return { x: 1,  y:  0 };
-    case 'down':  return { x: 0,  y:  1 };
-    case 'left':  return { x: -1, y:  0 };
-  }
-}
-
 function rotateDir(dir: Direction, turn: 'right' | 'left'): Direction {
   const i = DIRECTION_ORDER.indexOf(dir);
-  const delta = turn === 'right' ? 1 : -1;
-  return DIRECTION_ORDER[(i + delta + 4) % 4];
+  return DIRECTION_ORDER[(i + (turn === 'right' ? 1 : -1) + 4) % 4];
 }
 
-function calcNextPosition(pos: Position, dir: Direction): Position {
-  const delta = directionDelta(dir);
-  return { x: pos.x + delta.x, y: pos.y + delta.y };
-}
-
-function isWall(x: number, y: number, walls: Level['walls']): boolean {
-  return walls.some(w => w.x === x && w.y === y);
-}
-
-function isGoal(pos: Position, goal: Position): boolean {
-  return pos.x === goal.x && pos.y === goal.y;
-}
-
-function isOutOfBounds(pos: Position, cols: number, rows: number): boolean {
-  return pos.x < 0 || pos.x >= cols || pos.y < 0 || pos.y >= rows;
+function moveForward(pos: Position, dir: Direction): Position {
+  switch (dir) {
+    case 'up':    return { x: pos.x,     y: pos.y - 1 };
+    case 'down':  return { x: pos.x,     y: pos.y + 1 };
+    case 'left':  return { x: pos.x - 1, y: pos.y };
+    case 'right': return { x: pos.x + 1, y: pos.y };
+  }
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidName: string }) {
-  const [showIntro, setShowIntro]       = useState(true);
-  const [selectedMode, setSelectedMode] = useState<Mode>('easy');
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [sequence, setSequence]         = useState<string[]>([]);
-  const [isRunning, setIsRunning]       = useState(false);
+export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () => void; kidName?: string }) {
+  const [showIntro, setShowIntro]         = useState(true);
+  const [selectedMode, setSelectedMode]   = useState<Mode>('easy');
+  const [currentLevel, setCurrentLevel]   = useState(0);
+  const [sequence, setSequence]           = useState<string[]>([]);
+  const [isRunning, setIsRunning]         = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [botPosition, setBotPosition]   = useState<Position>({ x: 0, y: 0 });
-  const [botDirection, setBotDirection] = useState<Direction>('right');
-  const [showSuccess, setShowSuccess]   = useState(false);
-  const [starsEarned, setStarsEarned]   = useState(0);
-  const [rated, setRated]               = useState(false);
-  const [failed, setFailed]            = useState(false);
+  const [botPos, setBotPos]               = useState<Position>({ x: 0, y: 0 });
+  const [botDir, setBotDir]               = useState<Direction>('right');
+  const [showSuccess, setShowSuccess]     = useState(false);
+  const [starsEarned, setStarsEarned]     = useState(0);
+  const [rated, setRated]                 = useState(false);
+  const [failed, setFailed]              = useState(false);
 
-  const levels = selectedMode === 'easy' ? EASY_LEVELS : HARD_LEVELS;
-  const level  = levels[currentLevel];
-  const commands = selectedMode === 'easy' ? COMMANDS_EASY : COMMANDS_HARD;
+  // Refs so the timer callback always sees the latest values without re-triggering the effect
+  const seqRef       = useRef<string[]>([]);
+  const stepRef      = useRef(-1);
+  const posRef       = useRef<Position>({ x: 0, y: 0 });
+  const dirRef       = useRef<Direction>('right');
+  const levelRef     = useRef<Level>(EASY_LEVELS[0]);
+  const failedRef    = useRef(false);
+  const successRef   = useRef(false);
+
+  const levels  = selectedMode === 'easy' ? EASY_LEVELS : HARD_LEVELS;
+  const level   = levels[currentLevel];
+  const commands = COMMANDS_EASY;
   const maxSeq  = level.maxCommands;
+
+  // Keep refs in sync with state
+  useEffect(() => { seqRef.current = sequence; }, [sequence]);
+  useEffect(() => { levelRef.current = level; }, [level]);
 
   const resetLevel = useCallback(() => {
     setSequence([]);
     setIsRunning(false);
     setCurrentStepIndex(-1);
-    setBotPosition({ ...level.botStart });
-    setBotDirection('right');
+    const start = level.botStart;
+    setBotPos({ ...start });
+    setBotDir('right');
     setShowSuccess(false);
     setStarsEarned(0);
     setFailed(false);
+    posRef.current = { ...start };
+    dirRef.current = 'right';
+    stepRef.current = -1;
+    failedRef.current = false;
+    successRef.current = false;
   }, [level]);
 
-  useEffect(() => { resetLevel(); }, [selectedMode, currentLevel, resetLevel]);
+  useEffect(() => { resetLevel(); }, [resetLevel]);
 
   const handleCommand = (cmdId: string) => {
     if (isRunning || showSuccess) return;
@@ -193,117 +189,121 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
     if (isRunning || sequence.length === 0) return;
     setIsRunning(true);
     setCurrentStepIndex(0);
-    setBotPosition({ ...level.botStart });
-    setBotDirection('right');
     setShowSuccess(false);
     setFailed(false);
+    const start = { ...level.botStart };
+    setBotPos(start);
+    setBotDir('right');
+    posRef.current = start;
+    dirRef.current = 'right';
+    stepRef.current = 0;
+    failedRef.current = false;
+    successRef.current = false;
   };
 
-  // Step-by-step execution
+  // ─── Timer-based execution engine ───────────────────────────────────────────
+  // Uses refs so state updates don't re-trigger the effect
   useEffect(() => {
     if (!isRunning) return;
-    if (currentStepIndex < 0) return;
 
-    const timer = setTimeout(() => {
-      if (currentStepIndex >= sequence.length) {
-        // Done — check win
+    const tick = () => {
+      const step = stepRef.current;
+      const seq  = seqRef.current;
+      const lvl  = levelRef.current;
+      const pos  = posRef.current;
+      const dir  = dirRef.current;
+
+      if (step >= seq.length) {
+        // Sequence complete — check win
         setIsRunning(false);
         setCurrentStepIndex(-1);
-        if (isGoal(botPosition, level.goal)) {
+        const won = pos.x === lvl.goal.x && pos.y === lvl.goal.y;
+        if (won) {
           setShowSuccess(true);
-          const stars = sequence.length <= level.minCommands
-            ? 3
-            : sequence.length <= level.minCommands + 2
-            ? 2
-            : 1;
+          successRef.current = true;
+          const stars = seq.length <= lvl.minCommands ? 3 : seq.length <= lvl.minCommands + 2 ? 2 : 1;
           setStarsEarned(stars);
         } else {
           setFailed(true);
+          failedRef.current = true;
         }
         return;
       }
 
-      const cmdId = sequence[currentStepIndex];
-      let newPos: Position = { ...botPosition };
+      const cmdId = seq[step];
 
       if (cmdId === 'forward') {
-        newPos = calcNextPosition(botPosition, botDirection);
-        if (isOutOfBounds(newPos, level.gridCols, level.gridRows) ||
-            isWall(newPos.x, newPos.y, level.walls)) {
-          // Hit wall / boundary — fail
+        const next = moveForward(pos, dir);
+        // Check bounds and walls
+        if (next.x < 0 || next.x >= lvl.gridCols || next.y < 0 || next.y >= lvl.gridRows ||
+            lvl.walls.some(w => w.x === next.x && w.y === next.y)) {
           setIsRunning(false);
           setCurrentStepIndex(-1);
           setFailed(true);
+          failedRef.current = true;
           return;
         }
-        setBotPosition(newPos);
+        posRef.current = next;
+        setBotPos({ ...next });
+        stepRef.current = step + 1;
+        setCurrentStepIndex(step + 1);
       } else if (cmdId === 'turnRight') {
-        setBotDirection(rotateDir(botDirection, 'right'));
+        const newDir = rotateDir(dir, 'right');
+        dirRef.current = newDir;
+        setBotDir(newDir);
+        stepRef.current = step + 1;
+        setCurrentStepIndex(step + 1);
       } else if (cmdId === 'turnLeft') {
-        setBotDirection(rotateDir(botDirection, 'left'));
+        const newDir = rotateDir(dir, 'left');
+        dirRef.current = newDir;
+        setBotDir(newDir);
+        stepRef.current = step + 1;
+        setCurrentStepIndex(step + 1);
       }
+    };
 
-      setCurrentStepIndex(prev => prev + 1);
-    }, 500);
-
+    // Small initial delay, then step through
+    const timer = setTimeout(tick, STEP_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [isRunning, currentStepIndex, sequence, botPosition, botDirection, level]);
+  }, [isRunning]);
 
   const handleNextLevel = () => {
     if (currentLevel < levels.length - 1) {
       setCurrentLevel(prev => prev + 1);
     } else {
-      // All levels done — go back to mode select
       setShowIntro(true);
       setCurrentLevel(0);
     }
   };
 
-  const handleRetry = () => {
-    resetLevel();
-  };
-
   // ─── Render helpers ─────────────────────────────────────────────────────────
 
+  const dirRotation = (dir: Direction): number =>
+    ({ up: 0, right: 90, down: 180, left: 270 }[dir]);
+
   const renderCell = (x: number, y: number) => {
-    const isBot   = botPosition.x === x && botPosition.y === y;
+    const isBot   = botPos.x === x && botPos.y === y;
     const isGoal  = level.goal.x === x && level.goal.y === y;
     const isWall  = level.walls.some(w => w.x === x && w.y === y);
-    const isStart = level.botStart.x === x && level.botStart.y === y;
-
-    let bg = 'white';
-    if (isWall)  bg = '#374151';
-    else if (isGoal) bg = '#6BCB77';
-    else if ((x + y) % 2 === 0) bg = '#F8F8F4';
-
-    const rotation: Record<Direction, number> = {
-      up: 0, right: 90, down: 180, left: 270,
-    };
-    const rot = rotation[botDirection];
+    const bg = isWall ? '#374151' : isGoal ? '#6BCB77' : (x + y) % 2 === 0 ? '#F8F8F4' : 'white';
 
     return (
       <div
         key={`${x}-${y}`}
         style={{
-          width: GRID_CELL,
-          height: GRID_CELL,
+          width: GRID_CELL, height: GRID_CELL,
           background: bg,
           border: '1.5px solid #E5E0D8',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative',
-          transition: 'background 0.2s',
-          boxShadow: isGoal ? '0 0 12px #6BCB77' : undefined,
+          boxShadow: isGoal && !isBot ? '0 0 14px #6BCB77' : undefined,
         }}
       >
-        {isGoal && !isBot && (
-          <span style={{ fontSize: 28 }}>⭐</span>
-        )}
+        {isGoal && !isBot && <span style={{ fontSize: 26 }}>⭐</span>}
         {isBot && (
           <span style={{
-            fontSize: 36,
-            transform: `rotate(${rot}deg)`,
+            fontSize: 34,
+            transform: `rotate(${dirRotation(botDir)}deg)`,
             transition: 'transform 0.3s ease',
             display: 'inline-block',
           }}>
@@ -314,37 +314,38 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
     );
   };
 
-  const starsDisplay = (n: number) => '⭐'.repeat(n) + '☆'.repeat(3 - n);
+  const starsDisplay = (n: number) =>
+    '⭐'.repeat(n) + '☆'.repeat(3 - n);
 
-  // ─── Intro screen ───────────────────────────────────────────────────────────
+  // ─── Intro ──────────────────────────────────────────────────────────────────
 
   if (showIntro) {
     return (
       <div className="canvas-page slide-up">
         <button className="back-btn" onClick={onBack}>← Back</button>
         <h1 className="page-title">🤖 CodeBots</h1>
-        <p style={{ fontSize: 16, color: 'var(--text-medium)', marginBottom: 24 }}>
-          Program your robot to reach the star! Choose your difficulty:
+        <p style={{ fontSize: 16, color: 'var(--text-medium)', marginBottom: 28 }}>
+          Program your robot to reach the ⭐ !
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <button
             className="btn btn-blue"
-            style={{ fontSize: 18, padding: '20px 32px', borderRadius: 20 }}
+            style={{ fontSize: 18, padding: '22px 32px', borderRadius: 20 }}
             onClick={() => { setSelectedMode('easy'); setShowIntro(false); setCurrentLevel(0); }}
           >
             🌟 Easy — Ages 4–5
-            <div style={{ fontSize: 13, marginTop: 4, opacity: 0.8 }}>
+            <div style={{ fontSize: 13, marginTop: 4, opacity: 0.85 }}>
               3×4 grid · 3 commands · 4 levels
             </div>
           </button>
           <button
             className="btn btn-purple"
-            style={{ fontSize: 18, padding: '20px 32px', borderRadius: 20 }}
+            style={{ fontSize: 18, padding: '22px 32px', borderRadius: 20 }}
             onClick={() => { setSelectedMode('hard'); setShowIntro(false); setCurrentLevel(0); }}
           >
             🚀 Hard — Ages 6–7
-            <div style={{ fontSize: 13, marginTop: 4, opacity: 0.8 }}>
+            <div style={{ fontSize: 13, marginTop: 4, opacity: 0.85 }}>
               5×5 grid · Walls · 8 commands · 4 levels
             </div>
           </button>
@@ -353,24 +354,27 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
     );
   }
 
-  // ─── Main game ──────────────────────────────────────────────────────────────
+  // ─── Game screen ─────────────────────────────────────────────────────────────
 
   return (
     <>
       <div className="canvas-page slide-up">
         <button className="back-btn" onClick={onBack}>← Back</button>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <h1 className="page-title">🤖 CodeBots</h1>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-medium)', background: 'var(--bg-primary)', padding: '4px 12px', borderRadius: 20 }}>
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: '#6B7280',
+            background: '#F3F4F6', padding: '4px 12px', borderRadius: 20,
+          }}>
             {selectedMode === 'easy' ? '🌟 Easy' : '🚀 Hard'} · Level {currentLevel + 1}/{levels.length}
           </span>
         </div>
 
-        {/* Stars earned */}
-        {starsEarned > 0 && (
-          <div style={{ fontSize: 20, marginBottom: 8, color: 'var(--accent-yellow)' }}>
+        {/* Stars */}
+        {starsEarned > 0 && !isRunning && (
+          <div style={{ fontSize: 18, marginBottom: 6, color: '#F59E0B' }}>
             {starsDisplay(starsEarned)} — {starsEarned === 3 ? 'Perfect!' : starsEarned === 2 ? 'Great job!' : 'You tried!'}
           </div>
         )}
@@ -382,7 +386,7 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
           gap: 0,
           borderRadius: 12,
           overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
           marginBottom: 16,
           width: 'fit-content',
         }}>
@@ -392,58 +396,57 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
         </div>
 
         {/* Command palette */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          {commands.map(cmd => (
-            <button
-              key={cmd.id}
-              onClick={() => handleCommand(cmd.id)}
-              disabled={isRunning || showSuccess || sequence.length >= maxSeq}
-              style={{
-                background: cmd.color,
-                color: 'white',
-                border: 'none',
-                borderRadius: 14,
-                padding: '10px 16px',
-                fontSize: 15,
-                fontWeight: 700,
-                fontFamily: 'Fredoka, sans-serif',
-                cursor: isRunning || showSuccess || sequence.length >= maxSeq ? 'not-allowed' : 'pointer',
-                opacity: isRunning || showSuccess || sequence.length >= maxSeq ? 0.5 : 1,
-                minWidth: 60,
-                minHeight: 48,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span style={{ fontSize: 18 }}>{cmd.icon}</span>
-              {cmd.label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+          {commands.map(cmd => {
+            const disabled = isRunning || showSuccess || sequence.length >= maxSeq;
+            return (
+              <button
+                key={cmd.id}
+                onClick={() => handleCommand(cmd.id)}
+                disabled={disabled}
+                style={{
+                  background: cmd.color,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 14,
+                  padding: '12px 18px',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  fontFamily: 'Fredoka, sans-serif',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.45 : 1,
+                  minWidth: 70, minHeight: 52,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  boxShadow: disabled ? 'none' : '0 3px 0 rgba(0,0,0,0.2)',
+                  transform: disabled ? 'none' : 'translateY(0)',
+                  transition: 'all 0.1s',
+                }}
+                onMouseDown={e => { if (!disabled) (e.target as HTMLElement).style.transform = 'translateY(2px)'; }}
+                onMouseUp={e => { (e.target as HTMLElement).style.transform = 'translateY(0)'; }}
+              >
+                <span style={{ fontSize: 20 }}>{cmd.icon}</span>
+                {cmd.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Sequence stack */}
+        {/* Sequence tray */}
         <div style={{
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-          minHeight: 52,
-          marginBottom: 12,
+          display: 'flex', gap: 8, flexWrap: 'wrap', minHeight: 52,
           alignItems: 'center',
-          background: '#F1F5F9',
-          borderRadius: 12,
-          padding: '8px 12px',
+          background: '#F1F5F9', borderRadius: 14, padding: '10px 14px',
+          marginBottom: 14,
         }}>
-          <span style={{ fontSize: 12, color: 'var(--text-medium)', fontWeight: 600, marginRight: 4 }}>
-            Program:
-          </span>
+          <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, marginRight: 4 }}>Program:</span>
           {sequence.length === 0 ? (
-            <span style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>
-              Tap commands above to add them...
+            <span style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>
+              Tap the commands above to build your program...
             </span>
           ) : (
             sequence.map((cmdId, i) => {
               const cmd = commands.find(c => c.id === cmdId)!;
+              const isActive = i === currentStepIndex && isRunning;
               return (
                 <span
                   key={i}
@@ -451,13 +454,12 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
                     background: cmd.color,
                     color: 'white',
                     borderRadius: 10,
-                    padding: '6px 12px',
-                    fontSize: 14,
+                    padding: '6px 13px',
+                    fontSize: 15,
                     fontWeight: 700,
-                    fontFamily: 'Fredoka, sans-serif',
-                    border: i === currentStepIndex ? '3px solid #1F2937' : '3px solid transparent',
-                    boxShadow: i === currentStepIndex ? '0 0 8px rgba(0,0,0,0.4)' : undefined,
-                    transition: 'border 0.2s, box-shadow 0.2s',
+                    border: isActive ? '3px solid #1F2937' : '3px solid transparent',
+                    boxShadow: isActive ? '0 0 10px rgba(0,0,0,0.45)' : undefined,
+                    transition: 'border 0.15s, box-shadow 0.15s',
                   }}
                 >
                   {cmd.icon}
@@ -466,14 +468,12 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
             })
           )}
           {sequence.length >= maxSeq && (
-            <span style={{ fontSize: 12, color: 'var(--accent-pink)', fontWeight: 700 }}>
-              Max {maxSeq}!
-            </span>
+            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>Max!</span>
           )}
         </div>
 
         {/* Controls */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
           <button
             className="btn btn-gray"
             onClick={handleClear}
@@ -486,82 +486,69 @@ export default function CodeBots({ onBack, kidName }: { onBack: () => void; kidN
             className="btn btn-green"
             onClick={handleRun}
             disabled={isRunning || sequence.length === 0}
-            style={{ fontSize: 15, minWidth: 100 }}
+            style={{ fontSize: 16, minWidth: 110, fontWeight: 800 }}
           >
             ▶️ RUN
           </button>
         </div>
 
-        {/* Status messages */}
+        {/* Success panel */}
         {showSuccess && (
           <div style={{
-            background: '#F0FFF4',
-            border: '3px solid var(--accent-green)',
-            borderRadius: 16,
-            padding: '16px 20px',
-            textAlign: 'center',
-            marginBottom: 16,
+            background: '#F0FFF4', border: '3px solid #22C55E',
+            borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14,
           }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>🎉</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-green)' }}>
-              You did it, {kidName}!
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A', marginBottom: 4 }}>
+              Way to go, {kidName}!
             </div>
-            <div style={{ fontSize: 16, color: 'var(--text-medium)', marginBottom: 12 }}>
-              {starsDisplay(starsEarned)} earned!
+            <div style={{ fontSize: 18, color: '#6B7280', marginBottom: 14 }}>
+              {starsDisplay(starsEarned)}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button className="btn btn-blue" onClick={handleRetry}>🔄 Try Again</button>
+              <button className="btn btn-blue" onClick={() => { resetLevel(); }}>🔄 Try Again</button>
               <button className="btn btn-green" onClick={handleNextLevel}>
-                {currentLevel < levels.length - 1 ? '➡️ Next Level' : '🎊 All Done!'}
+                {currentLevel < levels.length - 1 ? `Next Level ➡️` : `🎊 All Done!`}
               </button>
             </div>
           </div>
         )}
 
+        {/* Failure panel */}
         {failed && !showSuccess && (
           <div style={{
-            background: '#FFF0F4',
-            border: '3px solid var(--accent-pink)',
-            borderRadius: 16,
-            padding: '16px 20px',
-            textAlign: 'center',
-            marginBottom: 16,
+            background: '#FFF0F4', border: '3px solid #EF4444',
+            borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14,
           }}>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>🤖💔</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-pink)', marginBottom: 4 }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>🤖💦</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#EF4444', marginBottom: 4 }}>
               Oops! Try again!
             </div>
-            <div style={{ fontSize: 14, color: 'var(--text-medium)', marginBottom: 12 }}>
-              Your robot didn&apos;t reach the star. Change your commands and try again!
+            <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 14 }}>
+              Your robot didn&apos;t reach the ⭐. Change your program and try again!
             </div>
-            <button className="btn btn-blue" onClick={handleRetry}>🔄 Try Again</button>
+            <button className="btn btn-blue" onClick={() => { resetLevel(); }}>🔄 Try Again</button>
           </div>
         )}
 
-        {/* Level select */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+        {/* Level picker */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+          <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600 }}>Levels:</span>
           {levels.map((_, i) => (
             <button
               key={i}
               onClick={() => !isRunning && setCurrentLevel(i)}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                border: 'none',
-                background: i === currentLevel ? 'var(--accent-pink)' : '#E5E0D8',
-                color: i === currentLevel ? 'white' : 'var(--text-medium)',
-                fontWeight: 700,
-                fontSize: 14,
+                width: 36, height: 36, borderRadius: 10, border: 'none',
+                background: i === currentLevel ? '#8B5CF6' : '#E5E7EB',
+                color: i === currentLevel ? 'white' : '#6B7280',
+                fontWeight: 700, fontSize: 14,
                 cursor: isRunning ? 'not-allowed' : 'pointer',
               }}
             >
               {i + 1}
             </button>
           ))}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-medium)', marginTop: 4 }}>
-          Pick a level
         </div>
       </div>
 
