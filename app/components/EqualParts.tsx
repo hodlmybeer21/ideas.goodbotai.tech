@@ -216,6 +216,53 @@ function SplitCircleQuarters({ onDone }: { onDone: () => void }) {
 }
 
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────
+
+// ── SPLIT SHAPES ─────────────────────────────────────────────────────────
+function SplitSquareHalves({ onDone }: { onDone: () => void }) {
+  const [cut, setCut] = useState<'H'|'V'|null>(null);
+  const check = () => { if (cut) { onDone(); BING(); } else { WRONG_SND(); } };
+  return (
+    <div style={{textAlign:'center'}}>
+      <p style={{color:'#6B7280',fontSize:16,marginBottom:16}}>Cut this square into TWO EQUAL HALVES! Tap a line.</p>
+      <svg viewBox="0 0 220 220" style={{width:220,height:220,display:'inline-block'}}>
+        <rect x="10" y="10" width="200" height="200" fill="#A7F3D0" stroke="#065F46" strokeWidth="3" rx="8"/>
+        <line x1="110" y1="10" x2="110" y2="210" stroke={cut==='H'?'#16A34A':'#059669'} strokeWidth={cut==='H'?5:3} strokeDasharray={cut==='H'?'0':'6,4'} style={{cursor:'pointer'}} onClick={()=>setCut('H')}/>
+        <line x1="10" y1="110" x2="210" y2="110" stroke={cut==='V'?'#16A34A':'#059669'} strokeWidth={cut==='V'?5:3} strokeDasharray={cut==='V'?'0':'6,4'} style={{cursor:'pointer'}} onClick={()=>setCut('V')}/>
+        {!cut && <text x="110" y="118" textAnchor="middle" fontSize="13" fill="#065F46" fontFamily="Fredoka, sans-serif">Tap a line!</text>}
+        {cut && <text x="110" y="118" textAnchor="middle" fontSize="14" fill="#16A34A" fontFamily="Fredoka, sans-serif">Great!</text>}
+      </svg>
+      <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:16}}>
+        <button onClick={()=>setCut('H')} style={{background:cut==='H'?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↕ Top & Bottom</button>
+        <button onClick={()=>setCut('V')} style={{background:cut==='V'?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↔ Left & Right</button>
+        <button onClick={check} disabled={!cut} style={{background:!cut?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:!cut?'default':'pointer'}}>Check!</button>
+      </div>
+    </div>
+  );
+}
+
+function SplitSquareQuarters({ onDone }: { onDone: () => void }) {
+  const [cuts, setCuts] = useState<string[]>([]);
+  const toggle = (d: string) => setCuts(p => p.includes(d) ? p.filter(x=>x!==d) : [...p,d]);
+  const done = cuts.includes('H') && cuts.includes('V');
+  const check = () => { if (done) { onDone(); BING(); } else { WRONG_SND(); } };
+  return (
+    <div style={{textAlign:'center'}}>
+      <p style={{color:'#6B7280',fontSize:16,marginBottom:16}}>Cut the square into FOUR EQUAL QUARTERS! Tap both lines.</p>
+      <svg viewBox="0 0 220 220" style={{width:220,height:220,display:'inline-block'}}>
+        <rect x="10" y="10" width="200" height="200" fill="#A7F3D0" stroke="#065F46" strokeWidth="3" rx="8"/>
+        <line x1="110" y1="10" x2="110" y2="210" stroke={cuts.includes('H')?'#16A34A':'#059669'} strokeWidth={cuts.includes('H')?5:3} strokeDasharray={cuts.includes('H')?'0':'6,4'} style={{cursor:'pointer'}} onClick={()=>toggle('H')}/>
+        <line x1="10" y1="110" x2="210" y2="110" stroke={cuts.includes('V')?'#16A34A':'#059669'} strokeWidth={cuts.includes('V')?5:3} strokeDasharray={cuts.includes('V')?'0':'6,4'} style={{cursor:'pointer'}} onClick={()=>toggle('V')}/>
+        {!done && <text x="110" y="118" textAnchor="middle" fontSize="13" fill="#065F46" fontFamily="Fredoka, sans-serif">Tap 2 lines!</text>}
+        {done && <text x="110" y="118" textAnchor="middle" fontSize="14" fill="#16A34A" fontFamily="Fredoka, sans-serif">4 Equal Quarters!</text>}
+      </svg>
+      <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:16}}>
+        <button onClick={()=>toggle('H')} style={{background:cuts.includes('H')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↕ Top & Bottom</button>
+        <button onClick={()=>toggle('V')} style={{background:cuts.includes('V')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↔ Left & Right</button>
+        <button onClick={check} disabled={done} style={{background:done?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:done?'default':'pointer'}}>Check!</button>
+      </div>
+    </div>
+  );
+}
 export default function EqualParts() {
   const [screen, setScreen] = useState<'menu'|'split'|'quiz'|'win'>('menu');
   const [qIndex, setQIndex] = useState(0);
@@ -277,7 +324,6 @@ export default function EqualParts() {
 
   // ── SPLIT MODE ──────────────────────────────────────────────────────────
   if (screen === 'split') {
-    const steps = ['Cut the circle into HALVES (2 equal parts!)', 'Now cut into QUARTERS (4 equal parts!)', 'One more! Cut into QUARTERS!'];
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',padding:20}}>
         <div style={{background:'#D97706',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',borderRadius:12,marginBottom:16}}>
@@ -286,9 +332,10 @@ export default function EqualParts() {
           <span style={{color:'white',fontSize:15}}>{splitStep+1}/3</span>
         </div>
         <div style={{textAlign:'center'}}>
-          <h3 style={{color:'#92400E',fontSize:22,marginBottom:8}}>{steps[splitStep]}</h3>
+          <h3 style={{color:'#92400E',fontSize:20,marginBottom:16}}>{splitStep===0?'✂️ Cut the CIRCLE into HALVES (2 equal parts)!':splitStep===1?'✂️ Cut the SQUARE into QUARTERS (4 equal parts)!':'✂️ Cut the CIRCLE into QUARTERS (4 equal parts)!'}</h3>
           {splitStep === 0 && <SplitCircleHalves onDone={handleSplitDone}/>}
-          {splitStep >= 1 && <SplitCircleQuarters onDone={handleSplitDone}/>}
+          {splitStep === 1 && <SplitSquareQuarters onDone={handleSplitDone}/>}
+          {splitStep === 2 && <SplitCircleQuarters onDone={handleSplitDone}/>}
         </div>
       </div>
     );
