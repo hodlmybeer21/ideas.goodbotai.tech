@@ -8,7 +8,6 @@ import AnimalMatch from './components/AnimalMatch';
 import SoundLab from './components/SoundLab';
 import MathLab from './components/MathLab';
 import MadLibs from './components/MadLibs';
-import SpotDifference from './components/SpotDifference';
 import EqualParts from './components/EqualParts';
 import SyllableScooper from './components/SyllableScooper';
 import ReadAlong from './components/ReadAlong';
@@ -87,7 +86,6 @@ export default function Home() {
         {view === 'robot' && <IsTheRobotRight onBack={() => setView('home')} kidName={kidName} />}
         {view === 'truefalse' && <TrueFalse onBack={() => setView('home')} kidName={kidName} />}
         {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
-        {view === 'diff' && <SpotDifference />}
         {view === 'equal' && <EqualParts />}
         {view === 'syllable' && <SyllableScooper />}
       </main>
