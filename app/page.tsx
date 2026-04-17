@@ -85,7 +85,7 @@ export default function Home() {
         {view === 'robot' && <IsTheRobotRight onBack={() => setView('home')} kidName={kidName} />}
         {view === 'truefalse' && <TrueFalse onBack={() => setView('home')} kidName={kidName} />}
         {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
-        {view === 'diff' && <SpotDifference onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'diff' && <SpotDifference />}
       </main>
     </>
   );
