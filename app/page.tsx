@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DrawingCanvas from './components/DrawingCanvas';
 import StoryMachine from './components/StoryMachine';
+import CodeBots from './components/CodeBots';
 import AnimalMatch from './components/AnimalMatch';
 import SoundLab from './components/SoundLab';
 import MathLab from './components/MathLab';
@@ -16,7 +17,7 @@ import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -88,6 +89,7 @@ export default function Home() {
         {view === 'sentence' && <SentenceBuilder onBack={() => setView('home')} kidName={kidName} />}
         {view === 'equal' && <EqualParts />}
         {view === 'syllable' && <SyllableScooper />}
+        {view === 'codebots' && <CodeBots onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -146,6 +148,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'sentence' as View, icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow' },
     { id: 'equal' as View, icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple' },
     { id: 'syllable' as View, icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo' },
+    { id: 'codebots' as View, icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue' },
   ];
 
   return (
