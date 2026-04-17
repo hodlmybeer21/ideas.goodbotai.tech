@@ -10,10 +10,81 @@ interface Zone { id:number; x:number; y:number; w:number; h:number; }
 interface Scene { id:string; label:string; icon:string; easy:Zone[]; medium:Zone[]; hard:Zone[]; }
 
 const SCENES: Scene[] = [
-  {id:'robot',label:'Robot Friend',icon:'🤖',easy:[{id:1,x:30,y:5,w:20,h:22},{id:2,x:56,y:5,w:20,h:22},{id:3,x:36,y:30,w:14,h:16},{id:4,x:8,y:58,w:20,h:26},{id:5,x:72,y:58,w:20,h:26}],medium:[{id:1,x:30,y:5,w:20,h:22},{id:2,x:56,y:5,w:20,h:22},{id:3,x:36,y:30,w:14,h:16},{id:4,x:8,y:58,w:20,h:26},{id:5,x:72,y:58,w:20,h:26},{id:6,x:8,y:28,w:16,h:14}],hard:[{id:1,x:30,y:5,w:20,h:22},{id:2,x:56,y:5,w:20,h:22},{id:3,x:36,y:30,w:14,h:16},{id:4,x:8,y:58,w:20,h:26},{id:5,x:72,y:58,w:20,h:26},{id:6,x:8,y:28,w:16,h:14},{id:7,x:40,y:76,w:20,h:16}]},
-  {id:'rocket',label:'Rocket Ship',icon:'🚀',easy:[{id:1,x:16,y:40,w:14,h:18},{id:2,x:70,y:40,w:14,h:18},{id:3,x:38,y:70,w:24,h:18},{id:4,x:30,y:60,w:18,h:22},{id:5,x:52,y:60,w:18,h:22}],medium:[{id:1,x:16,y:40,w:14,h:18},{id:2,x:70,y:40,w:14,h:18},{id:3,x:38,y:70,w:24,h:18},{id:4,x:30,y:60,w:18,h:22},{id:5,x:52,y:60,w:18,h:22},{id:6,x:8,y:10,w:12,h:14}],hard:[{id:1,x:16,y:40,w:14,h:18},{id:2,x:70,y:40,w:14,h:18},{id:3,x:38,y:70,w:24,h:18},{id:4,x:30,y:60,w:18,h:22},{id:5,x:52,y:60,w:18,h:22},{id:6,x:8,y:10,w:12,h:14},{id:7,x:36,y:24,w:14,h:14}]},
-  {id:'house',label:'Cozy House',icon:'🏠',easy:[{id:1,x:22,y:32,w:24,h:28},{id:2,x:38,y:48,w:16,h:16},{id:3,x:8,y:66,w:14,h:20},{id:4,x:64,y:66,w:14,h:20},{id:5,x:38,y:8,w:16,h:14}],medium:[{id:1,x:22,y:32,w:24,h:28},{id:2,x:38,y:48,w:16,h:16},{id:3,x:8,y:66,w:14,h:20},{id:4,x:64,y:66,w:14,h:20},{id:5,x:38,y:8,w:16,h:14},{id:6,x:10,y:24,w:14,h:18}],hard:[{id:1,x:22,y:32,w:24,h:28},{id:2,x:38,y:48,w:16,h:16},{id:3,x:8,y:66,w:14,h:20},{id:4,x:64,y:66,w:14,h:20},{id:5,x:38,y:8,w:16,h:14},{id:6,x:10,y:24,w:14,h:18},{id:7,x:68,y:24,w:12,h:16}]},
-  {id:'castle',label:'Magic Castle',icon:'🏰',easy:[{id:1,x:30,y:38,w:20,h:26},{id:2,x:8,y:48,w:16,h:22},{id:3,x:60,y:48,w:16,h:22},{id:4,x:36,y:64,w:14,h:18},{id:5,x:8,y:10,w:12,h:14}],medium:[{id:1,x:30,y:38,w:20,h:26},{id:2,x:8,y:48,w:16,h:22},{id:3,x:60,y:48,w:16,h:22},{id:4,x:36,y:64,w:14,h:18},{id:5,x:8,y:10,w:12,h:14},{id:6,x:40,y:14,w:12,h:14}],hard:[{id:1,x:30,y:38,w:20,h:26},{id:2,x:8,y:48,w:16,h:22},{id:3,x:60,y:48,w:16,h:22},{id:4,x:36,y:64,w:14,h:18},{id:5,x:8,y:10,w:12,h:14},{id:6,x:40,y:14,w:12,h:14},{id:7,x:18,y:64,w:12,h:18}]},
+  { id: 'robot', label: 'Robot Friend', icon: '🤖',
+    easy: [
+      {id:1,x:33,y:26,w:16,h:18},   // left eye (circle cx=160,cy=100,r=22)
+      {id:2,x:53,y:26,w:16,h:18},  // right eye (circle cx=240,cy=100,r=22)
+      {id:3,x:42,y:45,w:16,h:12},  // mouth (rect x:175-225,y:140-160)
+      {id:4,x:3,y:60,w:18,h:15},   // left arm (rect x:20-70,y:190-220)
+      {id:5,x:79,y:60,w:18,h:15},  // right arm (rect x:330-380,y:190-220)
+    ],
+    medium: [
+      {id:1,x:33,y:26,w:16,h:18},{id:2,x:53,y:26,w:16,h:18},{id:3,x:42,y:45,w:16,h:12},
+      {id:4,x:3,y:60,w:18,h:15},{id:5,x:79,y:60,w:18,h:15},
+      {id:6,x:8,y:3,w:16,h:18},    // antenna (ball cx=50,cy=20 + triangle below)
+    ],
+    hard: [
+      {id:1,x:33,y:26,w:16,h:18},{id:2,x:53,y:26,w:16,h:18},{id:3,x:42,y:45,w:16,h:12},
+      {id:4,x:3,y:60,w:18,h:15},{id:5,x:79,y:60,w:18,h:15},
+      {id:6,x:8,y:3,w:16,h:18},
+      {id:7,x:30,y:74,w:40,h:10},  // stripe (rect x:130-270,y:230-244)
+    ]},
+  { id: 'rocket', label: 'Rocket Ship', icon: '🚀',
+    easy: [
+      {id:1,x:33,y:74,w:14,h:17},   // left fin (polygon y:230-275)
+      {id:2,x:60,y:74,w:14,h:17},  // right fin (polygon y:230-275)
+      {id:3,x:40,y:86,w:20,h:16},  // flame (ellipse cx=200,cy=285,rx=28,ry=18)
+      {id:4,x:35,y:47,w:14,h:17},  // left window (circle cx=170,cy=155,r=18)
+      {id:5,x:52,y:47,w:14,h:17},  // right window (circle cx=230,cy=155,r=18)
+    ],
+    medium: [
+      {id:1,x:33,y:74,w:14,h:17},{id:2,x:60,y:74,w:14,h:17},{id:3,x:40,y:86,w:20,h:16},
+      {id:4,x:35,y:47,w:14,h:17},{id:5,x:52,y:47,w:14,h:17},
+      {id:6,x:8,y:24,w:10,h:14},   // smoke stack (rect x:40-58,y:80-105)
+    ],
+    hard: [
+      {id:1,x:33,y:74,w:14,h:17},{id:2,x:60,y:74,w:14,h:17},{id:3,x:40,y:86,w:20,h:16},
+      {id:4,x:35,y:47,w:14,h:17},{id:5,x:52,y:47,w:14,h:17},
+      {id:6,x:8,y:24,w:10,h:14},
+      {id:7,x:41,y:7,w:18,h:15},   // nose cone (triangle tip y:40)
+    ]},
+  { id: 'house', label: 'Cozy House', icon: '🏠',
+    easy: [
+      {id:1,x:22,y:20,w:56,h:34},  // roof (triangle y:70-155)
+      {id:2,x:42,y:64,w:16,h:26},  // door (rect x:178-222,y:200-265)
+      {id:3,x:28,y:55,w:14,h:18}, // left window (x:125-163,y:175-213)
+      {id:4,x:56,y:55,w:14,h:18}, // right window (x:237-275,y:175-213)
+      {id:5,x:36,y:10,w:22,h:24}, // sun (circle cx=200,cy=50,r=35)
+    ],
+    medium: [
+      {id:1,x:22,y:20,w:56,h:34},{id:2,x:42,y:64,w:16,h:26},
+      {id:3,x:28,y:55,w:14,h:18},{id:4,x:56,y:55,w:14,h:18},{id:5,x:36,y:10,w:22,h:24},
+      {id:6,x:62,y:30,w:12,h:20}, // chimney (rect x:260-282,y:100-145)
+    ],
+    hard: [
+      {id:1,x:22,y:20,w:56,h:34},{id:2,x:42,y:64,w:16,h:26},
+      {id:3,x:28,y:55,w:14,h:18},{id:4,x:56,y:55,w:14,h:18},{id:5,x:36,y:10,w:22,h:24},
+      {id:6,x:62,y:30,w:12,h:20},
+      {id:7,x:65,y:46,w:22,h:28}, // tree (circle cx=315,cy=178,r=28)
+    ]},
+  { id: 'castle', label: 'Magic Castle', icon: '🏰',
+    easy: [
+      {id:1,x:36,y:0,w:26,h:22},   // main roof (polygon y:10-55)
+      {id:2,x:5,y:15,w:24,h:30},  // left roof (polygon y:55-95)
+      {id:3,x:78,y:15,w:24,h:30}, // right roof (polygon y:55-95)
+      {id:4,x:42,y:54,w:16,h:24}, // door (rect x:180-220,y:170-225)
+      {id:5,x:11,y:5,w:14,h:16},  // flag (pole+triangle x:54-80,y:25-45)
+    ],
+    medium: [
+      {id:1,x:36,y:0,w:26,h:22},{id:2,x:5,y:15,w:24,h:30},{id:3,x:78,y:15,w:24,h:30},
+      {id:4,x:42,y:54,w:16,h:24},{id:5,x:11,y:5,w:14,h:16},
+      {id:6,x:43,y:24,w:14,h:18}, // main window (rect x:185-215,y:80-120)
+    ],
+    hard: [
+      {id:1,x:36,y:0,w:26,h:22},{id:2,x:5,y:15,w:24,h:30},{id:3,x:78,y:15,w:24,h:30},
+      {id:4,x:42,y:54,w:16,h:24},{id:5,x:11,y:5,w:14,h:16},{id:6,x:43,y:24,w:14,h:18},
+      {id:7,x:13,y:37,w:18,h:20}, // left tower window (rect x:63-93,y:120-155)
+    ]},
 ];
 
 function RobotWrong({ found }: { found: number[] }) {
