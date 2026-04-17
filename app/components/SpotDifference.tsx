@@ -315,7 +315,7 @@ export default function SpotDifference() {
   if (screen === 'menu') {
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',padding:'20px'}}>
-        <button className="back-btn" onClick={()=>window.location.href='/dashboard'}>← Home</button>
+        <button className="back-btn" onClick={()=>window.location.href='/'}>← Home</button>
         <div style={{textAlign:'center',marginTop:20}}>
           <h2 style={{color:'#C084FC',fontSize:28,marginBottom:4}}>🔍 Spot What's Wrong!</h2>
           <p style={{color:'#666',fontSize:16}}>Find the wrong things in the left picture and click them!</p>

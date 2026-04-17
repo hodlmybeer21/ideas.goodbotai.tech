@@ -296,7 +296,7 @@ export default function EqualParts() {
   if (screen === 'menu') {
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',padding:20}}>
-        <button className="back-btn" onClick={()=>window.location.href='/dashboard'}>← Home</button>
+        <button className="back-btn" onClick={()=>window.location.href='/'}>← Home</button>
         <div style={{textAlign:'center',marginTop:16}}>
           <h2 style={{color:'#C084FC',fontSize:26,marginBottom:4}}>🔴🟡 Equal Parts</h2>
           <p style={{color:'#666',fontSize:15}}>Halves & Quarters — Grade 1 Math</p>
