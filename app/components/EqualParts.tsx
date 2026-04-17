@@ -56,21 +56,22 @@ function CirclesPair() {
   return (
     <div style={{display:'flex',gap:16,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
       <div style={{textAlign:'center'}}>
+        {/* HALVES: one vertical cut = 2 equal parts */}
         <svg viewBox="0 0 120 120" style={{width:110,height:110,display:'block'}}>
-          <path d="M 60 60 L 60 5 A 55 55 0 0 1 60 115 Z" fill="#FDE68A" stroke="#92400E" strokeWidth="2"/>
-          <path d="M 60 60 L 60 115 A 55 55 0 0 1 60 5 Z" fill="#FEF3C7" stroke="#92400E" strokeWidth="2"/>
-          <circle cx="60" cy="60" r="3" fill="#92400E"/>
+          <circle cx="60" cy="60" r="52" fill="#FDE68A" stroke="#92400E" strokeWidth="2"/>
+          <line x1="60" y1="8" x2="60" y2="112" stroke="#92400E" strokeWidth="2.5"/>
+          <circle cx="60" cy="60" r="4" fill="#92400E"/>
         </svg>
         <p style={{margin:4,marginTop:6,fontSize:13,color:'#92400E',fontFamily:'Fredoka,sans-serif'}}>Halves (2 parts)</p>
       </div>
       <span style={{fontSize:28,color:'#9CA3AF'}}>vs</span>
+      {/* QUARTERS: both cuts = 4 equal parts */}
       <div style={{textAlign:'center'}}>
         <svg viewBox="0 0 120 120" style={{width:110,height:110,display:'block'}}>
-          <path d="M 60 60 L 60 5 A 55 55 0 0 1 115 60 Z" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
-          <path d="M 60 60 L 115 60 A 55 55 0 0 1 60 115 Z" fill="#F9A8D4" stroke="#9D174D" strokeWidth="2"/>
-          <path d="M 60 60 L 60 115 A 55 55 0 0 1 5 60 Z" fill="#F472B6" stroke="#9D174D" strokeWidth="2"/>
-          <path d="M 60 60 L 5 60 A 55 55 0 0 1 60 5 Z" fill="#EC4899" stroke="#9D174D" strokeWidth="2"/>
-          <circle cx="60" cy="60" r="3" fill="#9D174D"/>
+          <circle cx="60" cy="60" r="52" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
+          <line x1="60" y1="8" x2="60" y2="112" stroke="#9D174D" strokeWidth="2"/>
+          <line x1="8" y1="60" x2="112" y2="60" stroke="#9D174D" strokeWidth="2"/>
+          <circle cx="60" cy="60" r="4" fill="#9D174D"/>
         </svg>
         <p style={{margin:4,marginTop:6,fontSize:13,color:'#9D174D',fontFamily:'Fredoka,sans-serif'}}>Quarters (4 parts)</p>
       </div>
