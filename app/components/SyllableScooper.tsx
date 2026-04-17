@@ -25,33 +25,31 @@ const WORDS = [
   { word:'table', syllables:[{letters:'ta',vowelType:'long'},{letters:'ble',vowelType:'closed'}]},
 ];
 
-// Scoop zones shown between letter positions
-// scoops = indices into word.split('') where we want a break AFTER that letter
-function ScoopGame({ onDone }: { onDone: () => void }) {
+export default function SyllableScooper() {
+  const [screen, setScreen] = useState<'menu'|'game'|'win'>('menu');
   const [wordIdx, setWordIdx] = useState(0);
-  // scoops[i] = true means break after letter[i]
-  const [scoops, setScoops] = useState<boolean[]>([]);
+  const [scoops, setScoops] = useState<number[]>([]);
   const [vowelModes, setVowelModes] = useState<('closed'|'long')[]>([]);
   const [feedback, setFeedback] = useState<'correct'|'wrong'|null>(null);
   const [done, setDone] = useState(false);
+  const [showRating, setShowRating] = useState(false);
 
   const word = WORDS[wordIdx];
   const letterArr = word.word.split('');
 
-  // Init scoops and vowelModes when word changes
-  if (scoops.length !== letterArr.length) setScoops(new Array(letterArr.length).fill(false));
-  if (vowelModes.length !== word.syllables.length) setVowelModes(word.syllables.map(()=>'closed' as const));
+  // Init when word changes
+  if (scoops.length !== 0 && scoops.every(()=>false)) {} // skip
+  if (scoops.length !== letterArr.length) {
+    setScoops(new Array(letterArr.length).fill(false));
+    setVowelModes(word.syllables.map(()=>'closed'));
+  }
 
-  // Build syllable groups based on current scoops
-  function getGroups() {
+  function getGroups(): {letters:string; vowelMode:'closed'|'long'}[] {
     const groups: {letters:string; vowelMode:'closed'|'long'}[] = [];
     let cur = {letters:'', vowelMode:'closed' as const};
     for (let i = 0; i < letterArr.length; i++) {
       cur.letters += letterArr[i];
-      if (scoops[i]) {
-        groups.push({...cur});
-        cur = {letters:'', vowelMode:'closed'};
-      }
+      if (scoops[i]) { groups.push({...cur}); cur = {letters:'', vowelMode:'closed'}; }
     }
     groups.push({...cur});
     return groups;
@@ -59,22 +57,35 @@ function ScoopGame({ onDone }: { onDone: () => void }) {
 
   const toggleScoop = (afterIdx: number) => {
     if (done) return;
-    setScoops(prev => { const n=[...prev]; n[afterIdx]=!n[afterIdx]; return n; });
+    setScoops(prev => {
+      if (prev.includes(afterIdx)) return prev.filter(x => x !== afterIdx);
+      return [...prev, afterIdx].sort((a,b)=>a-b);
+    });
     setFeedback(null);
+    // Re-sync vowelModes to match new syllable groups
+    setVowelModes(prev => {
+      const newGroups = getGroups();
+      const next = newGroups.map((g, i) => i < prev.length ? prev[i] : 'closed');
+      return next.slice(0, newGroups.length);
+    });
   };
 
   const toggleMode = (syllIdx: number) => {
     if (done) return;
-    setVowelModes(prev => { const n=[...prev]; n[syllIdx]=n[syllIdx]==='closed'?'long':'closed'; return n; });
+    setVowelModes(prev => {
+      const n = [...prev];
+      n[syllIdx] = n[syllIdx] === 'closed' ? 'long' : 'closed';
+      return n;
+    });
     setFeedback(null);
   };
 
   const check = () => {
     if (done) return;
-    const groups = getGroups();
+    const groups = getGroups().filter(g => g.letters);
     const scoopCount = groups.length - 1;
     const scoopRight = scoopCount === word.syllables.length - 1;
-    const modeRight = vowelModes.every((m,i) => m === word.syllables[i].vowelType);
+    const modeRight = vowelModes.every((m, i) => m === word.syllables[i].vowelType);
     if (scoopRight && modeRight) {
       setFeedback('correct'); BING(); setDone(true);
     } else {
@@ -84,115 +95,16 @@ function ScoopGame({ onDone }: { onDone: () => void }) {
   };
 
   const nextWord = () => {
-    if (wordIdx + 1 >= WORDS.length) { onDone(); return; }
-    setWordIdx(i => i+1);
+    if (wordIdx + 1 >= WORDS.length) { WIN_SND(); setScreen('win'); return; }
+    setWordIdx(i => i + 1);
     setScoops(new Array(WORDS[wordIdx+1].word.length).fill(false));
     setVowelModes(WORDS[wordIdx+1].syllables.map(()=>'closed'));
     setFeedback(null); setDone(false);
   };
 
-  const groups = getGroups();
-  const scoopCount = groups.length - 1;
-  const needsScoops = word.syllables.length - 1;
+  const groups = getGroups().filter(g => g.letters);
 
-  return (
-    <div style={{textAlign:'center'}}>
-      <p style={{color:'#6B7280',fontSize:15,marginBottom:8}}>Tap the ✂️ SCOOP zones between letters to break the word into syllables!</p>
-      <p style={{color:'#9CA3AF',fontSize:13,marginBottom:20}}>Then mark each syllable: tap it to change 🔒 closed ↔ ✨ V-e</p>
-
-      {/* Letter tiles with scoop buttons between them */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:0,marginBottom:8}}>
-        {letterArr.map((letter, i) => (
-          <div key={i} style={{display:'flex',alignItems:'center'}}>
-            {/* Letter tile */}
-            <div style={{
-              background: '#1E3A5F', color:'white',
-              borderRadius:8, width:36, height:44,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:22, fontWeight:700, fontFamily:'Fredoka,sans-serif',
-              userSelect:'none', boxShadow:'0 3px 0 #0F1F33',
-            }}>
-              {letter.toUpperCase()}
-            </div>
-            {/* Scoop zone button — between letters */}
-            {i < letterArr.length - 1 && (
-              <button
-                onClick={() => toggleScoop(i)}
-                disabled={done}
-                title={`Scoop after ${letter.toUpperCase()}`}
-                style={{
-                  width:28, height:44,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  background: scoops[i] ? '#C084FC' : '#F3F4F6',
-                  border: scoops[i] ? '2px solid #7C3AED' : '2px dashed #9CA3AF',
-                  borderRadius:6, cursor: done ? 'default' : 'pointer',
-                  marginLeft:2, marginRight:2,
-                  fontSize:18, color: scoops[i] ? 'white' : '#9CA3AF',
-                  transition:'all 0.15s', flexShrink:0,
-                }}>
-                {scoops[i] ? '✂️' : '·'}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Syllable vowel mode buttons */}
-      {groups.filter(g=>g.letters).map((grp, syllIdx) => {
-        const mode = vowelModes[syllIdx] || 'closed';
-        return (
-          <button key={syllIdx}
-            onClick={() => toggleMode(syllIdx)}
-            disabled={done}
-            style={{
-              display:'inline-flex', alignItems:'center', gap:6,
-              background: mode==='long' ? '#FBBF24' : '#60A5FA',
-              color: mode==='long' ? '#78350F' : '#1E40AF',
-              border:'none', borderRadius:12, padding:'8px 16px',
-              fontSize:15, fontFamily:'Fredoka,sans-serif',
-              cursor: done ? 'default' : 'pointer', fontWeight:600,
-              margin:'4px 6px',
-              boxShadow: `0 3px 0 ${mode==='long'?'#D97706':'#2563EB'}`,
-              borderBottom:`4px solid ${mode==='long'?'#D97706':'#2563EB'}`,
-            }}>
-            {grp.letters.toUpperCase()} — {mode==='long' ? '✨ V-e' : '🔒 closed'}
-          </button>
-        );
-      })}
-
-      {/* Feedback */}
-      {feedback && (
-        <p style={{
-          color: feedback==='correct' ? '#16A34A' : '#EF4444',
-          fontSize:17, fontWeight:700, fontFamily:'Fredoka,sans-serif', margin:'12px 0 0',
-        }}>
-          {feedback==='correct'
-            ? (wordIdx+1 < WORDS.length ? '✓ Correct! Next word...' : '✓ All done!')
-            : `✗ The answer: ${word.syllables.map((s,i)=>s.letters.toUpperCase()).join(' | ')} — ${word.syllables.map(s=>s.vowelType==='long'?'✨':'🔒').join(', ')}`}
-        </p>
-      )}
-
-      {/* Buttons */}
-      <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:16}}>
-        <button onClick={check} disabled={done && !!feedback}
-          style={{background: done&&feedback==='correct' ? '#9CA3AF' : '#7C3AED', color:'white', border:'none', borderRadius:12, padding:'12px 24px', fontSize:16, fontFamily:'Fredoka,sans-serif', cursor: done&&feedback==='correct' ? 'default' : 'pointer'}}>
-          Check! ✓
-        </button>
-        {done && feedback==='correct' && (
-          <button onClick={nextWord}
-            style={{background:'#16A34A', color:'white', border:'none', borderRadius:12, padding:'12px 24px', fontSize:16, fontFamily:'Fredoka,sans-serif', cursor:'pointer'}}>
-            {wordIdx+1 < WORDS.length ? 'Next Word →' : 'Finish! 🎉'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function SyllableScooper() {
-  const [screen, setScreen] = useState<'menu'|'game'|'win'>('menu');
-  const [showRating, setShowRating] = useState(false);
-
+  // ── MENU ─────────────────────────────────────────────────────────────
   if (screen === 'menu') {
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',padding:20}}>
@@ -203,10 +115,10 @@ export default function SyllableScooper() {
 
           <div style={{background:'white',borderRadius:18,padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,0.08)',maxWidth:420,margin:'24px auto',textAlign:'left'}}>
             <h3 style={{color:'#7C3AED',margin:'0 0 12px',fontSize:18}}>How to Play</h3>
-            <p style={{color:'#4B5563',fontSize:14,margin:'0 0 10px'}}><b>1.</b> Look at the word. Tap the ✂️ zones BETWEEN letters to scoop!</p>
+            <p style={{color:'#4B5563',fontSize:14,margin:'0 0 10px'}}><b>1.</b> Tap the <b>last letter of a syllable</b> to add a scoop cut after it!</p>
             <p style={{color:'#4B5563',fontSize:14,margin:'0 0 10px'}}><b>2.</b> Tap each syllable to mark its vowel:</p>
-            <p style={{color:'#2563EB',fontSize:14,margin:'0 0 4px',paddingLeft:12}}>🔒 <b>Closed</b> = short vowel (consonant after, e.g. "cat")</p>
-            <p style={{color:'#D97706',fontSize:14,margin:'0 0 12px',paddingLeft:12}}>✨ <b>V-e</b> = long vowel (magic e, e.g. "cake")</p>
+            <p style={{color:'#2563EB',fontSize:14,margin:'0 0 4px',paddingLeft:12}}>🔒 <b>Closed</b> = short vowel (consonant after)</p>
+            <p style={{color:'#D97706',fontSize:14,margin:'0 0 12px',paddingLeft:12}}>✨ <b>V-e</b> = long vowel (magic e)</p>
             <p style={{color:'#4B5563',fontSize:14,margin:0}}><b>3.</b> Hit Check! ✓</p>
           </div>
 
@@ -224,6 +136,7 @@ export default function SyllableScooper() {
     );
   }
 
+  // ── WIN ────────────────────────────────────────────────────────────
   if (screen === 'win') {
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -232,8 +145,10 @@ export default function SyllableScooper() {
         <div style={{fontSize:64,margin:'16px 0'}}>🌟🌟🌟</div>
         <p style={{color:'#6B7280',fontSize:16,marginBottom:20}}>You're a syllable superstar!</p>
         <div style={{display:'flex',gap:12,marginTop:10}}>
-          <button onClick={()=>setScreen('game')} style={{background:'#7C3AED',color:'white',border:'none',borderRadius:14,padding:'14px 28px',fontSize:18,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>Play Again!</button>
-          <button onClick={()=>setShowRating(true)} style={{background:'#FF6B9D',color:'white',border:'none',borderRadius:14,padding:'14px 28px',fontSize:18,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>Rate ★</button>
+          <button onClick={()=>{setWordIdx(0);setScoops([]);setVowelModes([]);setFeedback(null);setDone(false);setScreen('game');}}
+            style={{background:'#7C3AED',color:'white',border:'none',borderRadius:14,padding:'14px 28px',fontSize:18,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>Play Again!</button>
+          <button onClick={()=>setShowRating(true)}
+            style={{background:'#FF6B9D',color:'white',border:'none',borderRadius:14,padding:'14px 28px',fontSize:18,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>Rate ★</button>
           <button className="back-btn" onClick={()=>setScreen('menu')}>← Menu</button>
         </div>
         {showRating && <RatingModal activity="syllable-scooper" activityName="Syllable Scooper" activityEmoji="🔤" kidName="Player" onClose={()=>setShowRating(false)}/>}
@@ -241,15 +156,117 @@ export default function SyllableScooper() {
     );
   }
 
+  // ── GAME ───────────────────────────────────────────────────────────
   return (
     <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif'}}>
       <div style={{background:'#7C3AED',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <button className="back-btn" onClick={()=>setScreen('menu')}>← Menu</button>
         <span style={{color:'white',fontSize:16,fontWeight:600}}>✂️ Syllable Scooper</span>
-        <span style={{color:'white',fontSize:15}}>16 words</span>
+        <span style={{color:'white',fontSize:15}}>{wordIdx+1} / 16</span>
       </div>
+
       <div style={{padding:20}}>
-        <ScoopGame onDone={()=>{ WIN_SND(); setScreen('win'); }}/>
+        {/* Instructions */}
+        <p style={{color:'#6B7280',fontSize:14,marginBottom:12,textAlign:'center'}}>
+          👆 Tap the <b>last letter of a syllable</b> to scoop after it!
+        </p>
+
+        {/* Letter row with scoop lines */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:0,marginBottom:20}}>
+          {letterArr.map((letter, i) => {
+            const isScoop = scoops.includes(i);
+            return (
+              <div key={i} style={{display:'flex',alignItems:'center'}}>
+                <div
+                  onClick={() => { if (!done) { toggleScoop(i); if (scoops.every(v=>!v) && i===0) setVowelModes(word.syllables.map(()=>'closed')); } }}
+                  style={{
+                    background: isScoop ? '#C084FC' : '#1E3A5F',
+                    color: 'white',
+                    borderRadius: 8,
+                    minWidth:34, height:44,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    padding:'0 6px',
+                    fontSize:20, fontWeight:700, fontFamily:'Fredoka,sans-serif',
+                    cursor: done ? 'default' : 'pointer',
+                    boxShadow: isScoop ? '0 3px 0 #7C3AED' : '0 3px 0 #0F1F33',
+                    transition: 'all 0.15s',
+                    userSelect:'none',
+                    border: isScoop ? '2px solid #7C3AED' : '2px solid transparent',
+                  }}>
+                  {letter.toUpperCase()}
+                </div>
+                {i < letterArr.length - 1 && (
+                  <div style={{
+                    width:2, height:44,
+                    background: scoops.includes(i) ? '#9333EA' : 'transparent',
+                    transition: 'background 0.15s',
+                    flexShrink:0,
+                  }}/>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Syllable vowel markers */}
+        {groups.length > 0 && (
+          <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:12}}>
+            {groups.map((grp, syllIdx) => {
+              const mode = vowelModes[syllIdx] || 'closed';
+              return (
+                <button key={syllIdx}
+                  onClick={() => !done && toggleMode(syllIdx)}
+                  disabled={done}
+                  style={{
+                    display:'inline-flex', alignItems:'center', gap:6,
+                    background: mode==='long' ? '#FBBF24' : '#60A5FA',
+                    color: mode==='long' ? '#78350F' : '#1E40AF',
+                    border:'none', borderRadius:12, padding:'8px 16px',
+                    fontSize:15, fontFamily:'Fredoka,sans-serif',
+                    cursor: done ? 'default' : 'pointer', fontWeight:600,
+                    boxShadow: `0 3px 0 ${mode==='long'?'#D97706':'#2563EB'}`,
+                    borderBottom:`4px solid ${mode==='long'?'#D97706':'#2563EB'}`,
+                  }}>
+                  {grp.letters.toUpperCase()} — {mode==='long' ? '✨ V-e' : '🔒 closed'}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Feedback */}
+        {feedback && (
+          <div style={{
+            background: feedback==='correct' ? '#F0FDF4' : '#FEF2F2',
+            border: `2px solid ${feedback==='correct' ? '#16A34A' : '#EF4444'}`,
+            borderRadius:12, padding:'10px 16px', marginBottom:12, textAlign:'center',
+          }}>
+            {feedback==='correct' ? (
+              <p style={{color:'#16A34A',fontSize:17,fontWeight:700,fontFamily:'Fredoka,sans-serif',margin:0}}>✓ Correct!</p>
+            ) : (
+              <div>
+                <p style={{color:'#EF4444',fontSize:15,fontWeight:700,fontFamily:'Fredoka,sans-serif',margin:'0 0 4px'}}>✗ Not quite!</p>
+                <p style={{color:'#78350F',fontSize:14,fontFamily:'Fredoka,sans-serif',margin:0}}>
+                  Answer: {word.syllables.map(s=>s.letters.toUpperCase()).join(' | ')} → {word.syllables.map(s=>s.vowelType==='long'?'✨':'🔒').join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:8}}>
+          <button onClick={check} disabled={done && !!feedback}
+            style={{background: done&&feedback==='correct' ? '#9CA3AF' : '#7C3AED', color:'white', border:'none', borderRadius:12, padding:'12px 24px', fontSize:16, fontFamily:'Fredoka,sans-serif', cursor: done&&feedback==='correct' ? 'default' : 'pointer'}}>
+            Check! ✓
+          </button>
+          {done && feedback==='correct' && (
+            <button onClick={nextWord}
+              style={{background:'#16A34A', color:'white', border:'none', borderRadius:12, padding:'12px 24px', fontSize:16, fontFamily:'Fredoka,sans-serif', cursor:'pointer'}}>
+              {wordIdx+1 < WORDS.length ? 'Next Word →' : 'Finish! 🎉'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
