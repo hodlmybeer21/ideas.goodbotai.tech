@@ -8,18 +8,18 @@ const WIN_SND = () => { try { const c=new (window.AudioContext||(window as any).
 
 // ── QUESTIONS ──────────────────────────────────────────────────────────────────
 const QUESTIONS = [
-  { prompt: "Which is SMALLER? Tap the answer!", options: ["One Half", "One Quarter"], answer: "One Quarter", kind: "circles-pair" },
-  { prompt: "Which part is BIGGER?", options: ["One Half", "One Quarter"], answer: "One Half", kind: "" },
-  { prompt: "When you cut a whole into MORE equal parts, each part gets...", options: ["Bigger!", "Smaller!"], answer: "Smaller!", kind: "" },
-  { prompt: "Which has SMALLER parts?", options: ["Halves (2 parts)", "Quarters (4 parts)"], answer: "Quarters (4 parts)", kind: "" },
-  { prompt: "Are these EQUAL halves?", options: ["Yes, equal!", "No, unequal!"], answer: "Yes, equal!", kind: "equal-halves" },
-  { prompt: "Is this cut into EQUAL quarters?", options: ["Yes, equal!", "No, unequal!"], answer: "Yes, equal!", kind: "equal-quarters" },
-  { prompt: "Are these EQUAL halves?", options: ["Yes, equal!", "No, unequal!"], answer: "No, unequal!", kind: "unequal-circle" },
-  { prompt: "Is this cut into EQUAL parts?", options: ["Yes, equal!", "No, unequal!"], answer: "No, unequal!", kind: "unequal-rect" },
-  { prompt: "Each of 4 equal parts is called a...", options: ["Half", "Quarter", "Whole"], answer: "Quarter", kind: "" },
-  { prompt: "Another word for QUARTERS is...", options: ["Halves", "Fourths", "Thirds"], answer: "Fourths", kind: "" },
-  { prompt: "Cut into 2 equal parts =...", options: ["Halves", "Quarters", "Fourths"], answer: "Halves", kind: "" },
-  { prompt: "More equal parts =...", options: ["Bigger parts!", "Smaller parts!"], answer: "Smaller parts!", kind: "" },
+  { prompt: "Which circle has SMALLER parts? Tap to answer!", options: ["Halves (2 parts)", "Quarters (4 parts)"], answer: "Quarters (4 parts)", kind: "circles-pair" },
+  { prompt: "Which circle has BIGGER parts? Tap the answer!", options: ["Halves (2 parts)", "Quarters (4 parts)"], answer: "Halves (2 parts)", kind: "circles-pair" },
+  { prompt: "When you cut into MORE equal parts, each part gets...", options: ["Bigger!", "Smaller!"], answer: "Smaller!", kind: "more-parts" },
+  { prompt: "Which circle has QUARTERS (4 equal parts)?", options: ["The one with 2 parts", "The one with 4 parts"], answer: "The one with 4 parts", kind: "circles-pair" },
+  { prompt: "Are these EQUAL halves? 🤔", options: ["Yes, equal! ✅", "No, unequal! ❌"], answer: "Yes, equal! ✅", kind: "equal-halves" },
+  { prompt: "Is this cut into EQUAL quarters?", options: ["Yes, equal! ✅", "No, unequal! ❌"], answer: "Yes, equal! ✅", kind: "equal-quarters" },
+  { prompt: "Are these EQUAL halves?", options: ["Yes, equal! ✅", "No, unequal! ❌"], answer: "No, unequal! ❌", kind: "unequal-circle" },
+  { prompt: "Is this cut into EQUAL parts?", options: ["Yes, equal! ✅", "No, unequal! ❌"], answer: "No, unequal! ❌", kind: "unequal-rect" },
+  { prompt: "Each of 4 equal parts has a special name. It is called a...", options: ["Half", "Quarter", "Whole"], answer: "Quarter", kind: "four-quarters" },
+  { prompt: "Another word for QUARTERS is...", options: ["Halves", "Fourths", "Thirds"], answer: "Fourths", kind: "four-quarters" },
+  { prompt: "When you cut a whole into 2 equal parts, you get...", options: ["Halves", "Quarters", "Fourths"], answer: "Halves", kind: "two-halves" },
+  { prompt: "Cut a rectangle into 4 equal parts. Each part is called a...", options: ["Half", "Quarter", "Piece"], answer: "Quarter", kind: "four-quarters" },
 ];
 
 // ── SHAPE RENDERERS ─────────────────────────────────────────────────────────
@@ -77,12 +77,91 @@ function CirclesPair() {
     </div>
   );
 }
+
+function MoreParts() {
+  return (
+    <div style={{display:'flex',gap:12,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 90 90" style={{width:80,height:80,display:'block'}}>
+          <circle cx="45" cy="45" r="40" fill="#FDE68A" stroke="#92400E" strokeWidth="2"/>
+          <line x1="45" y1="5" x2="45" y2="85" stroke="#92400E" strokeWidth="2"/>
+          <line x1="5" y1="45" x2="85" y2="45" stroke="#92400E" strokeWidth="2"/>
+        </svg>
+        <p style={{margin:4,marginTop:6,fontSize:12,color:'#92400E',fontFamily:'Fredoka,sans-serif'}}>2 parts</p>
+      </div>
+      <span style={{fontSize:22}}>→</span>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 90 90" style={{width:80,height:80,display:'block'}}>
+          <circle cx="45" cy="45" r="40" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
+          <line x1="45" y1="5" x2="45" y2="85" stroke="#9D174D" strokeWidth="1.5"/>
+          <line x1="5" y1="45" x2="85" y2="45" stroke="#9D174D" strokeWidth="1.5"/>
+        </svg>
+        <p style={{margin:4,marginTop:6,fontSize:12,color:'#9D174D',fontFamily:'Fredoka,sans-serif'}}>4 parts</p>
+      </div>
+    </div>
+  );
+}
+function FourQuarters() {
+  return (
+    <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:90,display:'block'}}>
+          <path d="M 50 50 L 50 2 A 48 48 0 0 1 98 50 Z" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 98 50 A 48 48 0 0 1 50 98 Z" fill="#F9A8D4" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 50 98 A 48 48 0 0 1 2 50 Z" fill="#F472B6" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 2 50 A 48 48 0 0 1 50 2 Z" fill="#EC4899" stroke="#9D174D" strokeWidth="2"/>
+          <circle cx="50" cy="50" r="3" fill="#9D174D"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#9D174D',fontFamily:'Fredoka,sans-serif'}}>4 = Quarters</p>
+      </div>
+      <span style={{fontSize:22,color:'#9CA3AF'}}>=</span>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:90,display:'block'}}>
+          <path d="M 50 50 L 50 2 A 48 48 0 0 1 98 50 Z" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 98 50 A 48 48 0 0 1 50 98 Z" fill="#F9A8D4" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 50 98 A 48 48 0 0 1 2 50 Z" fill="#F472B6" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 2 50 A 48 48 0 0 1 50 2 Z" fill="#EC4899" stroke="#9D174D" strokeWidth="2"/>
+          <circle cx="50" cy="50" r="3" fill="#9D174D"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#9D174D',fontFamily:'Fredoka,sans-serif'}}>4 = Fourths</p>
+      </div>
+    </div>
+  );
+}
+function TwoHalves() {
+  return (
+    <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:90,display:'block'}}>
+          <path d="M 50 50 L 50 2 A 48 48 0 0 1 50 98 Z" fill="#FDE68A" stroke="#92400E" strokeWidth="2"/>
+          <path d="M 50 50 L 50 98 A 48 48 0 0 1 50 2 Z" fill="#FEF3C7" stroke="#92400E" strokeWidth="2"/>
+          <circle cx="50" cy="50" r="3" fill="#92400E"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#92400E',fontFamily:'Fredoka,sans-serif'}}>Halves!</p>
+      </div>
+      <span style={{fontSize:22,color:'#9CA3AF'}}>vs</span>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:90,display:'block'}}>
+          <path d="M 50 50 L 50 2 A 48 48 0 0 1 98 50 Z" fill="#FBCFE8" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 98 50 A 48 48 0 0 1 50 98 Z" fill="#F9A8D4" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 50 98 A 48 48 0 0 1 2 50 Z" fill="#F472B6" stroke="#9D174D" strokeWidth="2"/>
+          <path d="M 50 50 L 2 50 A 48 48 0 0 1 50 2 Z" fill="#EC4899" stroke="#9D174D" strokeWidth="2"/>
+          <circle cx="50" cy="50" r="3" fill="#9D174D"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#9D174D',fontFamily:'Fredoka,sans-serif'}}>Quarters</p>
+      </div>
+    </div>
+  );
+}
 function QuestionShape({ kind }: { kind: string }) {
   if (kind === 'equal-halves') return <EqualHalves/>;
   if (kind === 'equal-quarters') return <EqualQuarters/>;
   if (kind === 'unequal-circle') return <UnequalCircle/>;
   if (kind === 'unequal-rect') return <UnequalRect/>;
   if (kind === 'circles-pair') return <CirclesPair/>;
+  if (kind === 'more-parts') return <MoreParts/>;
+  if (kind === 'four-quarters') return <FourQuarters/>;
+  if (kind === 'two-halves') return <TwoHalves/>;
   return null;
 }
 
@@ -130,7 +209,7 @@ function SplitCircleQuarters({ onDone }: { onDone: () => void }) {
       <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:16}}>
         <button onClick={()=>toggle('H')} style={{background:cuts.includes('H')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↕ Top & Bottom</button>
         <button onClick={()=>toggle('V')} style={{background:cuts.includes('V')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↔ Left & Right</button>
-        <button onClick={check} disabled={done} style={{background:done?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:done?'default':'pointer'}}>Check!</button>
+        <button onClick={check} disabled={!done} style={{background:!done?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:done?'default':'pointer'}}>Check!</button>
       </div>
     </div>
   );
