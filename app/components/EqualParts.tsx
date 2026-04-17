@@ -258,7 +258,7 @@ function SplitSquareQuarters({ onDone }: { onDone: () => void }) {
       <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:16}}>
         <button onClick={()=>toggle('H')} style={{background:cuts.includes('H')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↕ Top & Bottom</button>
         <button onClick={()=>toggle('V')} style={{background:cuts.includes('V')?'#16A34A':'#F59E0B',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:'pointer'}}>↔ Left & Right</button>
-        <button onClick={check} disabled={done} style={{background:done?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:done?'default':'pointer'}}>Check!</button>
+        <button onClick={check} disabled={!done} style={{background:!done?'#9CA3AF':'#7C3AED',color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontSize:15,fontFamily:'Fredoka,sans-serif',cursor:!done?'default':'pointer'}}>Check!</button>
       </div>
     </div>
   );
