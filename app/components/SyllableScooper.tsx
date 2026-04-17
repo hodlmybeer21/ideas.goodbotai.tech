@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RatingModal from './RatingModal';
 
 const BING = () => { try { const c=new (window.AudioContext||(window as any).webkitAudioContext)(); const o=c.createOscillator(); const g=c.createGain(); o.connect(g); g.connect(c.destination); o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(0.2,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.4); o.start(); o.stop(c.currentTime+0.4); } catch {} };
@@ -28,7 +28,7 @@ const WORDS = [
 export default function SyllableScooper() {
   const [screen, setScreen] = useState<'menu'|'game'|'win'>('menu');
   const [wordIdx, setWordIdx] = useState(0);
-  const [scoops, setScoops] = useState<number[]>([]);
+  const [scoops, setScoops] = useState<number[]>([]);   // indices where scoop break goes AFTER that index
   const [vowelModes, setVowelModes] = useState<('closed'|'long')[]>([]);
   const [feedback, setFeedback] = useState<'correct'|'wrong'|null>(null);
   const [done, setDone] = useState(false);
@@ -37,74 +37,61 @@ export default function SyllableScooper() {
   const word = WORDS[wordIdx];
   const letterArr = word.word.split('');
 
-  // Init when word changes
-  if (scoops.length !== 0 && scoops.every(()=>false)) {} // skip
-  if (scoops.length !== letterArr.length) {
-    setScoops(new Array(letterArr.length).fill(false));
-    setVowelModes(word.syllables.map(()=>'closed'));
-  }
+  // Init state when entering game
+  useEffect(() => {
+    if (screen === 'game') {
+      setScoops([]);
+      setVowelModes(word.syllables.map(()=>'closed'));
+      setFeedback(null);
+      setDone(false);
+    }
+  }, [screen, wordIdx]);
 
-  function getGroups(): {letters:string; vowelMode:'closed'|'long'}[] {
+  function getGroups() {
     const groups: {letters:string; vowelMode:'closed'|'long'}[] = [];
     let cur = {letters:'', vowelMode:'closed' as const};
     for (let i = 0; i < letterArr.length; i++) {
       cur.letters += letterArr[i];
-      if (scoops[i]) { groups.push({...cur}); cur = {letters:'', vowelMode:'closed'}; }
+      if (scoops.includes(i)) { groups.push({...cur}); cur = {letters:'', vowelMode:'closed'}; }
     }
     groups.push({...cur});
-    return groups;
+    return groups.filter(g => g.letters);
   }
 
   const toggleScoop = (afterIdx: number) => {
     if (done) return;
-    setScoops(prev => {
-      if (prev.includes(afterIdx)) return prev.filter(x => x !== afterIdx);
-      return [...prev, afterIdx].sort((a,b)=>a-b);
-    });
+    setScoops(prev => prev.includes(afterIdx) ? prev.filter(x => x !== afterIdx) : [...prev, afterIdx].sort((a,b)=>a-b));
     setFeedback(null);
-    // Re-sync vowelModes to match new syllable groups
     setVowelModes(prev => {
-      const newGroups = getGroups();
-      const next = newGroups.map((g, i) => i < prev.length ? prev[i] : 'closed');
-      return next.slice(0, newGroups.length);
+      const groups = getGroups();
+      return groups.map((_, i) => i < prev.length ? prev[i] : 'closed');
     });
   };
 
   const toggleMode = (syllIdx: number) => {
     if (done) return;
-    setVowelModes(prev => {
-      const n = [...prev];
-      n[syllIdx] = n[syllIdx] === 'closed' ? 'long' : 'closed';
-      return n;
-    });
+    setVowelModes(prev => { const n=[...prev]; n[syllIdx]=n[syllIdx]==='closed'?'long':'closed'; return n; });
     setFeedback(null);
   };
 
   const check = () => {
     if (done) return;
-    const groups = getGroups().filter(g => g.letters);
+    const groups = getGroups();
     const scoopCount = groups.length - 1;
-    const scoopRight = scoopCount === word.syllables.length - 1;
-    const modeRight = vowelModes.every((m, i) => m === word.syllables[i].vowelType);
-    if (scoopRight && modeRight) {
-      setFeedback('correct'); BING(); setDone(true);
-    } else {
-      setFeedback('wrong'); WRONG_SND();
-      setTimeout(() => setFeedback(null), 1800);
+    if (scoopCount !== word.syllables.length - 1 || !vowelModes.every((m,i) => m === word.syllables[i].vowelType)) {
+      setFeedback('wrong'); WRONG_SND(); setTimeout(() => setFeedback(null), 1800); return;
     }
+    setFeedback('correct'); BING(); setDone(true);
   };
 
   const nextWord = () => {
     if (wordIdx + 1 >= WORDS.length) { WIN_SND(); setScreen('win'); return; }
     setWordIdx(i => i + 1);
-    setScoops(new Array(WORDS[wordIdx+1].word.length).fill(false));
-    setVowelModes(WORDS[wordIdx+1].syllables.map(()=>'closed'));
-    setFeedback(null); setDone(false);
   };
 
-  const groups = getGroups().filter(g => g.letters);
+  const groups = getGroups();
 
-  // ── MENU ─────────────────────────────────────────────────────────────
+  // ── MENU ──────────────────────────────────────────────────────────────
   if (screen === 'menu') {
     return (
       <div style={{minHeight:'100vh',background:'#FFF8F0',fontFamily:'Fredoka,sans-serif',padding:20}}>
@@ -166,19 +153,18 @@ export default function SyllableScooper() {
       </div>
 
       <div style={{padding:20}}>
-        {/* Instructions */}
         <p style={{color:'#6B7280',fontSize:14,marginBottom:12,textAlign:'center'}}>
           👆 Tap the <b>last letter of a syllable</b> to scoop after it!
         </p>
 
-        {/* Letter row with scoop lines */}
+        {/* Letter row */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:0,marginBottom:20}}>
           {letterArr.map((letter, i) => {
             const isScoop = scoops.includes(i);
             return (
               <div key={i} style={{display:'flex',alignItems:'center'}}>
                 <div
-                  onClick={() => { if (!done) { toggleScoop(i); if (scoops.every(v=>!v) && i===0) setVowelModes(word.syllables.map(()=>'closed')); } }}
+                  onClick={() => toggleScoop(i)}
                   style={{
                     background: isScoop ? '#C084FC' : '#1E3A5F',
                     color: 'white',
@@ -199,8 +185,7 @@ export default function SyllableScooper() {
                   <div style={{
                     width:2, height:44,
                     background: scoops.includes(i) ? '#9333EA' : 'transparent',
-                    transition: 'background 0.15s',
-                    flexShrink:0,
+                    transition: 'background 0.15s', flexShrink:0,
                   }}/>
                 )}
               </div>
@@ -254,7 +239,6 @@ export default function SyllableScooper() {
           </div>
         )}
 
-        {/* Buttons */}
         <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:8}}>
           <button onClick={check} disabled={done && !!feedback}
             style={{background: done&&feedback==='correct' ? '#9CA3AF' : '#7C3AED', color:'white', border:'none', borderRadius:12, padding:'12px 24px', fontSize:16, fontFamily:'Fredoka,sans-serif', cursor: done&&feedback==='correct' ? 'default' : 'pointer'}}>
