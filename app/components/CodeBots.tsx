@@ -44,9 +44,7 @@ const HARD_LEVELS: Level[] = [
 
 const DIRECTION_ORDER: Direction[] = ['up', 'right', 'down', 'left'];
 const GRID_CELL = 64;
-const STEP_MS = 500;
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+const STEP_MS = 700;
 
 function rotateDir(dir: Direction, turn: 'right' | 'left'): Direction {
   const i = DIRECTION_ORDER.indexOf(dir);
@@ -54,10 +52,10 @@ function rotateDir(dir: Direction, turn: 'right' | 'left'): Direction {
 }
 
 function stepForward(pos: Position, dir: Direction): Position {
-  return dir === 'up' ? { x: pos.x, y: pos.y - 1 }
-       : dir === 'down' ? { x: pos.x, y: pos.y + 1 }
-       : dir === 'left' ? { x: pos.x - 1, y: pos.y }
-       : { x: pos.x + 1, y: pos.y };
+  return dir === 'up'    ? { x: pos.x,     y: pos.y - 1 }
+       : dir === 'down'  ? { x: pos.x,     y: pos.y + 1 }
+       : dir === 'left'  ? { x: pos.x - 1, y: pos.y }
+       :                   { x: pos.x + 1, y: pos.y };
 }
 
 const dirRotation = (dir: Direction): number =>
@@ -68,70 +66,64 @@ const starsDisplay = (n: number) => '⭐'.repeat(n) + '☆'.repeat(3 - n);
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () => void; kidName?: string }) {
-  const [showIntro, setShowIntro]   = useState(true);
+  const [showIntro, setShowIntro]     = useState(true);
   const [selectedMode, setSelectedMode] = useState<Mode>('easy');
   const [currentLevel, setCurrentLevel] = useState(0);
-  const [sequence, setSequence]     = useState<string[]>([]);
-  const [isRunning, setIsRunning]   = useState(false);
+  const [sequence, setSequence]       = useState<string[]>([]);
+  const [isRunning, setIsRunning]     = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [botPos, setBotPos]         = useState<Position>({ x: 0, y: 0 });
-  const [botDir, setBotDir]         = useState<Direction>('right');
+  // botPos is the DISPLAY position — updated immediately for smooth CSS transition
+  const [botPos, setBotPos]           = useState<Position>({ x: 0, y: 0 });
+  const [botDir, setBotDir]           = useState<Direction>('right');
   const [showSuccess, setShowSuccess] = useState(false);
   const [starsEarned, setStarsEarned] = useState(0);
-  const [rated, setRated]           = useState(false);
-  const [failed, setFailed]        = useState(false);
+  const [rated, setRated]             = useState(false);
+  const [failed, setFailed]          = useState(false);
 
-  // All mutable execution state lives in refs — the setInterval reads from these
-  // and only triggers React state updates for things the UI must show.
-  const seqRef       = useRef<string[]>([]);
-  const stepRef       = useRef(0);
-  const posRef        = useRef<Position>({ x: 0, y: 0 });
-  const dirRef        = useRef<Direction>('right');
-  const goalRef       = useRef<Position>({ x: 0, y: 0 });
-  const wallsRef      = useRef<{ x: number; y: number }[]>([]);
-  const colsRef       = useRef(3);
-  const rowsRef       = useRef(4);
-  const minCmdsRef    = useRef(1);
-  const runningRef    = useRef(false);
-  const intervalRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  // All mutable execution state in refs — no stale closure issues
+  const seqRef     = useRef<string[]>([]);
+  const stepRef    = useRef(0);
+  const posRef     = useRef<Position>({ x: 0, y: 0 });
+  const dirRef     = useRef<Direction>('right');
+  const goalRef    = useRef<Position>({ x: 0, y: 0 });
+  const wallsRef   = useRef<{ x: number; y: number }[]>([]);
+  const colsRef    = useRef(3);
+  const rowsRef    = useRef(4);
+  const minCmdsRef = useRef(1);
+  const runningRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const failedRef  = useRef(false);
 
-  const levels  = selectedMode === 'easy' ? EASY_LEVELS : HARD_LEVELS;
-  const level   = levels[currentLevel];
-  const maxSeq  = level.maxCommands;
+  const levels = selectedMode === 'easy' ? EASY_LEVELS : HARD_LEVELS;
+  const level  = levels[currentLevel];
+  const maxSeq = level.maxCommands;
 
-  // Sync mutable refs with latest state
+  // Sync state → refs whenever level changes
   useEffect(() => { seqRef.current = sequence; }, [sequence]);
+
   useEffect(() => {
-    posRef.current = level.botStart;
-    dirRef.current = 'right';
+    const start = { ...level.botStart };
+    posRef.current  = start;
+    dirRef.current  = 'right';
     goalRef.current = level.goal;
     wallsRef.current = level.walls;
-    colsRef.current = level.gridCols;
-    rowsRef.current = level.gridRows;
+    colsRef.current  = level.gridCols;
+    rowsRef.current  = level.gridRows;
     minCmdsRef.current = level.minCommands;
-    setBotPos({ ...level.botStart });
+    setBotPos(start);
     setBotDir('right');
-  }, [level]);
-
-  const resetLevel = useCallback(() => {
     setSequence([]);
     setIsRunning(false);
     setCurrentStepIndex(-1);
     setShowSuccess(false);
     setStarsEarned(0);
     setFailed(false);
-    seqRef.current = [];
-    stepRef.current = 0;
-    runningRef.current = false;
-    posRef.current = { ...level.botStart };
-    dirRef.current = 'right';
-    goalRef.current = level.goal;
+    failedRef.current = false;
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    runningRef.current = false;
   }, [level]);
 
-  useEffect(() => { resetLevel(); }, [resetLevel]);
-
-  // ─── Execution Engine ─────────────────────────────────────────────────────────
+  // ─── Execution Engine (setInterval-based) ───────────────────────────────────
   useEffect(() => {
     if (!isRunning) {
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
@@ -146,21 +138,24 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
 
       const step = stepRef.current;
       const seq  = seqRef.current;
+
       if (step >= seq.length) {
-        // Done — check win
+        // Sequence done — check win
         runningRef.current = false;
         clearInterval(intervalRef.current!);
         intervalRef.current = null;
         const won = posRef.current.x === goalRef.current.x && posRef.current.y === goalRef.current.y;
+        setIsRunning(false);
+        setCurrentStepIndex(-1);
         if (won) {
-          const stars = seq.length <= minCmdsRef.current ? 3 : seq.length <= minCmdsRef.current + 2 ? 2 : 1;
+          const stars = seq.length <= minCmdsRef.current ? 3
+                        : seq.length <= minCmdsRef.current + 2 ? 2 : 1;
           setStarsEarned(stars);
           setShowSuccess(true);
         } else {
+          failedRef.current = true;
           setFailed(true);
         }
-        setIsRunning(false);
-        setCurrentStepIndex(-1);
         return;
       }
 
@@ -168,27 +163,37 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
 
       if (cmdId === 'forward') {
         const next = stepForward(posRef.current, dirRef.current);
-        if (next.x < 0 || next.x >= colsRef.current || next.y < 0 || next.y >= rowsRef.current ||
+        // Boundary + wall check
+        if (next.x < 0 || next.x >= colsRef.current ||
+            next.y < 0 || next.y >= rowsRef.current ||
             wallsRef.current.some(w => w.x === next.x && w.y === next.y)) {
-          // Hit wall — fail
+          // Hit wall — stop, show fail, RESET robot to start
           runningRef.current = false;
           clearInterval(intervalRef.current!);
           intervalRef.current = null;
+          failedRef.current = true;
           setFailed(true);
           setIsRunning(false);
           setCurrentStepIndex(-1);
+          // Reset display position to start so kid sees robot back at start
+          const start = { ...level.botStart };
+          posRef.current = start;
+          setBotPos(start);
+          setBotDir('right');
           return;
         }
         posRef.current = next;
-        setBotPos({ ...next });
+        setBotPos({ ...next });  // CSS transition handles the smooth slide
         stepRef.current = step + 1;
         setCurrentStepIndex(step + 1);
+
       } else if (cmdId === 'turnRight') {
         const nd = rotateDir(dirRef.current, 'right');
         dirRef.current = nd;
         setBotDir(nd);
         stepRef.current = step + 1;
         setCurrentStepIndex(step + 1);
+
       } else if (cmdId === 'turnLeft') {
         const nd = rotateDir(dirRef.current, 'left');
         dirRef.current = nd;
@@ -202,30 +207,56 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       runningRef.current = false;
     };
-  }, [isRunning]);
+  }, [isRunning, level]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleCommand = (cmdId: string) => {
-    if (isRunning || showSuccess) return;
+    if (isRunning || showSuccess || failedRef.current) return;
     if (sequence.length >= maxSeq) return;
     setSequence(prev => [...prev, cmdId]);
   };
 
-  const handleClear = () => { if (!isRunning) { setSequence([]); setCurrentStepIndex(-1); } };
+  const handleClear = () => {
+    if (isRunning) return;
+    setSequence([]);
+    setCurrentStepIndex(-1);
+  };
 
   const handleRun = () => {
     if (isRunning || sequence.length === 0) return;
-    stepRef.current = 0;
-    posRef.current = { ...level.botStart };
+    failedRef.current = false;
+    stepRef.current  = 0;
+    seqRef.current  = [...sequence];
+    const start = { ...level.botStart };
+    posRef.current = start;
     dirRef.current = 'right';
-    seqRef.current = sequence;
-    setBotPos({ ...level.botStart });
+    goalRef.current = level.goal;
+    wallsRef.current = level.walls;
+    setBotPos(start);
     setBotDir('right');
     setCurrentStepIndex(0);
     setShowSuccess(false);
     setFailed(false);
+    setStarsEarned(0);
     setIsRunning(true);
+  };
+
+  const handleRetry = () => {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    runningRef.current = false;
+    failedRef.current = false;
+    const start = { ...level.botStart };
+    posRef.current = start;
+    dirRef.current = 'right';
+    setBotPos(start);
+    setBotDir('right');
+    setSequence([]);
+    setCurrentStepIndex(-1);
+    setIsRunning(false);
+    setShowSuccess(false);
+    setFailed(false);
+    setStarsEarned(0);
   };
 
   const handleNextLevel = () => {
@@ -233,20 +264,21 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
     else { setShowIntro(true); setCurrentLevel(0); }
   };
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // ─── Render helpers ─────────────────────────────────────────────────────────
 
   const renderCell = (x: number, y: number) => {
     const isBot  = botPos.x === x && botPos.y === y;
     const isGoal = level.goal.x === x && level.goal.y === y;
     const isWall = level.walls.some(w => w.x === x && w.y === y);
-    const bg = isWall ? '#374151' : isGoal ? '#6BCB77' : (x + y) % 2 === 0 ? '#F8F8F4' : 'white';
+    const bg = isWall ? '#374151' : isGoal ? '#6BCB77' : (x + y) % 2 === 0 ? '#F0F4F8' : '#FAFAFA';
+
     return (
       <div key={`${x}-${y}`} style={{
         width: GRID_CELL, height: GRID_CELL,
         background: bg,
-        border: '1.5px solid #E5E0D8',
+        border: '1.5px solid #D1D5DB',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: isGoal && !isBot ? '0 0 14px #6BCB77' : undefined,
+        boxShadow: isGoal && !isBot ? '0 0 16px rgba(107,203,119,0.7)' : undefined,
       }}>
         {isGoal && !isBot && <span style={{ fontSize: 26 }}>⭐</span>}
         {isBot && (
@@ -296,18 +328,21 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <h1 className="page-title">🤖 CodeBots</h1>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', background: '#F3F4F6', padding: '4px 12px', borderRadius: 20 }}>
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: '#6B7280',
+            background: '#F3F4F6', padding: '4px 12px', borderRadius: 20,
+          }}>
             {selectedMode === 'easy' ? '🌟 Easy' : '🚀 Hard'} · Level {currentLevel + 1}/{levels.length}
           </span>
         </div>
 
-        {starsEarned > 0 && !isRunning && (
+        {starsEarned > 0 && !isRunning && !showSuccess && (
           <div style={{ fontSize: 18, marginBottom: 6, color: '#F59E0B' }}>
-            {starsDisplay(starsEarned)} — {starsEarned === 3 ? 'Perfect!' : starsEarned === 2 ? 'Great job!' : 'You tried!'}
+            {starsDisplay(starsEarned)} — {starsEarned === 3 ? 'Perfect!' : 'Great job!'}
           </div>
         )}
 
-        {/* Grid */}
+        {/* Grid — CSS transition on bot makes it visually walk */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${level.gridCols}, ${GRID_CELL}px)`,
@@ -392,14 +427,19 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
           </button>
         </div>
 
-        {/* Success */}
+        {/* Success panel */}
         {showSuccess && (
-          <div style={{ background: '#F0FFF4', border: '3px solid #22C55E', borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14 }}>
+          <div style={{
+            background: '#F0FFF4', border: '3px solid #22C55E',
+            borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14,
+          }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>🎉</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A', marginBottom: 4 }}>Way to go, {kidName}!</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A', marginBottom: 4 }}>
+              Way to go, {kidName}!
+            </div>
             <div style={{ fontSize: 18, color: '#6B7280', marginBottom: 14 }}>{starsDisplay(starsEarned)}</div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button className="btn btn-blue" onClick={() => resetLevel()}>🔄 Try Again</button>
+              <button className="btn btn-blue" onClick={handleRetry}>🔄 Try Again</button>
               <button className="btn btn-green" onClick={handleNextLevel}>
                 {currentLevel < levels.length - 1 ? 'Next Level ➡️' : '🎊 All Done!'}
               </button>
@@ -407,13 +447,20 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
           </div>
         )}
 
-        {/* Failure */}
+        {/* Failure panel */}
         {failed && !showSuccess && (
-          <div style={{ background: '#FFF0F4', border: '3px solid #EF4444', borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14 }}>
+          <div style={{
+            background: '#FFF0F4', border: '3px solid #EF4444',
+            borderRadius: 18, padding: '18px 20px', textAlign: 'center', marginBottom: 14,
+          }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>🤖💦</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#EF4444', marginBottom: 4 }}>Oops! Try again!</div>
-            <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 14 }}>Your robot didn&apos;t reach the ⭐.</div>
-            <button className="btn btn-blue" onClick={() => resetLevel()}>🔄 Try Again</button>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#EF4444', marginBottom: 4 }}>
+              Oops! Try again!
+            </div>
+            <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 14 }}>
+              Your robot didn&apos;t reach the ⭐. Tap 🔄 to try a different program!
+            </div>
+            <button className="btn btn-blue" onClick={handleRetry}>🔄 Try Again</button>
           </div>
         )}
 
@@ -436,7 +483,10 @@ export default function CodeBots({ onBack, kidName = 'Friend' }: { onBack: () =>
       </div>
 
       {showSuccess && !rated && (
-        <RatingModal activity="codebots" activityName="CodeBots" activityEmoji="🤖" kidName={kidName} onClose={() => setRated(true)} />
+        <RatingModal
+          activity="codebots" activityName="CodeBots" activityEmoji="🤖"
+          kidName={kidName} onClose={() => setRated(true)}
+        />
       )}
     </>
   );
