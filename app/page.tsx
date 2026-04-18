@@ -16,8 +16,9 @@ import TellTime from './components/TellTime';
 import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
+import StateFinder from './components/StateFinder';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -90,6 +91,7 @@ export default function Home() {
         {view === 'equal' && <EqualParts />}
         {view === 'syllable' && <SyllableScooper />}
         {view === 'codebots' && <CodeBots onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'statefinder' && <StateFinder onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -149,6 +151,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'equal' as View, icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple' },
     { id: 'syllable' as View, icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo' },
     { id: 'codebots' as View, icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue' },
+    { id: 'statefinder' as View, icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green' },
   ];
 
   return (
