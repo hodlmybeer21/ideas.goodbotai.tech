@@ -1,31 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import * as topojson from 'topojson-client';
-import type { Topology, GeometryCollection } from 'topojson-specification';
+import { useState, useEffect, useCallback } from 'react';
 import RatingModal from './RatingModal';
 
-// ─── FIPS → State name mapping ────────────────────────────────────────────────
-// From https://www.census.gov/geo/reference/ansi.html
-const FIPS_TO_NAME: Record<string, string> = {
-  '01':'Alabama','02':'Alaska','04':'Arizona','05':'Arkansas',
-  '06':'California','08':'Colorado','09':'Connecticut','10':'Delaware',
-  '11':'District of Columbia','12':'Florida','13':'Georgia','15':'Hawaii',
-  '16':'Idaho','17':'Illinois','18':'Indiana','19':'Iowa',
-  '20':'Kansas','21':'Kentucky','22':'Louisiana','23':'Maine',
-  '24':'Maryland','25':'Massachusetts','26':'Michigan','27':'Minnesota',
-  '28':'Mississippi','29':'Missouri','30':'Montana','31':'Nebraska',
-  '32':'Nevada','33':'New Hampshire','34':'New Jersey','35':'New Mexico',
-  '36':'New York','37':'North Carolina','38':'North Dakota','39':'Ohio',
-  '40':'Oklahoma','41':'Oregon','42':'Pennsylvania','44':'Rhode Island',
-  '45':'South Carolina','46':'South Dakota','47':'Tennessee','48':'Texas',
-  '49':'Utah','50':'Vermont','51':'Virginia','53':'Washington',
-  '54':'West Virginia','55':'Wisconsin','56':'Wyoming',
-};
-
-const CONTINENTAL_STATES = new Set(Object.values(FIPS_TO_NAME).filter(
-  s => s !== 'Alaska' && s !== 'Hawaii' && s !== 'District of Columbia'
-));
+// ─── Pre-computed SVG paths (generated at build time via D3 geoAlbersUpa) ───
+import { STATE_PATHS } from './statePaths';
 
 // ─── Region colors ────────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -58,68 +37,37 @@ const STATE_REGION: Record<string, string> = {
 
 // ─── Levels ─────────────────────────────────────────────────────────────────
 const LEVELS = [
-  { id: 1, name: 'Northeast Basics', states: ['New York','Connecticut','Massachusetts','Pennsylvania','New Jersey','Vermont'] },
+  { id: 1, name: 'Northeast Basics', states: ['Connecticut','Massachusetts','New York','Pennsylvania','Vermont','New Jersey'] },
   { id: 2, name: 'More Northeast',   states: ['Maine','New Hampshire','Rhode Island'] },
   { id: 3, name: 'Southeast',         states: ['Florida','Georgia','North Carolina','Virginia','Maryland'] },
   { id: 4, name: 'Midwest',           states: ['Ohio','Michigan','Illinois','Indiana','Wisconsin','Minnesota'] },
   { id: 5, name: 'South & West',      states: ['Texas','California','Washington','Oregon','Colorado','Arizona'] },
-  { id: 6, name: 'All 48 States',      states: Array.from(CONTINENTAL_STATES) },
+  { id: 6, name: 'All 48 States',     states: Object.keys(STATE_PATHS) },
 ];
 
 const ENCOURAGEMENTS = ["You're getting warmer! 🌡️","Keep trying! 💪","Almost there! 🎯","Great effort! 🌟"];
 const CELEBRATIONS   = ["🎉 Fantastic!","🌟 Brilliant!","👏 Awesome!","🏆 Superstar!","⭐ Amazing!"];
 
-type GamePhase = 'intro'|'loading'|'playing'|'wrong'|'levelcomplete'|'levelselect';
-
-interface StateInfo { id: string; name: string; path: string; region: string; }
+type GamePhase = 'intro'|'playing'|'wrong'|'levelcomplete'|'levelselect';
 
 export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: () => void; kidName?: string }) {
-  const [phase, setPhase]         = useState<GamePhase>('loading');
+  const [phase, setPhase]             = useState<GamePhase>('intro');
   const [currentLevel, setCurrentLevel] = useState(1);
-  const [unlockedLevels, setUnlockedLevels] = useState<Set<number>>(new Set([1]));
-  const [queue, setQueue]         = useState<string[]>([]);
+  const [unlockedLevels]               = useState<Set<number>>(new Set([1]));
+  const [queue, setQueue]             = useState<string[]>([]);
   const [currentState, setCurrentState] = useState('');
-  const [correct, setCorrect]     = useState(0);
-  const [missed, setMissed]       = useState<string[]>([]);
-  const [flashState, setFlashState] = useState<string|null>(null);
-  const [wrongGuess, setWrongGuess] = useState<string|null>(null);
-  const [showAnswer, setShowAnswer] = useState(false);
+  const [correct, setCorrect]           = useState(0);
+  const [missed, setMissed]             = useState<string[]>([]);
+  const [flashState, setFlashState]     = useState<string|null>(null);
+  const [wrongGuess, setWrongGuess]     = useState<string|null>(null);
+  const [showAnswer, setShowAnswer]     = useState(false);
   const [encouragement, setEncouragement] = useState('');
-  const [celebration, setCelebration] = useState('');
-  const [showRating, setShowRating] = useState(false);
-  const [starRating, setStarRating] = useState(0);
-  const [stateGeometries, setStateGeometries] = useState<StateInfo[]>([]);
-  const [mapError, setMapError]     = useState(false);
+  const [celebration, setCelebration]   = useState('');
+  const [showRating, setShowRating]     = useState(false);
+  const [starRating, setStarRating]     = useState(0);
 
-  // Fetch and convert TopoJSON → SVG paths on mount
-  useEffect(() => {
-    fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
-      .then(r => r.json())
-      .then((topo: Topology) => {
-        const features = topojson.feature(
-          topo,
-          topo.objects.states as GeometryCollection
-        );
-        const states: StateInfo[] = (features.features as any[]).map((f: any) => {
-          const fips  = String(f.id).padStart(2, '0');
-          const name  = FIPS_TO_NAME[fips] ?? '';
-          if (!name || !CONTINENTAL_STATES.has(name)) return null;
-          const region = STATE_REGION[name] ?? '#9CA3AF';
-          return { id: name, name, path: (f as any).path ?? '', region };
-        }).filter(Boolean) as StateInfo[];
-
-        setStateGeometries(states);
-        setPhase('intro');
-      })
-      .catch(() => setMapError(true));
-  }, []);
-
-  // Build a name→SVG-d-path lookup from the geometries
-  const pathByName: Record<string, string> = {};
-  stateGeometries.forEach(s => { pathByName[s.name] = s.path; });
-
-  // Bounding box for the map (computed from a fixed viewBox)
-  const MAP_W = 960, MAP_H = 600;
+  // Map viewBox — matches the pre-computed path coordinates
+  const MAP_W = 940, MAP_H = 600;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -161,9 +109,6 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
       const stars = totalAttempts > 0 && correct / totalAttempts >= 0.9 ? 3
                   : totalAttempts > 0 && correct / totalAttempts >= 0.7 ? 2 : 1;
       setStarRating(stars);
-      const newUnlocked = new Set(unlockedLevels);
-      if (levelId < 6) newUnlocked.add(levelId + 1);
-      setUnlockedLevels(newUnlocked);
       setPhase('levelcomplete');
     } else {
       setQueue(remaining);
@@ -192,37 +137,9 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
 
   // ── Render helpers ──────────────────────────────────────────────────────────
 
-  const activeStates = getActiveStatesUpTo(currentLevel);
-  const regionColor = (name: string) => REGION_COLORS[STATE_REGION[name] ?? ''] ?? '#9CA3AF';
-  const statePath   = (name: string) => pathByName[name] ?? '';
-
-  const levelId = currentLevel;
-
-  // ── Loading ─────────────────────────────────────────────────────────────────
-
-  if (phase === 'loading') {
-    return (
-      <div className="canvas-page slide-up" style={{ textAlign: 'center', paddingTop: 80 }}>
-        <button className="back-btn" onClick={onBack}>← Back</button>
-        <h1 className="page-title">🗺️ State Finder</h1>
-        {mapError ? (
-          <div style={{ marginTop: 40 }}>
-            <p style={{ color: '#EF4444', fontSize: 16, marginBottom: 16 }}>
-              Could not load the map. Check your internet connection and try again.
-            </p>
-            <button className="btn btn-blue" onClick={() => window.location.reload()}>
-              🔄 Reload
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: 40, marginTop: 60 }}>🗺️</div>
-            <p style={{ color: '#6B7280', fontSize: 16, marginTop: 16 }}>Loading the US map...</p>
-          </>
-        )}
-      </div>
-    );
-  }
+  const activeStates  = getActiveStatesUpTo(currentLevel);
+  const regionColor   = (name: string) => REGION_COLORS[STATE_REGION[name] ?? ''] ?? '#9CA3AF';
+  const levelId       = currentLevel;
 
   // ── Intro ───────────────────────────────────────────────────────────────────
 
@@ -331,12 +248,12 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#6B7280', marginBottom: 4 }}>
             <span>Level {levelId}: {LEVELS[levelId - 1].name}</span>
-            <span>{correct}/{queue.length + (phase === 'wrong' ? 1 : 0)} correct</span>
+            <span>{correct}/{queue.length + correct + missed.length} correct</span>
           </div>
           <div style={{ height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{
               height: '100%',
-              width: `${queue.length > 0 ? ((correct) / (correct + queue.length + missed.length)) * 100 : 0}%`,
+              width: `${(correct + missed.length) > 0 ? (correct / (correct + missed.length + queue.length)) * 100 : 0}%`,
               background: 'linear-gradient(90deg, #22C55E, #4ADE80)',
               borderRadius: 4,
               transition: 'width 0.3s',
@@ -363,40 +280,37 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
 
         {/* Map */}
         <div style={{
-          background: '#EEF2FF',
+          background: '#DBEAFE',
           borderRadius: 16,
-          padding: 12,
+          padding: 8,
           marginBottom: 12,
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
           overflow: 'hidden',
         }}>
           <svg
             viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-            style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 320 }}
+            style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 340 }}
           >
-            {/* Background ocean */}
-            <rect width={MAP_W} height={MAP_H} fill="#DBEAFE" rx="8" />
+            {Object.entries(STATE_PATHS).map(([name, path]) => {
+              const isActive  = activeStates.has(name);
+              const isCurrent = name === currentState;
+              const isFlash   = flashState === name;
+              const isWrong   = wrongGuess === name;
+              const isShown   = showAnswer && name === currentState;
 
-            {stateGeometries.map(state => {
-              const isActive   = activeStates.has(state.name);
-              const isCurrent  = state.name === currentState;
-              const isFlash    = flashState === state.name;
-              const isWrong    = wrongGuess === state.name;
-              const isShown    = showAnswer && state.name === currentState;
-
-              let fill = '#D1D5DB'; // inactive — gray
+              let fill = '#CBD5E1'; // inactive — soft gray
               if (isActive) {
                 fill = isFlash  ? '#22C55E'
                      : isWrong  ? '#EF4444'
                      : isShown  ? '#F59E0B'
-                     : isCurrent ? regionColor(state.name)
-                     : regionColor(state.name) + '99'; // slightly transparent for non-target active
+                     : isCurrent ? regionColor(name)
+                     : regionColor(name) + '99'; // transparent for non-target active
               }
 
               return (
                 <path
-                  key={state.id}
-                  d={state.path}
+                  key={name}
+                  d={path}
                   fill={fill}
                   stroke="white"
                   strokeWidth={isCurrent || isFlash || isShown ? 2.5 : 0.5}
@@ -405,7 +319,7 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
                     transition: 'fill 0.2s',
                     filter: isFlash ? 'brightness(1.3)' : undefined,
                   }}
-                  onClick={() => isActive && handleStateClick(state.name)}
+                  onClick={() => isActive && handleStateClick(name)}
                 />
               );
             })}
