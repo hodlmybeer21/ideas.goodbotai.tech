@@ -42,7 +42,7 @@ const LEVELS = [
   { id: 3, name: 'Southeast',         states: ['Florida','Georgia','North Carolina','Virginia','Maryland'] },
   { id: 4, name: 'Midwest',           states: ['Ohio','Michigan','Illinois','Indiana','Wisconsin','Minnesota'] },
   { id: 5, name: 'South & West',      states: ['Texas','California','Washington','Oregon','Colorado','Arizona'] },
-  { id: 6, name: 'All 48 States',     states: Object.keys(STATE_PATHS) },
+  { id: 6, name: 'All 50 States',     states: Object.keys(STATE_PATHS) },
 ];
 
 const ENCOURAGEMENTS = ["You're getting warmer! 🌡️","Keep trying! 💪","Almost there! 🎯","Great effort! 🌟"];
@@ -156,7 +156,7 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
           padding: '16px 20px', marginBottom: 24, textAlign: 'center',
         }}>
           <p style={{ fontSize: 14, color: '#166534', fontWeight: 600 }}>
-            🌎 48 states · 6 regions · Progressive difficulty
+            🌎 50 states · 6 regions · Progressive difficulty
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
