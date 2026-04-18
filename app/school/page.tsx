@@ -66,42 +66,92 @@ function buildMap(): number[][] {
   m[6][15] = T_DOOR;
   for (let x = 16; x <= 22; x++) m[6][x] = T_MUSIC;
 
-  // Row 8-9: science lab, hallway, library
-  for (let x = 1; x <= 6; x++) { m[8][x] = T_SCI;   m[9][x] = T_SCI; }
-  for (let x = 7; x <= 16; x++) { m[8][x] = T_HALL;  m[9][x] = T_HALL; }
-  for (let x = 17; x <= 22; x++) { m[8][x] = T_LIB;  m[9][x] = T_LIB; }
+  // Rows 1-2: top rooms (art, geography, music) — full floors
+  // (already set above: rows 1-6 for all three rooms)
 
-  // Row 10: doors
+  // Row 3: upper rooms — doors at col 7 (art↔hallway) and col 15 (geography↔hallway)
+  for (let x = 1; x <= 6; x++) m[3][x] = T_ART;
+  m[3][7] = T_DOOR;  // art-hallway door
+  for (let x = 8; x <= 14; x++) m[3][x] = T_GEO;
+  m[3][15] = T_DOOR; // geography-hallway door
+  for (let x = 16; x <= 22; x++) m[3][x] = T_MUSIC;
+
+  // Rows 4-5: room floors
+  for (let x = 1; x <= 6; x++) { m[4][x] = T_ART; m[5][x] = T_ART; }
+  for (let x = 8; x <= 14; x++) { m[4][x] = T_GEO; m[5][x] = T_GEO; }
+  for (let x = 16; x <= 22; x++) { m[4][x] = T_MUSIC; m[5][x] = T_MUSIC; }
+
+  // Row 6: upper rooms — doors at col 7 (art↔hallway) and col 15 (geography↔hallway)
+  for (let x = 1; x <= 6; x++) m[6][x] = T_ART;
+  m[6][7] = T_DOOR;
+  for (let x = 8; x <= 14; x++) m[6][x] = T_GEO;
+  m[6][15] = T_DOOR;
+  for (let x = 16; x <= 22; x++) m[6][x] = T_MUSIC;
+
+  // Row 7: hallway connecting upper and lower sections
+  for (let x = 7; x <= 16; x++) m[7][x] = T_HALL;
+  m[7][7]  = T_DOOR; // south door from art room
+  m[7][15] = T_DOOR; // south door from geography room
+
+  // Row 8: science lab, hallway, library — wide hallway down the middle
+  for (let x = 1; x <= 6; x++) m[8][x] = T_SCI;
+  for (let x = 7; x <= 16; x++) m[8][x] = T_HALL;
+  for (let x = 17; x <= 22; x++) m[8][x] = T_LIB;
+
+  // Row 9: same as row 8
+  for (let x = 1; x <= 6; x++) m[9][x] = T_SCI;
+  for (let x = 7; x <= 16; x++) m[9][x] = T_HALL;
+  for (let x = 17; x <= 22; x++) m[9][x] = T_LIB;
+
+  // Row 10: science lab, hallway, library
   for (let x = 1; x <= 6; x++) m[10][x] = T_SCI;
-  m[10][7] = T_DOOR;
-  for (let x = 8; x <= 15; x++) m[10][x] = T_HALL;
-  m[10][16] = T_DOOR;
+  for (let x = 7; x <= 16; x++) m[10][x] = T_HALL;
   for (let x = 17; x <= 22; x++) m[10][x] = T_LIB;
 
-  // Rows 11-12
-  for (let x = 1; x <= 6; x++) { m[11][x] = T_SCI; m[12][x] = T_SCI; }
-  for (let x = 8; x <= 15; x++) { m[11][x] = T_HALL; m[12][x] = T_HALL; }
-  for (let x = 17; x <= 22; x++) { m[11][x] = T_LIB; m[12][x] = T_LIB; }
+  // Row 11: science lab, hallway, library
+  for (let x = 1; x <= 6; x++) m[11][x] = T_SCI;
+  for (let x = 7; x <= 16; x++) m[11][x] = T_HALL;
+  for (let x = 17; x <= 22; x++) m[11][x] = T_LIB;
 
-  // Row 13: doors
+  // Row 12: science lab, hallway, library
+  for (let x = 1; x <= 6; x++) m[12][x] = T_SCI;
+  for (let x = 7; x <= 16; x++) m[12][x] = T_HALL;
+  for (let x = 17; x <= 22; x++) m[12][x] = T_LIB;
+
+  // Row 13: science lab, hallway, library — door at col 7 to gym (south)
   for (let x = 1; x <= 6; x++) m[13][x] = T_SCI;
-  m[13][7] = T_DOOR;
-  for (let x = 8; x <= 15; x++) m[13][x] = T_HALL;
-  m[13][16] = T_DOOR;
+  for (let x = 7; x <= 16; x++) m[13][x] = T_HALL;
   for (let x = 17; x <= 22; x++) m[13][x] = T_LIB;
 
-  // Row 15-16: gym, entrance hall
-  for (let x = 1; x <= 10; x++) { m[15][x] = T_GYM; m[16][x] = T_GYM; }
-  // gym opening cols 11-12 on row 15
-  for (let x = 13; x <= 16; x++) { m[15][x] = T_HALL; m[16][x] = T_HALL; }
-  m[15][11] = T_HALL; m[15][12] = T_HALL;
-  m[16][11] = T_HALL; m[16][12] = T_HALL;
+  // Row 14: gym (north section) + south entrance hall
+  for (let x = 1; x <= 10; x++) m[14][x] = T_GYM;
+  for (let x = 11; x <= 22; x++) m[14][x] = T_HALL;
+  // gym south door at row 14, cols 11-12 — opens INTO entrance hall area
+  m[14][11] = T_DOOR; m[14][12] = T_DOOR;
 
-  // Lockers along hallway walls
-  for (let y = 8; y <= 13; y++) {
-    m[y][7] = T_LOC;   // left hallway wall lockers
-    m[y][16] = T_LOC;  // right hallway wall lockers
+  // Row 15: gym floor + south entrance hall
+  for (let x = 1; x <= 10; x++) m[15][x] = T_GYM;
+  for (let x = 11; x <= 22; x++) m[15][x] = T_HALL;
+
+  // Row 16: gym + entrance (ground floor)
+  for (let x = 1; x <= 10; x++) m[16][x] = T_GYM;
+  for (let x = 11; x <= 22; x++) m[16][x] = T_HALL;
+
+  // Lockers along walls in the middle hallway (rows 8-12)
+  for (let y = 8; y <= 12; y++) {
+    m[y][7]  = T_LOC;  // left wall between science lab and hallway
+    m[y][16] = T_LOC;  // right wall between hallway and library
   }
+  // Lockers in upper hallway (rows 1-6) — only non-door rows
+  for (let y = 1; y <= 6; y++) {
+    if (y !== 3 && y !== 6) {
+      m[y][7]  = T_LOC;
+      m[y][15] = T_LOC;
+    }
+  }
+
+  // Gym south wall doors (row 17 = map boundary, gym spans cols 1-10)
+  m[17][4] = T_DOOR; m[17][5] = T_DOOR; m[17][6] = T_DOOR; m[17][7] = T_DOOR; m[17][8] = T_DOOR;
 
   return m;
 }
@@ -124,7 +174,7 @@ const ROOMS = [
     bounds: {x1:17,y1:8,x2:22,y2:13},
     desc: 'Open a book and travel anywhere! Stories are waiting for you.' },
   { id: 'gym',      name: 'Gym',             color: '#DEB887', emoji: '🏀', floor: T_GYM,
-    bounds: {x1:1,y1:15,x2:10,y2:16},
+    bounds: {x1:1,y1:14,x2:10,y2:16},
     desc: 'Run, jump, and play! Keeping active is super fun.' },
 ];
 
