@@ -66,8 +66,8 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
   const [showRating, setShowRating]     = useState(false);
   const [starRating, setStarRating]     = useState(0);
 
-  // Map viewBox — matches the pre-computed path coordinates
-  const MAP_W = 940, MAP_H = 600;
+  // Map viewBox — matches the pre-computed path coordinates (NaturalEarth1, centered)
+  const MAP_W = 920, MAP_H = 600;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
