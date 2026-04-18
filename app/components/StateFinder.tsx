@@ -17,7 +17,7 @@ const REGION_COLORS: Record<string, string> = {
 };
 
 const STATE_REGION: Record<string, string> = {
-  'Alabama':'Southeast','Arizona':'Southwest','Arkansas':'Southeast',
+  'Alabama':'Southeast','Alaska':'West','Arizona':'Southwest','Arkansas':'Southeast',
   'California':'West','Colorado':'Mountain','Connecticut':'Northeast',
   'Delaware':'Northeast','Florida':'Southeast','Georgia':'Southeast',
   'Idaho':'Mountain','Illinois':'Midwest','Indiana':'Midwest','Iowa':'Midwest',
@@ -80,10 +80,8 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
     return r;
   };
 
-  function getActiveStatesUpTo(levelId: number): Set<string> {
-    const active = new Set<string>();
-    for (let l = 0; l < levelId - 1; l++) LEVELS[l].states.forEach(s => active.add(s));
-    return active;
+  function getActiveStatesForLevel(levelId: number): Set<string> {
+    return new Set(LEVELS[levelId - 1].states);
   }
 
   // ── Level management ──────────────────────────────────────────────────────
@@ -137,7 +135,7 @@ export default function StateFinder({ onBack, kidName = 'Friend' }: { onBack: ()
 
   // ── Render helpers ──────────────────────────────────────────────────────────
 
-  const activeStates  = getActiveStatesUpTo(currentLevel);
+  const activeStates  = getActiveStatesForLevel(currentLevel);
   const regionColor   = (name: string) => REGION_COLORS[STATE_REGION[name] ?? ''] ?? '#9CA3AF';
   const levelId       = currentLevel;
 
