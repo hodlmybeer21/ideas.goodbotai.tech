@@ -3,732 +3,670 @@
 import { useEffect, useRef } from 'react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TILE_SIZE = 36;
-const GRID_W = 24;
-const GRID_H = 18;
-const CANVAS_W = GRID_W * TILE_SIZE; // 864
-const CANVAS_H = GRID_H * TILE_SIZE; // 648
+const T = 32; // tile size
+const GW = 30; // grid width
+const GH = 24; // grid height
+const CW = GW * T; // 960
+const CH = GH * T; // 768
 
 // Tile IDs
-const T_HALL  = 0;
-const T_WALL  = 1;
-const T_ART   = 2;
-const T_GEO   = 3;
-const T_MUSIC = 4;
-const T_SCI   = 5;
-const T_GYM   = 6;
-const T_LIB   = 7;
-const T_DOOR  = 8;
-const T_LOC   = 9;
+const GRASS=0; const PATH=1; const WALL=2; const FLOOR=3; const DOOR=4;
+const WATER=5; const TREE=6; const FLOWER=7; const FENCE=8; const SIGN=9;
 
-// Tile colors
-const TILE_COLORS: Record<number, string> = {
-  [T_HALL]:  '#D4D0C8',
-  [T_WALL]:  '#5C4033',
-  [T_ART]:   '#FFF8DC',
-  [T_GEO]:   '#E6F0FF',
-  [T_MUSIC]: '#FFFACD',
-  [T_SCI]:   '#E8FFE8',
-  [T_GYM]:   '#DEB887',
-  [T_LIB]:   '#F5F5DC',
-  [T_DOOR]:  '#8B4513',
-  [T_LOC]:   '#778899',
-};
+// Palette
+const PAL = ['#7EC850','#5DAE3A','#D4B896','#B89A70','#C05A3A','#A04530',
+              '#E8E8E8','#D0D0D0','#8B5A2B','#5C3A1A','#4A90D9','#6AABEF',
+              '#6B4423','#2D8B37','#3BAA45','#4BC452','#F0F0F0','#D4A85A'];
 
-const PLAYER_COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD'];
+// Player shirt colors
+const PCOLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FF9F43','#DDA0DD','#F472B6'];
 
-// ─── Map Data ─────────────────────────────────────────────────────────────────
+// ─── Map ─────────────────────────────────────────────────────────────────────
 function buildMap(): number[][] {
-  const m: number[][] = [];
-  for (let y = 0; y < GRID_H; y++) m.push(new Array(GRID_W).fill(T_WALL));
+  const m: number[][] = Array.from({length: GH}, () => new Array(GW).fill(GRASS));
+  // Fence top row 0
+  for(let x=0;x<GW;x++) m[0][x]=FENCE;
+  // Fence bottom row 23
+  for(let x=0;x<GW;x++) m[23][x]=FENCE;
+  // Left/right fence
+  for(let y=0;y<GH;y++) { m[y][0]=FENCE; m[y][GW-1]=FENCE; }
 
-  // Row 1 & 2: top rooms
-  for (let x = 1; x <= 6; x++) { m[1][x] = T_ART;   m[2][x] = T_ART; }
-  for (let x = 8; x <= 14; x++) { m[1][x] = T_GEO;   m[2][x] = T_GEO; }
-  for (let x = 16; x <= 22; x++) { m[1][x] = T_MUSIC; m[2][x] = T_MUSIC; }
+  // Main building (cols 8-21, rows 3-6)
+  for(let y=3;y<=6;y++) for(let x=8;x<=21;x++) m[y][x]=WALL;
+  // Main building interior floors (rows 4-5, cols 9-20)
+  for(let y=4;y<=5;y++) for(let x=9;x<=20;x++) m[y][x]=FLOOR;
+  // Main building windows on north wall (row 3)
+  for(let x=9;x<=20;x++) if(x!==10&&x!==14&&x!==17&&x!==20) { /* window */ }
+  // Main building doors on north face
+  m[3][10]=DOOR; m[3][14]=DOOR; m[3][17]=DOOR; m[3][20]=DOOR;
 
-  // Row 3: walls + doors
-  for (let x = 1; x <= 6; x++) m[3][x] = T_ART;
-  m[3][7] = T_DOOR;
-  for (let x = 8; x <= 14; x++) m[3][x] = T_GEO;
-  m[3][15] = T_DOOR;
-  for (let x = 16; x <= 22; x++) m[3][x] = T_MUSIC;
+  // Main quad path (row 7)
+  for(let x=0;x<GW;x++) m[7][x]=PATH;
+  // Path north to main building entrance (col 14-17, row 4-6)
+  for(let y=4;y<=6;y++) for(let x=14;x<=17;x++) m[y][x]=PATH;
 
-  // Rows 4-5: room floors
-  for (let x = 1; x <= 6; x++) { m[4][x] = T_ART;   m[5][x] = T_ART; }
-  for (let x = 8; x <= 14; x++) { m[4][x] = T_GEO;   m[5][x] = T_GEO; }
-  for (let x = 16; x <= 22; x++) { m[4][x] = T_MUSIC; m[5][x] = T_MUSIC; }
+  // West art building (cols 1-6, rows 11-13)
+  for(let y=11;y<=13;y++) for(let x=1;x<=6;x++) m[y][x]=WALL;
+  for(let y=12;y<=12;y++) for(let x=2;x<=5;x++) m[y][x]=FLOOR;
+  m[11][3]=DOOR;
+  // West path to art building (row 10)
+  for(let x=1;x<=6;x++) m[10][x]=PATH;
 
-  // Row 6: walls + doors
-  for (let x = 1; x <= 6; x++) m[6][x] = T_ART;
-  m[6][7] = T_DOOR;
-  for (let x = 8; x <= 14; x++) m[6][x] = T_GEO;
-  m[6][15] = T_DOOR;
-  for (let x = 16; x <= 22; x++) m[6][x] = T_MUSIC;
+  // East gym (cols 24-29, rows 11-13)
+  for(let y=11;y<=13;y++) for(let x=24;x<=29;x++) m[y][x]=WALL;
+  for(let y=12;y<=12;y++) for(let x=25;x<=28;x++) m[y][x]=FLOOR;
+  // Large gym opening at row 11
+  for(let x=25;x<=27;x++) m[11][x]=DOOR;
+  // East path to gym (row 10)
+  for(let x=24;x<=29;x++) m[10][x]=PATH;
 
-  // Rows 1-2: top rooms (art, geography, music) — full floors
-  // (already set above: rows 1-6 for all three rooms)
+  // South connecting path (row 15)
+  for(let x=0;x<GW;x++) m[15][x]=PATH;
 
-  // Row 3: upper rooms — doors at col 7 (art↔hallway) and col 15 (geography↔hallway)
-  for (let x = 1; x <= 6; x++) m[3][x] = T_ART;
-  m[3][7] = T_DOOR;  // art-hallway door
-  for (let x = 8; x <= 14; x++) m[3][x] = T_GEO;
-  m[3][15] = T_DOOR; // geography-hallway door
-  for (let x = 16; x <= 22; x++) m[3][x] = T_MUSIC;
+  // Pond/water (rows 19-20, cols 10-18)
+  for(let y=19;y<=20;y++) for(let x=10;x<=18;x++) m[y][x]=WATER;
 
-  // Rows 4-5: room floors
-  for (let x = 1; x <= 6; x++) { m[4][x] = T_ART; m[5][x] = T_ART; }
-  for (let x = 8; x <= 14; x++) { m[4][x] = T_GEO; m[5][x] = T_GEO; }
-  for (let x = 16; x <= 22; x++) { m[4][x] = T_MUSIC; m[5][x] = T_MUSIC; }
+  // Scattered trees
+  const trees:[number,number][] = [
+    [2,3],[4,2],[2,25],[4,27], // top corners
+    [9,2],[9,27],[9,3],[9,25], // near buildings
+    [16,3],[16,26],[18,2],[18,27], // lower area
+    [22,5],[22,24],[21,15],[22,20],
+  ];
+  trees.forEach(([y,x])=>{ if(y<GH&&x<GW) m[y][x]=TREE; });
 
-  // Row 6: upper rooms — doors at col 7 (art↔hallway) and col 15 (geography↔hallway)
-  for (let x = 1; x <= 6; x++) m[6][x] = T_ART;
-  m[6][7] = T_DOOR;
-  for (let x = 8; x <= 14; x++) m[6][x] = T_GEO;
-  m[6][15] = T_DOOR;
-  for (let x = 16; x <= 22; x++) m[6][x] = T_MUSIC;
-
-  // Row 7: hallway connecting upper and lower sections
-  for (let x = 7; x <= 16; x++) m[7][x] = T_HALL;
-  m[7][7]  = T_DOOR; // south door from art room
-  m[7][15] = T_DOOR; // south door from geography room
-
-  // Row 8: science lab, hallway, library — wide hallway down the middle
-  for (let x = 1; x <= 6; x++) m[8][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[8][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[8][x] = T_LIB;
-
-  // Row 9: same as row 8
-  for (let x = 1; x <= 6; x++) m[9][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[9][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[9][x] = T_LIB;
-
-  // Row 10: science lab, hallway, library
-  for (let x = 1; x <= 6; x++) m[10][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[10][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[10][x] = T_LIB;
-
-  // Row 11: science lab, hallway, library
-  for (let x = 1; x <= 6; x++) m[11][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[11][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[11][x] = T_LIB;
-
-  // Row 12: science lab, hallway, library
-  for (let x = 1; x <= 6; x++) m[12][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[12][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[12][x] = T_LIB;
-
-  // Row 13: science lab, hallway, library — door at col 7 to gym (south)
-  for (let x = 1; x <= 6; x++) m[13][x] = T_SCI;
-  for (let x = 7; x <= 16; x++) m[13][x] = T_HALL;
-  for (let x = 17; x <= 22; x++) m[13][x] = T_LIB;
-
-  // Row 14: gym (north section) + south entrance hall
-  for (let x = 1; x <= 10; x++) m[14][x] = T_GYM;
-  for (let x = 11; x <= 22; x++) m[14][x] = T_HALL;
-  // gym south door at row 14, cols 11-12 — opens INTO entrance hall area
-  m[14][11] = T_DOOR; m[14][12] = T_DOOR;
-
-  // Row 15: gym floor + south entrance hall
-  for (let x = 1; x <= 10; x++) m[15][x] = T_GYM;
-  for (let x = 11; x <= 22; x++) m[15][x] = T_HALL;
-
-  // Row 16: gym + entrance (ground floor)
-  for (let x = 1; x <= 10; x++) m[16][x] = T_GYM;
-  for (let x = 11; x <= 22; x++) m[16][x] = T_HALL;
-
-  // Lockers along walls in the middle hallway (rows 8-12)
-  for (let y = 8; y <= 12; y++) {
-    m[y][7]  = T_LOC;  // left wall between science lab and hallway
-    m[y][16] = T_LOC;  // right wall between hallway and library
-  }
-  // Lockers in upper hallway (rows 1-6) — only non-door rows
-  for (let y = 1; y <= 6; y++) {
-    if (y !== 3 && y !== 6) {
-      m[y][7]  = T_LOC;
-      m[y][15] = T_LOC;
-    }
-  }
-
-  // Gym south wall doors (row 17 = map boundary, gym spans cols 1-10)
-  m[17][4] = T_DOOR; m[17][5] = T_DOOR; m[17][6] = T_DOOR; m[17][7] = T_DOOR; m[17][8] = T_DOOR;
+  // Flowers scattered on grass
+  const flowers:[number,number][] = [
+    [2,10],[2,15],[2,22],[2,5],[2,8],
+    [9,8],[9,22],[9,10],[9,20],
+    [16,8],[16,20],[16,12],[16,15],
+    [18,10],[18,22],[21,10],[21,22],
+  ];
+  flowers.forEach(([y,x])=>{ if(y<GH&&x<GW&&m[y][x]===GRASS) m[y][x]=FLOWER; });
 
   return m;
 }
 
-// ─── Room Definitions ─────────────────────────────────────────────────────────
+// ─── Room definitions ─────────────────────────────────────────────────────────
 const ROOMS = [
-  { id: 'art',      name: 'Art Room',        color: '#FFF8DC', emoji: '🎨', floor: T_ART,
-    bounds: {x1:1,y1:1,x2:6,y2:6},
-    desc: 'Color your world! Tap to fill pixels and create pictures.' },
-  { id: 'geo',      name: 'Geography Room', color: '#E6F0FF', emoji: '🗺️', floor: T_GEO,
-    bounds: {x1:8,y1:1,x2:14,y2:6},
-    desc: 'Explore maps, discover continents, and learn about our amazing planet!' },
-  { id: 'music',    name: 'Music Room',      color: '#FFFACD', emoji: '🎵', floor: T_MUSIC,
-    bounds: {x1:16,y1:1,x2:22,y2:6},
-    desc: 'Make rhythms, learn notes, and create your own songs!' },
-  { id: 'science',  name: 'Science Lab',     color: '#E8FFE8', emoji: '🔬', floor: T_SCI,
-    bounds: {x1:1,y1:8,x2:6,y2:13},
-    desc: 'Mix, measure, and experiment! Science is all around you.' },
-  { id: 'library',  name: 'Library',         color: '#F5F5DC', emoji: '📚', floor: T_LIB,
-    bounds: {x1:17,y1:8,x2:22,y2:13},
-    desc: 'Open a book and travel anywhere! Stories are waiting for you.' },
-  { id: 'gym',      name: 'Gym',             color: '#DEB887', emoji: '🏀', floor: T_GYM,
-    bounds: {x1:1,y1:14,x2:10,y2:16},
-    desc: 'Run, jump, and play! Keeping active is super fun.' },
+  {id:'art',      name:'Art Room',      color:'#FFF8DC',emoji:'🎨',desc:'Color your world! Make pixel art and drawings.',   bounds:{x1:1,y1:11,x2:6,y2:13}},
+  {id:'gym',      name:'Gym',           color:'#DEB887',emoji:'🏀',desc:'Run, jump, and play! Keeping active is super fun.',  bounds:{x1:24,y1:11,x2:29,y2:13}},
+  {id:'main',     name:'Main Hall',     color:'#F0F0F0',emoji:'🏫',desc:'The heart of GoodBot School!',                      bounds:{x1:9,y1:4,x2:20,y2:5}},
+  {id:'class1',   name:'Classroom 1',   color:'#E6F0FF',emoji:'📖',desc:'Learn and discover new things!',                  bounds:{x1:11,y1:4,x2:13,y2:5}},
+  {id:'class2',   name:'Classroom 2',   color:'#E8FFE8',emoji:'🔬',desc:'Experiments and discoveries await!',               bounds:{x1:15,y1:4,x2:16,y2:5}},
+  {id:'class3',   name:'Classroom 3',   color:'#FFF0E6',emoji:'🎵',desc:'Make music and noise!',                           bounds:{x1:18,y1:4,x2:19,y2:5}},
 ];
 
-function getRoomAtTile(tx: number, ty: number) {
-  return ROOMS.find(r => tx >= r.bounds.x1 && tx <= r.bounds.x2 && ty >= r.bounds.y1 && ty <= r.bounds.y2) || null;
+function getRoom(tx:number,ty:number){
+  return ROOMS.find(r=>tx>=r.bounds.x1&&tx<=r.bounds.x2&&ty>=r.bounds.y1&&ty<=r.bounds.y2)||null;
 }
 
-function getCurrentRoom(tx: number, ty: number): string {
-  const room = getRoomAtTile(tx, ty);
-  return room ? room.name : 'Hallway';
+// ─── Tile Drawing ────────────────────────────────────────────────────────────
+function drawGrass(c:CanvasRenderingContext2D,wx:number,wy:number,seed:number){
+  c.fillStyle='#7EC850';
+  c.fillRect(wx,wy,T,T);
+  // Texture dots
+  const rng=(n:number)=>{ let x=Math.sin(seed*9301+ n*49297+97)%1; return x<0?x+1:x; };
+  c.fillStyle='#5DAE3A';
+  for(let i=0;i<6;i++){
+    const dx=Math.floor(rng(i*2)*T);
+    const dy=Math.floor(rng(i*2+1)*T);
+    c.fillRect(wx+dx,wy+dy,2,2);
+  }
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Player {
-  tx: number;       // current tile x
-  ty: number;       // current tile y
-  px: number;       // pixel x (smooth render)
-  py: number;       // pixel y
-  color: string;
-  moving: boolean;
-  targetPx: number;
-  targetPy: number;
-  direction: string;
+function drawPath(c:CanvasRenderingContext2D,wx:number,wy:number){
+  c.fillStyle='#D4B896';
+  c.fillRect(wx,wy,T,T);
+  c.fillStyle='#B89A70';
+  c.fillRect(wx,wy,T,1);
+  c.fillRect(wx,wy,1,T);
+  c.fillStyle='#C4A882';
+  for(let i=0;i<4;i++){
+    c.fillRect(wx+(i%2)*14+4,wy+Math.floor(i/2)*14+4,2,2);
+  }
 }
 
-interface DoorPrompt {
-  room: typeof ROOMS[number];
-  x: number;
-  y: number;
+function drawWall(c:CanvasRenderingContext2D,wx:number,wy:number,isWindow:boolean){
+  c.fillStyle='#C05A3A';
+  c.fillRect(wx,wy,T,T);
+  c.fillStyle='#A04530';
+  for(let row=0;row<4;row++){
+    c.fillRect(wx,wy+row*8, T,2);
+    const offset=(row%2)*8;
+    for(let col=0;col<4;col++){
+      c.fillRect(wx+col*8+offset,wy+row*8+2, 2,6);
+    }
+  }
+  if(isWindow){
+    c.fillStyle='#87CEEB';
+    c.fillRect(wx+10,wy+8,12,12);
+    c.fillStyle='rgba(255,255,255,0.4)';
+    c.fillRect(wx+10,wy+8,6,6);
+  }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function drawFloor(c:CanvasRenderingContext2D,wx:number,wy:number){
+  for(let gy=0;gy<4;gy++) for(let gx=0;gx<4;gx++){
+    c.fillStyle=(gx+gy)%2===0?'#E8E8E8':'#D0D0D0';
+    c.fillRect(wx+gx*8,wy+gy*8,8,8);
+  }
+}
+
+function drawDoor(c:CanvasRenderingContext2D,wx:number,wy:number){
+  // Frame
+  c.fillStyle='#5C3A1A';
+  c.fillRect(wx+2,wy,T-4,T-2);
+  // Door panel
+  c.fillStyle='#8B5A2B';
+  c.fillRect(wx+5,wy+3,T-10,T-6);
+  // Knob
+  c.fillStyle='#DAA520';
+  c.fillRect(wx+T-12,wy+T/2,3,3);
+}
+
+function drawWater(c:CanvasRenderingContext2D,wx:number,wy:number,t:number){
+  c.fillStyle='#4A90D9';
+  c.fillRect(wx,wy,T,T);
+  c.strokeStyle='#6AABEF';
+  c.lineWidth=1.5;
+  const off=Math.sin(t*0.002+wx*0.1)*3;
+  c.beginPath();
+  c.moveTo(wx,wy+10+off);
+  c.quadraticCurveTo(wx+T/2,wy+7+off,wx+T,wy+10+off);
+  c.stroke();
+  c.beginPath();
+  c.moveTo(wx,wy+20+off*0.7);
+  c.quadraticCurveTo(wx+T/2,wy+17+off*0.7,wx+T,wy+20+off*0.7);
+  c.stroke();
+}
+
+function drawTree(c:CanvasRenderingContext2D,wx:number,wy:number){
+  // Trunk
+  c.fillStyle='#6B4423';
+  c.fillRect(wx+T/2-3,wy+T-10,6,10);
+  // Bottom layer
+  c.fillStyle='#2D8B37';
+  c.beginPath();
+  c.moveTo(wx+T/2,wy+6);
+  c.lineTo(wx+T-2,wy+T-10);
+  c.lineTo(wx+2,wy+T-10);
+  c.closePath();
+  c.fill();
+  // Middle layer
+  c.fillStyle='#3BAA45';
+  c.beginPath();
+  c.moveTo(wx+T/2,wy);
+  c.lineTo(wx+T-4,wy+10);
+  c.lineTo(wx+4,wy+10);
+  c.closePath();
+  c.fill();
+}
+
+function drawFlower(c:CanvasRenderingContext2D,wx:number,wy:number,seed:number){
+  drawGrass(c,wx,wy,seed);
+  const rng=(n:number)=>Math.abs(Math.sin(seed*9301+n*49297+97))%1;
+  const cols=['#FF69B4','#FFD700','#FFFFFF','#FF6B6B','#DDA0DD'];
+  for(let i=0;i<4;i++){
+    c.fillStyle=cols[Math.floor(rng(i)*cols.length)];
+    c.fillRect(wx+4+i*6+(seed%3)*2,wy+4+(i*7)%20,3,3);
+  }
+}
+
+function drawFence(c:CanvasRenderingContext2D,wx:number,wy:number){
+  c.fillStyle='#F0F0F0';
+  c.fillRect(wx,wy,T,T);
+  c.fillStyle='#D0D0D0';
+  // Horizontal rails
+  c.fillRect(wx,wy+8, T,3);
+  c.fillRect(wx,wy+20,T,3);
+  // Vertical posts
+  for(let i=0;i<4;i++){
+    c.fillRect(wx+i*8+1,wy+4, 4,T-8);
+  }
+}
+
+function drawSign(c:CanvasRenderingContext2D,wx:number,wy:number,text:string){
+  c.fillStyle='#6B4423';
+  c.fillRect(wx+T/2-2,wy+T/2,T/2,10);
+  c.fillStyle='#D4A85A';
+  c.fillRect(wx+4,wy+4,T-8,14);
+  c.fillStyle='#333';
+  c.font='bold 7px monospace';
+  c.textAlign='center';
+  c.fillText(text.substring(0,8),wx+T/2,wy+14);
+}
+
+// ─── Sprite Drawing ──────────────────────────────────────────────────────────
+function drawSprite(
+  c:CanvasRenderingContext2D,
+  px:number, py:number, // pixel center position
+  color:string,
+  hairColor:string,
+  dir:string, // N S E W
+  frame:number, // 0 or 1
+  alpha:number=1,
+){
+  c.save();
+  c.globalAlpha=alpha;
+  const s=2; // pixel scale
+  const bx=Math.round(px-T/2);
+  const by=Math.round(py-T/2);
+
+  // Shadow
+  c.fillStyle='rgba(0,0,0,0.15)';
+  c.beginPath();
+  c.ellipse(px,by+T-2,8,3,0,0,Math.PI*2);
+  c.fill();
+
+  // Legs (animated)
+  const legOff=frame===1?2:0;
+  c.fillStyle='#3A3A60';
+  if(dir==='N'||dir==='S'){
+    c.fillRect(bx+5,by+T-10+legOff,4,8);
+    c.fillRect(bx+T-9,by+T-10+legOff,4,8);
+  } else {
+    c.fillRect(bx+5,by+T-10,4,8-legOff);
+    c.fillRect(bx+T-9,by+T-10,4,8+legOff);
+  }
+
+  // Body
+  c.fillStyle=color;
+  c.fillRect(bx+4,by+12,T-8,14);
+
+  // Arms
+  const armOff=frame===1?1:0;
+  c.fillStyle=color;
+  c.fillRect(bx+1,by+13+armOff,4,10);
+  c.fillRect(bx+T-5,by+13-armOff,4,10);
+
+  // Head
+  c.fillStyle='#F5C5A3';
+  c.fillRect(bx+5,by+4,T-10,10);
+  c.fillRect(bx+4,by+5,T-8,8);
+
+  // Hair
+  c.fillStyle=hairColor;
+  if(dir==='N'||dir==='S'){
+    c.fillRect(bx+4,by+2,T-8,5);
+    c.fillRect(bx+3,by+4,T-6,4);
+  } else {
+    c.fillRect(bx+5,by+2,T-10,5);
+    c.fillRect(bx+4,by+3,T-8,4);
+  }
+
+  // Eyes
+  c.fillStyle='#333';
+  if(dir==='S'){
+    c.fillRect(bx+7,by+9,2,2);
+    c.fillRect(bx+T-9,by+9,2,2);
+  } else if(dir==='N'){
+    // no eyes visible
+  } else {
+    c.fillRect(bx+8,by+9,2,2);
+    c.fillRect(bx+12,by+9,2,2);
+  }
+
+  c.restore();
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function SchoolGame() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const cv = ref.current;
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
     if (!ctx) return;
-    const c = ctx; // non-null alias for nested functions
-    const cvs = canvas; // non-null alias for nested functions
-
+    const c = ctx;
+    const W = CW, H = CH;
     const map = buildMap();
-    const PLAYER_SPEED = 4;
 
-    // Pick a random player color
-    const playerColor = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+    // Camera
+    let camX = 0, camY = 0;
 
-    // Player state
-    const player: Player = {
-      tx: 12, ty: 9,
-      px: 12 * TILE_SIZE + TILE_SIZE / 2,
-      py: 9 * TILE_SIZE + TILE_SIZE / 2,
-      color: playerColor,
-      moving: false,
-      targetPx: 12 * TILE_SIZE + TILE_SIZE / 2,
-      targetPy: 9 * TILE_SIZE + TILE_SIZE / 2,
-      direction: 'S',
-    };
+    // Player
+    const pColor = PCOLORS[Math.floor(Math.random()*PCOLORS.length)];
+    const hColor = ['#4A3728','#8B4513','#2C1810','#D4A853','#1A1A2E'][Math.floor(Math.random()*5)];
+    let px = 15*T + T/2, py = 7*T + T/2; // start on main path
+    let ptx = 15, pty = 7; // tile position
+    let pdir = 'S';
+    let pFrame = 0;
+    let pMoving = false;
+    let pTargetX = px, pTargetY = py;
+    let lastStep = 0;
+    const STEP = 3;
 
-    let modalOpen = false;
-    let activeRoom: typeof ROOMS[number] | null = null;
-    let doorPrompt: DoorPrompt | null = null;
+    // Interior mode
+    let inInterior = false;
+    let intRoom: typeof ROOMS[0]|null = null;
 
-    // Click-to-move queue
-    let clickTarget: {tx:number,ty:number} | null = null;
+    // NPCs
+    const npcs = [
+      {x:10*T+T/2, y:7*T+T/2, tx:10, ty:7, dir:'E', color:'#4ECDC4', hair:'#8B4513', frame:0, wait:0, wp:0,
+       route:[{x:10,y:7},{x:20,y:7},{x:20,y:7},{x:10,y:7}]},
+      {x:5*T+T/2,  y:10*T+T/2, tx:5, ty:10, dir:'S', color:'#FF9F43', hair:'#2C1810', frame:0, wait:0, wp:0,
+       route:[{x:5,y:10},{x:5,y:7},{x:5,y:10}]},
+      {x:25*T+T/2, y:15*T+T/2, tx:25, ty:15, dir:'W', color:'#DDA0DD', hair:'#1A1A2E', frame:0, wait:0, wp:0,
+       route:[{x:25,y:15},{x:15,y:15},{x:25,y:15}]},
+    ];
+    let lastNpcUpdate = 0;
 
-    // ─── Drawing Helpers ───────────────────────────────────────────────────
-    function drawTile(x: number, y: number, tileId: number) {
-      const px = x * TILE_SIZE;
-      const py = y * TILE_SIZE;
-      c.fillStyle = TILE_COLORS[tileId] || '#FF00FF';
-      c.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-
-      // Wall texture
-      if (tileId === T_WALL) {
-        c.fillStyle = 'rgba(0,0,0,0.15)';
-        c.fillRect(px, py + TILE_SIZE - 3, TILE_SIZE, 3);
-        c.fillStyle = 'rgba(255,255,255,0.08)';
-        c.fillRect(px, py, TILE_SIZE, 2);
-      }
-
-      // Door frame detail
-      if (tileId === T_DOOR) {
-        c.fillStyle = 'rgba(0,0,0,0.2)';
-        c.fillRect(px + 4, py + 2, TILE_SIZE - 8, 4);
-        c.fillRect(px + 4, py + TILE_SIZE - 6, TILE_SIZE - 8, 4);
-      }
-
-      // Locker lines
-      if (tileId === T_LOC) {
-        c.fillStyle = 'rgba(0,0,0,0.1)';
-        c.fillRect(px + TILE_SIZE / 2 - 1, py + 2, 2, TILE_SIZE - 4);
-      }
-    }
-
-    function drawPlayer() {
-      const { px, py, color } = player;
-      const r = 14;
-
-      // Shadow
-      c.fillStyle = 'rgba(0,0,0,0.2)';
-      c.beginPath();
-      c.ellipse(px + 2, py + r + 2, r, r * 0.4, 0, 0, Math.PI * 2);
-      c.fill();
-
-      // Body
-      c.fillStyle = color;
-      c.beginPath();
-      c.arc(px, py, r, 0, Math.PI * 2);
-      c.fill();
-
-      // Outline
-      c.strokeStyle = 'rgba(0,0,0,0.3)';
-      c.lineWidth = 2;
-      c.stroke();
-
-      // Eyes
-      c.fillStyle = '#fff';
-      c.beginPath();
-      c.arc(px - 5, py - 3, 4, 0, Math.PI * 2);
-      c.arc(px + 5, py - 3, 4, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = '#333';
-      c.beginPath();
-      c.arc(px - 5, py - 3, 2, 0, Math.PI * 2);
-      c.arc(px + 5, py - 3, 2, 0, Math.PI * 2);
-      c.fill();
-
-      // Smile
-      c.strokeStyle = '#333';
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.arc(px, py + 2, 6, 0.2, Math.PI - 0.2);
-      c.stroke();
-    }
-
-    function drawMinimap() {
-      const mw = 80, mh = 60;
-      const mx = CANVAS_W - mw - 10;
-      const my = CANVAS_H - mh - 30;
-      const sx = mw / GRID_W;
-      const sy = mh / GRID_H;
-
-      // BG
-      c.fillStyle = 'rgba(0,0,0,0.6)';
-      c.roundRect(mx - 2, my - 2, mw + 4, mh + 4, 6);
-      c.fill();
-
-      // Tiles
-      for (let y = 0; y < GRID_H; y++) {
-        for (let x = 0; x < GRID_W; x++) {
-          const tile = map[y][x];
-          if (tile === T_WALL) {
-            c.fillStyle = '#5C4033';
-          } else if (tile === T_DOOR) {
-            c.fillStyle = '#8B4513';
-          } else {
-            c.fillStyle = 'rgba(255,255,255,0.15)';
-          }
-          c.fillRect(mx + x * sx, my + y * sy, sx + 0.5, sy + 0.5);
-        }
-      }
-
-      // Player dot
-      c.fillStyle = player.color;
-      c.beginPath();
-      c.arc(mx + player.tx * sx + sx / 2, my + player.ty * sy + sy / 2, 3, 0, Math.PI * 2);
-      c.fill();
-    }
-
-    function drawCompass(dir: string) {
-      const cx = CANVAS_W - 30;
-      const cy = 30;
-      const label = { N: '↑', S: '↓', E: '→', W: '←' }[dir] || '↓';
-
-      c.fillStyle = 'rgba(0,0,0,0.5)';
-      c.beginPath();
-      c.arc(cx, cy, 18, 0, Math.PI * 2);
-      c.fill();
-
-      c.fillStyle = '#fff';
-      c.font = 'bold 18px sans-serif';
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillText(label, cx, cy);
-    }
-
-    function drawUI() {
-      // Room label (top-left)
-      const room = getRoomAtTile(player.tx, player.ty);
-      const roomName = room ? room.name : 'Hallway';
-      c.fillStyle = 'rgba(0,0,0,0.55)';
-      c.roundRect(10, 10, 160, 32, 8);
-      c.fill();
-      c.fillStyle = '#fff';
-      c.font = 'bold 14px sans-serif';
-      c.textAlign = 'left';
-      c.textBaseline = 'middle';
-      c.fillText(room ? `${room.emoji} ${roomName}` : `🏫 ${roomName}`, 20, 26);
-
-      // Compass (top-right)
-      drawCompass(player.direction);
-
-      // Controls hint (bottom-left)
-      c.fillStyle = 'rgba(0,0,0,0.45)';
-      c.roundRect(10, CANVAS_H - 30, 190, 24, 6);
-      c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.8)';
-      c.font = '11px sans-serif';
-      c.textAlign = 'left';
-      c.textBaseline = 'middle';
-      c.fillText('WASD to move  ·  Click to walk', 18, CANVAS_H - 19);
-
-      // Minimap
-      drawMinimap();
-
-      // Door prompt
-      if (doorPrompt && !modalOpen) {
-        const promptText = `Press E to enter ${doorPrompt.room.name}`;
-        c.font = 'bold 13px sans-serif';
-        const tw = c.measureText(promptText).width;
-        const px = doorPrompt.x * TILE_SIZE + TILE_SIZE / 2;
-        const py = doorPrompt.y * TILE_SIZE - 14;
-        c.fillStyle = 'rgba(0,0,0,0.75)';
-        c.roundRect(px - tw / 2 - 8, py - 10, tw + 16, 22, 6);
-        c.fill();
-        c.fillStyle = '#FFE066';
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.fillText(promptText, px, py);
-      }
-    }
-
-    function drawModal() {
-      if (!modalOpen || !activeRoom) return;
-
-      const mw = 360, mh = 280;
-      const mx = (CANVAS_W - mw) / 2;
-      const my = (CANVAS_H - mh) / 2;
-
-      // Overlay
-      c.fillStyle = 'rgba(0,0,0,0.6)';
-      c.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-      // Box
-      c.fillStyle = activeRoom.color;
-      c.strokeStyle = 'rgba(0,0,0,0.3)';
-      c.lineWidth = 3;
-      c.roundRect(mx, my, mw, mh, 16);
-      c.fill();
-      c.stroke();
-
-      // Emoji
-      c.font = '64px sans-serif';
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillText(activeRoom.emoji, CANVAS_W / 2, my + 70);
-
-      // Title
-      c.fillStyle = '#333';
-      c.font = 'bold 22px sans-serif';
-      c.fillText(activeRoom.name, CANVAS_W / 2, my + 130);
-
-      // Description
-      c.fillStyle = '#555';
-      c.font = '14px sans-serif';
-      const words = activeRoom.desc.split(' ');
-      let line = '', lineY = my + 160;
-      for (const word of words) {
-        const test = line + word + ' ';
-        if (c.measureText(test).width > mw - 40) {
-          c.fillText(line.trim(), CANVAS_W / 2, lineY);
-          line = word + ' ';
-          lineY += 20;
-        } else {
-          line = test;
-        }
-      }
-      c.fillText(line.trim(), CANVAS_W / 2, lineY);
-
-      // Coming soon
-      c.fillStyle = '#888';
-      c.font = 'italic 12px sans-serif';
-      c.fillText('This activity is coming soon!', CANVAS_W / 2, lineY + 30);
-
-      // Back button
-      const bx = CANVAS_W / 2 - 60, by = my + mh - 45;
-      c.fillStyle = 'rgba(0,0,0,0.15)';
-      c.roundRect(bx, by, 120, 32, 8);
-      c.fill();
-      c.fillStyle = '#333';
-      c.font = 'bold 13px sans-serif';
-      c.fillText('← Back Outside', CANVAS_W / 2, by + 16);
-
-      // Store button bounds for click detection
-      (canvas as any).__modalBtn = { bx, by, bw: 120, bh: 32 };
-    }
-
-    function openModal(room: typeof ROOMS[number]) {
-      modalOpen = true;
-      activeRoom = room;
-      player.moving = false;
-      clickTarget = null;
-    }
-
-    function closeModal() {
-      modalOpen = false;
-      activeRoom = null;
-    }
-
-    // ─── Movement Logic ─────────────────────────────────────────────────────
-    function canWalk(tx: number, ty: number): boolean {
-      if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) return false;
-      const tile = map[ty][tx];
-      return tile !== T_WALL && tile !== T_LOC;
-    }
-
-    function moveToward(tx: number, ty: number) {
-      if (!canWalk(tx, ty)) return;
-      player.tx = tx;
-      player.ty = ty;
-      player.targetPx = tx * TILE_SIZE + TILE_SIZE / 2;
-      player.targetPy = ty * TILE_SIZE + TILE_SIZE / 2;
-      player.moving = true;
-    }
-
-    function checkDoorPrompt() {
-      const { tx, ty } = player;
-      // Check adjacent tiles for door + room
-      const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
-      for (const [dx, dy] of dirs) {
-        const nx = tx + dx, ny = ty + dy;
-        if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
-        if (map[ny][nx] !== T_DOOR) continue;
-        // Find which room this door belongs to
-        for (const room of ROOMS) {
-          // A door is adjacent to a room if one of the room bounds is adjacent
-          if (
-            (nx === room.bounds.x2 + 1 || nx === room.bounds.x1 - 1) &&
-            ny >= room.bounds.y1 && ny <= room.bounds.y2
-          ) {
-            doorPrompt = { room, x: nx, y: ny };
-            return;
-          }
-          if (
-            (ny === room.bounds.y2 + 1 || ny === room.bounds.y1 - 1) &&
-            nx >= room.bounds.x1 && nx <= room.bounds.x2
-          ) {
-            doorPrompt = { room, x: nx, y: ny };
-            return;
-          }
-        }
-      }
-      doorPrompt = null;
-    }
-
-    function updatePlayer() {
-      if (modalOpen) return;
-
-      // If no target, try click-to-move
-      if (!player.moving && clickTarget) {
-        const { tx, ty } = clickTarget;
-        if (tx === player.tx && ty === player.ty) {
-          clickTarget = null;
-        } else {
-          // Move horizontally first, then vertically
-          if (player.tx !== tx) {
-            const dx = player.tx < tx ? 1 : -1;
-            if (canWalk(player.tx + dx, player.ty)) {
-              moveToward(player.tx + dx, player.ty);
-            }
-          } else if (player.ty !== ty) {
-            const dy = player.ty < ty ? 1 : -1;
-            if (canWalk(player.tx, player.ty + dy)) {
-              moveToward(player.tx, player.ty + dy);
-            }
-          }
-          if (player.tx === tx && player.ty === ty) clickTarget = null;
-        }
-      }
-
-      // Smooth movement toward target
-      if (player.moving) {
-        const dx = player.targetPx - player.px;
-        const dy = player.targetPy - player.py;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < PLAYER_SPEED) {
-          player.px = player.targetPx;
-          player.py = player.targetPy;
-          player.moving = false;
-        } else {
-          player.px += (dx / dist) * PLAYER_SPEED;
-          player.py += (dy / dist) * PLAYER_SPEED;
-        }
-      }
-
-      checkDoorPrompt();
-    }
-
-    // ─── Input Handling ─────────────────────────────────────────────────────
+    // Input
     const keys: Set<string> = new Set();
-    let lastMoveTime = 0;
-    const MOVE_DELAY = 160;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (modalOpen) {
-        if (e.key === 'Escape') closeModal();
-        return;
-      }
+    const handleKeyDown = (e: KeyboardEvent) => {
       keys.add(e.key.toLowerCase());
-      if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase())) {
+      if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(e.key.toLowerCase()))
         e.preventDefault();
-      }
-    }
-
-    function handleKeyUp(e: KeyboardEvent) {
-      keys.delete(e.key.toLowerCase());
-    }
-
-    function processKeys(now: number) {
-      if (modalOpen || player.moving) return;
-      if (now - lastMoveTime < MOVE_DELAY) return;
-
-      let dx = 0, dy = 0;
-      if (keys.has('arrowup')    || keys.has('w')) { dy = -1; player.direction = 'N'; }
-      if (keys.has('arrowdown')  || keys.has('s')) { dy =  1; player.direction = 'S'; }
-      if (keys.has('arrowleft')  || keys.has('a')) { dx = -1; player.direction = 'W'; }
-      if (keys.has('arrowright') || keys.has('d')) { dx =  1; player.direction = 'E'; }
-
-      if (dx !== 0 || dy !== 0) {
-        const nx = player.tx + dx;
-        const ny = player.ty + dy;
-        if (canWalk(nx, ny)) {
-          moveToward(nx, ny);
-          lastMoveTime = now;
-        }
-      }
-    }
-
-    function handleClick(e: MouseEvent) {
-      const rect = cvs.getBoundingClientRect();
-      const scaleX = CANVAS_W / rect.width;
-      const scaleY = CANVAS_H / rect.height;
-      const mx = (e.clientX - rect.left) * scaleX;
-      const my = (e.clientY - rect.top) * scaleY;
-
-      if (modalOpen) {
-        // Check back button
-        const btn = (canvas as any).__modalBtn;
-        if (btn && mx >= btn.bx && mx <= btn.bx + btn.bw && my >= btn.by && my <= btn.by + btn.bh) {
-          closeModal();
-        }
-        return;
-      }
-
-      const tx = Math.floor(mx / TILE_SIZE);
-      const ty = Math.floor(my / TILE_SIZE);
-      if (canWalk(tx, ty)) {
-        clickTarget = { tx, ty };
-      }
-    }
-
-    function handleKeyPress(e: KeyboardEvent) {
-      if (e.key.toLowerCase() === 'e' && doorPrompt && !modalOpen) {
-        openModal(doorPrompt.room);
-      }
-    }
-
+    };
+    const handleKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('keypress', handleKeyPress);
-    cvs.addEventListener('click', handleClick);
 
-    // ─── Game Loop ───────────────────────────────────────────────────────────
+    // Pre-render static tile textures to offscreen canvas
+    const tileCache: (HTMLCanvasElement|null)[] = Array(10).fill(null);
+    function getTileCanvas(id: number, t: number): HTMLCanvasElement {
+      if (!tileCache[id]) {
+        const oc = document.createElement('canvas');
+        oc.width = T; oc.height = T;
+        const cc = oc.getContext('2d')!;
+        if(id===GRASS)  drawGrass(cc,0,0,0);
+        else if(id===PATH)  drawPath(cc,0,0);
+        else if(id===WALL) drawWall(cc,0,0,false);
+        else if(id===FLOOR) drawFloor(cc,0,0);
+        else if(id===DOOR)  drawDoor(cc,0,0);
+        else if(id===WATER) drawWater(cc,0,0,t);
+        else if(id===TREE)  drawTree(cc,0,0);
+        else if(id===FLOWER) drawFlower(cc,0,0,0);
+        else if(id===FENCE)  drawFence(cc,0,0);
+        tileCache[id] = oc;
+      }
+      return tileCache[id]!;
+    }
+
+    function canWalk(tx: number, ty: number): boolean {
+      if(tx<0||tx>=GW||ty<0||ty>=GH) return false;
+      const t = map[ty][tx];
+      return t!==WALL && t!==TREE && t!==FENCE && t!==WATER;
+    }
+
+    function getInteractDoor(): typeof ROOMS[0]|null {
+      const dirs=[[0,-1],[0,1],[-1,0],[1,0],[0,0]];
+      for(const [dx,dy] of dirs){
+        const nx=ptx+dx, ny=pty+dy;
+        if(nx<0||nx>=GW||ny<0||ny>=GH) continue;
+        if(map[ny][nx]===DOOR) return getRoom(nx,ny);
+      }
+      return null;
+    }
+
+    function worldToScreen(wx:number,wy:number):[number,number] {
+      return [wx - camX, wy - camY];
+    }
+
+    function clampCam(){
+      camX = Math.max(0, Math.min(W-W, ptx*T - W/2 + T/2));
+      camY = Math.max(0, Math.min(H-H, pty*T - H/2 + T/2));
+      if(W > W) camX = Math.max(0, camX); // dummy
+    }
+
     let animId: number;
-    function loop(ts: number) {
-      processKeys(ts);
-      updatePlayer();
+    let lastTs = 0;
 
-      // Clear
-      c.fillStyle = '#1a1a2e';
-      c.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    function update(ts: number) {
+      const dt = ts - lastTs;
+      lastTs = ts;
 
-      // 1. Floor tiles
-      for (let y = 0; y < GRID_H; y++) {
-        for (let x = 0; x < GRID_W; x++) {
-          drawTile(x, y, map[y][x]);
+      if(inInterior) return;
+
+      // Player movement
+      if(!pMoving){
+        let dx=0,dy=0;
+        if(keys.has('w')||keys.has('arrowup'))    {dy=-1;pdir='N';}
+        else if(keys.has('s')||keys.has('arrowdown'))  {dy=1;pdir='S';}
+        else if(keys.has('a')||keys.has('arrowleft'))  {dx=-1;pdir='W';}
+        else if(keys.has('d')||keys.has('arrowright')) {dx=1;pdir='E';}
+        if(dx||dy){
+          const nx=ptx+dx, ny=pty+dy;
+          if(canWalk(nx,ny)){
+            ptx=nx; pty=ny;
+            pTargetX=ptx*T+T/2; pTargetY=pty*T+T/2;
+            pMoving=true;
+            pFrame=(pFrame+1)%2;
+          }
         }
       }
 
-      // 2. Player
-      drawPlayer();
+      if(pMoving){
+        const dx=pTargetX-px, dy=pTargetY-py;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<STEP){
+          px=pTargetX; py=pTargetY;
+          pMoving=false;
+        } else {
+          px+=(dx/dist)*STEP;
+          py+=(dy/dist)*STEP;
+        }
+      }
 
-      // 3. UI
-      if (!modalOpen) drawUI();
+      // NPC movement
+      if(ts-lastNpcUpdate>400){
+        lastNpcUpdate=ts;
+        for(const npc of npcs){
+          npc.wait++;
+          if(npc.wait>3){
+            npc.wait=0;
+            const next=npc.route[npc.wp];
+            const ndx=next.x-npc.tx, ndy=next.y-npc.ty;
+            if(ndx!==0||ndy!==0){
+              npc.tx+=Math.sign(ndx); npc.ty+=Math.sign(ndy);
+              npc.x=npc.tx*T+T/2; npc.y=npc.ty*T+T/2;
+              npc.dir=ndx<0?'W':ndx>0?'E':ndy<0?'N':'S';
+              npc.frame=(npc.frame+1)%2;
+            }
+            npc.wp=(npc.wp+1)%npc.route.length;
+          }
+        }
+      }
 
-      // 4. Modal
-      drawModal();
+      // E key — interact
+      if(keys.has('e')){
+        keys.delete('e');
+        const door=getInteractDoor();
+        if(door){
+          inInterior=true;
+          intRoom=door;
+        }
+      }
 
+      // Camera
+      const tpx=px-W/2, tpy=py-H/2;
+      camX+=(tpx-camX)*0.12;
+      camY+=(tpy-camY)*0.12;
+      camX=Math.max(0,Math.min(W-W,camX));
+      camY=Math.max(0,Math.min(H-H,camY));
+    }
+
+    function render(ts: number) {
+      c.fillStyle='#5C8B3A';
+      c.fillRect(0,0,W,H);
+
+      // Tiles
+      const startX=Math.max(0,Math.floor(camX/T));
+      const startY=Math.max(0,Math.floor(camY/T));
+      const endX=Math.min(GW,startX+Math.ceil(W/T)+2);
+      const endY=Math.min(GH,startY+Math.ceil(H/T)+2);
+
+      for(let ty=startY;ty<endY;ty++){
+        for(let tx=startX;tx<endX;tx++){
+          const t=map[ty][tx];
+          const wx=tx*T-camX, wy=ty*T-camY;
+          if(t===GRASS)   drawGrass(c,wx,wy,tx*100+ty);
+          else if(t===PATH)   drawPath(c,wx,wy);
+          else if(t===WALL)   drawWall(c,wx,wy,false);
+          else if(t===FLOOR)  drawFloor(c,wx,wy);
+          else if(t===DOOR)   drawDoor(c,wx,wy);
+          else if(t===WATER)  drawWater(c,wx,wy,ts);
+          else if(t===TREE)   drawTree(c,wx,wy);
+          else if(t===FLOWER)  drawFlower(c,wx,wy,tx*17+ty);
+          else if(t===FENCE)   drawFence(c,wx,wy);
+        }
+      }
+
+      // NPCs (sorted by Y for depth)
+      const entities=[...npcs].sort((a,b)=>a.y-b.y);
+      for(const npc of entities){
+        const [sx,sy]=worldToScreen(npc.x,npc.y);
+        if(sx<-T||sx>W+T||sy<-T||sy>H+T) continue;
+        drawSprite(c,sx,sy,npc.color,npc.hair,npc.dir,npc.frame,0.95);
+      }
+
+      // Player
+      const [spx,spy]=worldToScreen(px,py);
+      drawSprite(c,spx,spy,pColor,hColor,pdir,pFrame,1);
+
+      // Door interaction prompt
+      if(!inInterior){
+        const door=getInteractDoor();
+        if(door){
+          c.fillStyle='rgba(0,0,0,0.7)';
+          c.roundRect(W/2-90,H-80,180,28,8);
+          c.fill();
+          c.fillStyle='#FFE066';
+          c.font='bold 12px sans-serif';
+          c.textAlign='center';
+          c.fillText(`Press E for ${door.emoji} ${door.name}`,W/2,H-62);
+        }
+      }
+
+      // Interior overlay
+      if(inInterior && intRoom){
+        c.fillStyle='rgba(0,0,0,0.75)';
+        c.fillRect(0,0,W,H);
+        // Room box
+        const bw=480,bh=340,bx=(W-bw)/2,by=(H-bh)/2;
+        c.fillStyle=intRoom.color;
+        c.strokeStyle='rgba(0,0,0,0.3)';
+        c.lineWidth=4;
+        c.roundRect(bx,by,bw,bh,20);
+        c.fill();c.stroke();
+        // Room emoji
+        c.font='72px sans-serif';
+        c.textAlign='center';
+        c.fillText(intRoom.emoji,W/2,by+100);
+        // Room name
+        c.fillStyle='#222';
+        c.font='bold 26px sans-serif';
+        c.fillText(intRoom.name,W/2,by+150);
+        // Description
+        c.font='15px sans-serif';
+        c.fillStyle='#555';
+        const words=intRoom.desc.split(' ');
+        let line='',ly=by+185;
+        for(const w of words){
+          const test=line+w+' ';
+          if(c.measureText(test).width>bw-60){ c.fillText(line,W/2,ly); line=w+' '; ly+=22; }
+          else line=test;
+        }
+        c.fillText(line,W/2,ly);
+        // Coming soon
+        c.fillStyle='#888';
+        c.font='italic 13px sans-serif';
+        c.fillText('✨ Activity coming soon!',W/2,ly+35);
+        // Exit button
+        c.fillStyle='rgba(0,0,0,0.12)';
+        c.roundRect(W/2-70,by+bh-55,140,34,10);c.fill();
+        c.fillStyle='#333';
+        c.font='bold 14px sans-serif';
+        c.fillText('← Back Outside (ESC)',W/2,by+bh-33);
+      }
+
+      // HUD
+      c.fillStyle='rgba(0,0,0,0.55)';
+      c.roundRect(10,10,200,30,8);c.fill();
+      const room=getRoom(ptx,pty);
+      c.fillStyle='#fff';
+      c.font='bold 13px sans-serif';
+      c.textAlign='left';
+      c.fillText(room?`${room.emoji} ${room.name}`:'🏫 GoodBot School',18,30);
+
+      // Controls
+      c.fillStyle='rgba(0,0,0,0.45)';
+      c.roundRect(10,H-34,200,24,6);c.fill();
+      c.fillStyle='rgba(255,255,255,0.75)';
+      c.font='11px sans-serif';
+      c.fillText('WASD to move  ·  E to interact  ·  ESC interior',18,H-18);
+
+      // Minimap
+      const mw=100,mh=80,mx=W-mw-10,my=10;
+      c.fillStyle='rgba(0,0,0,0.6)';
+      c.roundRect(mx-2,my-2,mw+4,mh+4,6);c.fill();
+      const sx=mw/GW, sy=mh/GH;
+      for(let ty=0;ty<GH;ty++) for(let tx=0;tx<GW;tx++){
+        const t=map[ty][tx];
+        if(t===WALL||t===TREE) c.fillStyle='#5C4033';
+        else if(t===PATH||t===DOOR) c.fillStyle='#B89A70';
+        else if(t===WATER) c.fillStyle='#4A90D9';
+        else if(t===FLOOR) c.fillStyle='#888';
+        else continue;
+        c.fillRect(mx+tx*sx,my+ty*sy,sx+0.5,sy+0.5);
+      }
+      // NPCs on minimap
+      for(const npc of npcs){
+        c.fillStyle=npc.color;
+        c.beginPath();
+        c.arc(mx+npc.tx*sx+sx/2,my+npc.ty*sy+sy/2,2,0,Math.PI*2);
+        c.fill();
+      }
+      // Player dot
+      c.fillStyle=pColor;
+      c.beginPath();
+      c.arc(mx+ptx*sx+sx/2,my+pty*sy+sy/2,3,0,Math.PI*2);
+      c.fill();
+    }
+
+    function loop(ts: number) {
+      update(ts);
+      render(ts);
       animId = requestAnimationFrame(loop);
     }
 
     animId = requestAnimationFrame(loop);
 
+    const handleEsc = (e: KeyboardEvent) => {
+      if(e.key==='Escape'&&inInterior){ inInterior=false; intRoom=null; }
+    };
+    window.addEventListener('keydown',handleEsc);
+
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('keypress', handleKeyPress);
-      cvs.removeEventListener('click', handleClick);
+      window.removeEventListener('keydown',handleKeyDown);
+      window.removeEventListener('keyup',handleKeyUp);
+      window.removeEventListener('keydown',handleEsc);
     };
   }, []);
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '16px 0',
-      gap: '12px',
+      minHeight:'100vh',
+      background:'linear-gradient(135deg,#5C8B3A 0%,#3A6B2A 100%)',
+      display:'flex', flexDirection:'column', alignItems:'center',
+      padding:'16px 0', gap:'12px',
     }}>
-      {/* Title Bar */}
       <div style={{
-        color: '#fff',
-        fontSize: '22px',
-        fontWeight: 'bold',
-        fontFamily: 'sans-serif',
-        textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        letterSpacing: '1px',
+        color:'#fff', fontSize:'22px', fontWeight:700, fontFamily:'sans-serif',
+        textShadow:'0 2px 8px rgba(0,0,0,0.4)', letterSpacing:'1px',
       }}>
         🏫 GoodBot School
       </div>
-
-      {/* Canvas wrapper */}
       <div style={{
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        border: '3px solid rgba(255,255,255,0.2)',
+        borderRadius:'12px', overflow:'hidden',
+        boxShadow:'0 8px 32px rgba(0,0,0,0.5)',
+        border:'3px solid rgba(255,255,255,0.2)',
       }}>
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          style={{
-            display: 'block',
-            maxWidth: '100%',
-            height: 'auto',
-          }}
-        />
+        <canvas ref={ref} width={CW} height={CH}
+          style={{display:'block', maxWidth:'100vw', height:'auto'}} />
       </div>
     </div>
   );
