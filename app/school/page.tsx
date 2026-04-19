@@ -1,12 +1,24 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import PixelCanvas from '../components/PixelCanvas';
+import StateFinder from '../components/StateFinder';
 
 const T=32, GW=30, GH=24, CW=GW*T, CH=GH*T;
 const GRASS=0,PATH=1,WALL=2,FLOOR=3,DOOR=4,WATER=5,TREE=6,FLOWER=7,FENCE=8;
 const PCOLORS=['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FF9F43','#DDA0DD','#F472B6'];
 const HCOLS=['#4A3728','#8B4513','#2C1810','#D4A853','#1A1A2E'];
 const STEP=3;
+
+const NPC_GREETINGS=[
+  "Hey! Have you been to the Art Room yet? \U0001f3a8",
+  "The Gym is so fun! I love playing there! \U0001f3c0",
+  "I'm trying to learn all 50 states... so hard! \U0001f5fa",
+  "Hey friend! Have you checked out the Library? \U0001f4da",
+  "I heard there's a secret room somewhere... \U0001f440",
+  "Hi! I love this school! What grade are you in? \u2b50",
+  "The science experiments are so cool! \U0001f52c",
+];
 
 function buildMap(): number[][] {
   const m: number[][]=Array.from({length:GH},()=>new Array(GW).fill(GRASS));
@@ -47,15 +59,15 @@ function buildMap(): number[][] {
 }
 
 const ROOMS=[
-  {id:'art',    name:'Art Room',     color:'#FFF8DC',emoji:'🎨',desc:'Color your world! Make pixel art and drawings.',  x1:1, y1:11,x2:6,y2:13},
-  {id:'gym',    name:'Gym',          color:'#DEB887',emoji:'🏀',desc:'Run, jump, and play! Keeping active is fun.',     x1:24,y1:11,x2:29,y2:13},
-  {id:'main',   name:'Main Hall',    color:'#F0F0F0',emoji:'🏫',desc:'The heart of GoodBot School!',                 x1:9, y1:4, x2:20,y2:5},
-  {id:'class1', name:'Classroom 1',  color:'#E6F0FF',emoji:'📖',desc:'Learn and discover new things!',               x1:11,y1:4, x2:13,y2:5},
-  {id:'class2', name:'Classroom 2',  color:'#E8FFE8',emoji:'🔬',desc:'Experiments and discoveries await!',            x1:15,y1:4, x2:16,y2:5},
-  {id:'class3', name:'Classroom 3',  color:'#FFF0E6',emoji:'🎵',desc:'Make music and noise!',                      x1:18,y1:4, x2:19,y2:5},
+  {id:'art',    name:'Art Room',     color:'#FFF8DC',emoji:'\U0001f3a8',desc:'Color your world! Make pixel art and drawings.',  x1:1, y1:11,x2:6,y2:13, activityId:'pixelstudio' as const},
+  {id:'gym',    name:'Gym',          color:'#DEB887',emoji:'\U0001f3c0',desc:'Run, jump, and play! Keeping active is fun.',     x1:24,y1:11,x2:29,y2:13, activityId:null},
+  {id:'main',   name:'Main Hall',    color:'#F0F0F0',emoji:'\U0001f3eb',desc:'The heart of GoodBot School!',                 x1:9, y1:4, x2:20,y2:5, activityId:null},
+  {id:'class1', name:'Classroom 1',  color:'#E6F0FF',emoji:'\U0001f4d6',desc:'Learn and discover new things!',               x1:11,y1:4, x2:13,y2:5, activityId:'statefinder' as const},
+  {id:'class2', name:'Classroom 2',  color:'#E8FFE8',emoji:'\U0001f52c',desc:'Experiments and discoveries await!',            x1:15,y1:4, x2:16,y2:5, activityId:null},
+  {id:'class3', name:'Classroom 3',  color:'#FFF0E6',emoji:'\U0001f3b5',desc:'Make music and noise!',                      x1:18,y1:4, x2:19,y2:5, activityId:null},
 ];
 
-function getRoom(tx:number,ty:number){
+function getRoom(tx:number,ty:number): typeof ROOMS[0]|null {
   return ROOMS.find(r=>tx>=r.x1&&tx<=r.x2&&ty>=r.y1&&ty<=r.y2)||null;
 }
 
@@ -157,9 +169,75 @@ function drawSprite(c:CanvasRenderingContext2D,sx:number,sy:number,col:string,ha
   else { c.fillRect(bx+8,by+9,2,2); c.fillRect(bx+12,by+9,2,2); }
 }
 
+// ─── IntroScreen ───────────────────────────────────────────────────────────────
+function IntroScreen({ onEnter, pCol, setPCol, hCol }: {
+  onEnter: () => void;
+  pCol: string;
+  setPCol: (c: string) => void;
+  hCol: string;
+}) {
+  const previewRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const cv = previewRef.current;
+    if (!cv) return;
+    const c = cv.getContext('2d');
+    if (!c) return;
+    c.clearRect(0, 0, 64, 64);
+    drawSprite(c, 32, 32, pCol, hCol, 'S', 0);
+  }, [pCol, hCol]);
+
+  const choices = [
+    { col: '#FF6B6B' },
+    { col: '#4ECDC4' },
+    { col: '#DDA0DD' },
+  ];
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'Fredoka, system-ui, sans-serif',
+      zIndex: 999,
+    }}>
+      <div style={{ fontSize: '48px', marginBottom: '8px' }}>\U0001f3eb</div>
+      <div style={{ color: 'white', fontSize: '32px', fontWeight: 700, marginBottom: '4px' }}>GoodBot School</div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '32px' }}>A top-down adventure</div>
+      <canvas ref={previewRef} width={64} height={64}
+        style={{ borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)', marginBottom: '24px' }} />
+      <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '12px' }}>Choose your color</div>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
+        {choices.map(ch => (
+          <button key={ch.col} onClick={() => setPCol(ch.col)} style={{
+            width: '52px', height: '52px', borderRadius: '50%',
+            background: ch.col, border: pCol === ch.col ? '3px solid white' : '3px solid transparent',
+            cursor: 'pointer', fontSize: '24px', boxShadow: pCol === ch.col ? `0 0 16px ${ch.col}` : 'none',
+            transition: 'all 0.2s',
+          }} />
+        ))}
+      </div>
+      <button onClick={onEnter} style={{
+        background: 'linear-gradient(135deg,#4ECDC4,#45B7D1)',
+        color: 'white', border: 'none', borderRadius: '12px',
+        padding: '14px 48px', fontSize: '18px', fontWeight: 600,
+        cursor: 'pointer', boxShadow: '0 4px 20px rgba(78,205,196,0.4)',
+        fontFamily: 'inherit',
+      }}>
+        Enter School \U0001f680
+      </button>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SchoolGame(){
-  const ref=useRef<HTMLCanvasElement>(null);
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  const [showIntro, setShowIntro] = useState(true);
+  const [activityView, setActivityView] = useState<React.ReactNode>(null);
+  const [pCol, setPCol] = useState(PCOLORS[Math.floor(Math.random()*PCOLORS.length)]);
+  const [hCol] = useState(HCOLS[Math.floor(Math.random()*HCOLS.length)]);
 
   useEffect(()=>{
     const cv=ref.current; if(!cv) return;
@@ -172,15 +250,18 @@ export default function SchoolGame(){
     let camX=0, camY=0;
 
     // Player
-    const pCol=PCOLORS[Math.floor(Math.random()*PCOLORS.length)];
-    const hCol=HCOLS[Math.floor(Math.random()*HCOLS.length)];
     let px=15*T+T/2, py=7*T+T/2; // start on main path
     let ptx=15, pty=7;
     let pdir='S', pFrame=0;
     let pMoving=false, pTargetX=px, pTargetY=py;
 
     // Interior
-    let inInt=false, intRoom: typeof ROOMS[0]|null=null;
+    let inInterior=false, intRoom: typeof ROOMS[0]|null=null;
+
+    // NPC dialogue
+    let talkableNPC: {x:number,y:number,tx:number,ty:number,dir:string,col:string,hair:string,f:number,wp:number,route:{x:number,y:number}[]}|null=null;
+    let talkDialogue='';
+    let showDialogue=false;
 
     // NPCs with proper two-way patrol routes
     const npcs=[
@@ -231,9 +312,24 @@ export default function SchoolGame(){
       const rect=cv.getBoundingClientRect();
       const sx=W/rect.width, sy=H/rect.height;
       const mx=(e.clientX-rect.left)*sx, my=(e.clientY-rect.top)*sy;
-      const ctx2=mx+camX, cty=my+camY;
-      const tx=Math.floor(ctx2/T), ty=Math.floor(cty/T);
-      if(inInt){ inInt=false; intRoom=null; return; }
+      const worldX=mx+camX, worldY=my+camY;
+      const tx=Math.floor(worldX/T), ty=Math.floor(worldY/T);
+
+      if(inInterior && intRoom){
+        const bw=480,bh=340,bx=(W-bw)/2,by=(H-bh)/2;
+        const btnBX=W/2-80, btnBY=by+bh-55, btnW=160, btnH=34;
+        if(mx>=btnBX&&mx<=btnBX+btnW&&my>=btnBY&&my<=btnBY+btnH){
+          if(intRoom.activityId==='pixelstudio'){ setActivityView(<PixelCanvas onBack={()=>setActivityView(null)} />); }
+          else if(intRoom.activityId==='statefinder'){ setActivityView(<StateFinder onBack={()=>setActivityView(null)} />); }
+          return;
+        }
+        if(intRoom.activityId===null){
+          const bbX=W/2-70, bbY=by+bh-55, bbW=140, bbH=34;
+          if(mx>=bbX&&mx<=bbX+bbW&&my>=bbY&&my<=bbY+bbH){ inInterior=false; intRoom=null; return; }
+        }
+        return;
+      }
+
       if(canWalk(tx,ty)) clickMove(tx,ty);
     };
     cv.addEventListener('click',onClick);
@@ -241,7 +337,16 @@ export default function SchoolGame(){
     let lastNpc=0, animId=0;
 
     function update(ts:number){
-      if(inInt) return;
+      if(inInterior) return;
+
+      // NPC proximity
+      if(!pMoving && !showDialogue){
+        for(const n of npcs){
+          const dx=Math.abs(n.tx-ptx), dy=Math.abs(n.ty-pty);
+          if(dx<=1 && dy<=1 && dx+dy<=1){ talkableNPC=n; }
+        }
+      }
+      if(!showDialogue && !talkableNPC) talkableNPC=null;
 
       // Movement keys
       if(!pMoving){
@@ -263,8 +368,15 @@ export default function SchoolGame(){
         else{ px+=(dx/dist)*STEP; py+=(dy/dist)*STEP; }
       }
 
-      // E to interact
-      if(keys.has('e')){ keys.delete('e'); const d=nearDoor(); if(d){ inInt=true; intRoom=d; } }
+      // E to enter room
+      if(keys.has('e')){ keys.delete('e'); const d=nearDoor(); if(d){ inInterior=true; intRoom=d; } }
+
+      // Q to talk
+      if(keys.has('q') && talkableNPC){
+        keys.delete('q');
+        showDialogue=true;
+        talkDialogue=NPC_GREETINGS[Math.floor(Math.random()*NPC_GREETINGS.length)];
+      }
 
       // NPCs
       if(ts-lastNpc>350){
@@ -322,8 +434,33 @@ export default function SchoolGame(){
       });
       drawSprite(c,px-camX,py-camY,pCol,hCol,pdir,pFrame);
 
+      // NPC talk prompt
+      if(talkableNPC && !showDialogue){
+        const nx2=talkableNPC.x-camX, ny2=talkableNPC.y-camY;
+        c.fillStyle='rgba(0,0,0,0.7)'; c.roundRect(nx2-50,ny2-50,100,22,6); c.fill();
+        c.fillStyle='#FFE066'; c.font='bold 10px sans-serif'; c.textAlign='center';
+        c.fillText('Q to Talk',nx2,ny2-36);
+      }
+
+      // Dialogue box
+      if(showDialogue && talkableNPC){
+        const bx2=W/2-160, by2=CH-130;
+        c.fillStyle='rgba(0,0,0,0.85)'; c.roundRect(bx2,by2,320,80,16); c.fill();
+        c.fillStyle=talkableNPC.col; c.beginPath(); c.arc(bx2+24,by2-8,10,0,Math.PI*2); c.fill();
+        c.fillStyle='white'; c.font='14px sans-serif';
+        const words2=talkDialogue.split(' ');
+        let line2='',ly2=by2+28;
+        for(const w of words2){
+          const t2=line2+w+' ';
+          if(c.measureText(t2).width>280){c.fillText(line2,bx2+20,ly2);line2=w+' ';ly2+=20;}
+          else line2=t2;
+        }
+        c.fillText(line2,bx2+20,ly2);
+        c.fillStyle='rgba(255,255,255,0.5)'; c.font='11px sans-serif'; c.fillText('(press Q to close)',bx2+160,by2+68);
+      }
+
       // Door prompt
-      if(!inInt){
+      if(!inInterior){
         const d=nearDoor();
         if(d){
           c.fillStyle='rgba(0,0,0,0.7)'; c.roundRect(W/2-100,H-80,200,28,8); c.fill();
@@ -333,7 +470,7 @@ export default function SchoolGame(){
       }
 
       // Interior overlay
-      if(inInt&&intRoom){
+      if(inInterior&&intRoom){
         c.fillStyle='rgba(0,0,0,0.78)'; c.fillRect(0,0,W,H);
         const bw=480,bh=340,bx=(W-bw)/2,by=(H-bh)/2;
         c.fillStyle=intRoom.color; c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=4;
@@ -348,9 +485,14 @@ export default function SchoolGame(){
           else line=t;
         }
         c.fillText(line,W/2,ly);
-        c.fillStyle='#888'; c.font='italic 13px sans-serif'; c.fillText('✨ Activity coming soon!',W/2,ly+35);
-        c.fillStyle='rgba(0,0,0,0.12)'; c.roundRect(W/2-70,by+bh-55,140,34,10); c.fill();
-        c.fillStyle='#333'; c.font='bold 14px sans-serif'; c.fillText('← Back Outside (ESC)',W/2,by+bh-33);
+
+        if(intRoom.activityId==='pixelstudio' || intRoom.activityId==='statefinder'){
+          c.fillStyle='rgba(78,205,196,0.9)'; c.roundRect(W/2-80,by+bh-55,160,34,10); c.fill();
+          c.fillStyle='white'; c.font='bold 14px sans-serif'; c.fillText('\u25b6 Launch Activity!',W/2,by+bh-33);
+        } else {
+          c.fillStyle='rgba(0,0,0,0.12)'; c.roundRect(W/2-70,by+bh-55,140,34,10); c.fill();
+          c.fillStyle='#333'; c.font='bold 14px sans-serif'; c.fillText('\u2190 Back Outside (ESC)',W/2,by+bh-33);
+        }
       }
 
       // HUD — room name
@@ -360,9 +502,10 @@ export default function SchoolGame(){
       c.fillText(room?`${room.emoji} ${room.name}`:'🏫 GoodBot School',18,30);
 
       // Controls
-      c.fillStyle='rgba(0,0,0,0.45)'; c.roundRect(10,H-34,230,24,6); c.fill();
+      const showQTip=!!(talkableNPC&&!showDialogue);
+      c.fillStyle='rgba(0,0,0,0.45)'; c.roundRect(10,H-34,showQTip?290:230,24,6); c.fill();
       c.fillStyle='rgba(255,255,255,0.75)'; c.font='11px sans-serif';
-      c.fillText('WASD/Arrows move · E interact · Click to walk · ESC exit',18,H-18);
+      c.fillText(showQTip?'WASD/Arrows move \u00b7 E interact \u00b7 Q talk \u00b7 Click to walk \u00b7 ESC exit':'WASD/Arrows move \u00b7 E interact \u00b7 Click to walk \u00b7 ESC exit',18,H-18);
 
       // Minimap
       const mw=110,mh=88,mx=W-mw-10,my=10;
@@ -384,7 +527,12 @@ export default function SchoolGame(){
     function loop(ts:number){ update(ts); render(ts); animId=requestAnimationFrame(loop); }
     animId=requestAnimationFrame(loop);
 
-    const onEsc=(e:KeyboardEvent)=>{ if(e.key==='Escape'&&inInt){inInt=false;intRoom=null;} };
+    const onEsc=(e:KeyboardEvent)=>{
+      if(e.key==='Escape'){
+        if(showDialogue){ showDialogue=false; talkableNPC=null; }
+        else if(inInterior){ inInterior=false; intRoom=null; }
+      }
+    };
     window.addEventListener('keydown',onEsc);
 
     return()=>{
@@ -398,12 +546,25 @@ export default function SchoolGame(){
   },[]);
 
   return(
-    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#5C8B3A 0%,#3A6B2A 100%)',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 0',gap:'12px'}}>
-      <div style={{color:'#fff',fontSize:'22px',fontWeight:700,fontFamily:'sans-serif',textShadow:'0 2px 8px rgba(0,0,0,0.4)',letterSpacing:'1px'}}>🏫 GoodBot School</div>
-      <div style={{borderRadius:'12px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.5)',border:'3px solid rgba(255,255,255,0.2)'}}>
-        <canvas ref={ref} width={CW} height={CH} tabIndex={0}
-          style={{display:'block',maxWidth:'100vw',height:'auto',outline:'none',cursor:'pointer'}} />
-      </div>
-    </div>
+    <>
+      {showIntro && (
+        <IntroScreen onEnter={()=>setShowIntro(false)} pCol={pCol} setPCol={setPCol} hCol={hCol} />
+      )}
+      {activityView ? (
+        <div style={{width:'100vw',height:'100vh',overflow:'hidden'}}>
+          {activityView}
+        </div>
+      ) : (
+        <>
+          <div style={{color:'#fff',fontSize:'22px',fontWeight:700,fontFamily:'sans-serif',textShadow:'0 2px 8px rgba(0,0,0,0.4)',letterSpacing:'1px',textAlign:'center',padding:'16px 0'}}>
+            \U0001f3eb GoodBot School
+          </div>
+          <div style={{borderRadius:'12px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.5)',border:'3px solid rgba(255,255,255,0.2)'}}>
+            <canvas ref={ref} width={CW} height={CH} tabIndex={0}
+              style={{display:'block',maxWidth:'100vw',height:'auto',outline:'none',cursor:'pointer'}} />
+          </div>
+        </>
+      )}
+    </>
   );
 }
