@@ -18,8 +18,9 @@ import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
 import StateFinder from './components/StateFinder';
 import PixelCanvas from './components/PixelCanvas';
+import ColorLab from './components/ColorLab';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -94,6 +95,7 @@ export default function Home() {
         {view === 'codebots' && <CodeBots onBack={() => setView('home')} kidName={kidName} />}
         {view === 'statefinder' && <StateFinder onBack={() => setView('home')} kidName={kidName} />}
         {view === 'pixelstudio' && <PixelCanvas onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'colorlab' && <ColorLab onBack={() => setView('home')} />}
       </main>
     </>
   );
@@ -155,6 +157,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'codebots' as View, icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue' },
     { id: 'statefinder' as View, icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green' },
     { id: 'pixelstudio' as View, icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink' },
+    { id: 'colorlab' as View, icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue' },
   ];
 
   return (
