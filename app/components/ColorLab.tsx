@@ -107,10 +107,10 @@ function Beaker({ container, recipe, selectedColor, onDrop, isPouring, pouringCo
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
       {/* Container name + drop counter */}
-      <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+      <div style={{ fontSize: '13px', fontWeight: 600, color: '#4C1D95' }}>
         {container.emoji} {container.name}
       </div>
-      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+      <div style={{ fontSize: '11px', color: '#6B7280' }}>
         {total} / {container.maxDrops} drops
       </div>
 
@@ -159,14 +159,14 @@ function Beaker({ container, recipe, selectedColor, onDrop, isPouring, pouringCo
           height={container.height}
           rx={container.id === 'flask' ? 20 : 8}
           ry={container.id === 'flask' ? 20 : 8}
-          fill={fillPct > 0 ? `url(#grad-${container.id})` : 'rgba(255,255,255,0.12)'}
-          stroke="rgba(255,255,255,0.6)"
+          fill={fillPct > 0 ? `url(#grad-${container.id})` : 'rgba(255,255,255,0.85)'}
+          stroke="#C4B5FD"
           strokeWidth={2}
           style={{ filter: fillPct > 0 ? `url(#glow-${container.id})` : 'none' }}
         />
         {/* Glass shine */}
         <rect x={10} y={22} width={8} height={container.height * 0.6} rx={4}
-          fill="rgba(255,255,255,0.15)" />
+          fill="rgba(200,180,255,0.3)" />
         {/* Fill level line */}
         {fillPct > 0 && (
           <rect
@@ -188,7 +188,7 @@ function Beaker({ container, recipe, selectedColor, onDrop, isPouring, pouringCo
             <line
               x1={6} y1={20 + container.height - (i * container.height / (Math.floor(container.maxDrops / 2) + 1))}
               x2={12} y2={20 + container.height - (i * container.height / (Math.floor(container.maxDrops / 2) + 1))}
-              stroke="rgba(255,255,255,0.3)" strokeWidth={1}
+              stroke="rgba(124,58,237,0.25)" strokeWidth={1}
             />
           </g>
         ))}
@@ -214,14 +214,14 @@ function Beaker({ container, recipe, selectedColor, onDrop, isPouring, pouringCo
         style={{
           padding: '8px 20px',
           borderRadius: '20px',
-          border: canAdd ? `2px solid ${selectedColor === 'red' ? '#FF3B3B' : selectedColor === 'yellow' ? '#FFD700' : '#3B82F6'}` : '2px solid rgba(255,255,255,0.2)',
-          background: canAdd ? (selectedColor === 'red' ? 'rgba(255,59,59,0.2)' : selectedColor === 'yellow' ? 'rgba(255,215,0,0.2)' : 'rgba(59,130,246,0.2)') : 'rgba(255,255,255,0.05)',
-          color: canAdd ? '#fff' : 'rgba(255,255,255,0.3)',
+          border: canAdd ? `2px solid ${selectedColor === 'red' ? '#FF3B3B' : selectedColor === 'yellow' ? '#FFD700' : '#3B82F6'}` : '2px solid #E0D8F0',
+          background: canAdd ? (selectedColor === 'red' ? '#FEE2E2' : selectedColor === 'yellow' ? '#FEF9C3' : '#DBEAFE') : '#F3F4F6',
+          color: canAdd ? (selectedColor === 'red' ? '#991B1B' : selectedColor === 'yellow' ? '#92400E' : '#1E40AF') : '#9CA3AF',
           fontSize: '13px',
           fontWeight: 700,
           cursor: canAdd ? 'pointer' : 'not-allowed',
           fontFamily: 'Fredoka, system-ui, sans-serif',
-          boxShadow: canAdd ? `0 0 12px ${selectedColor === 'red' ? '#FF3B3B55' : selectedColor === 'yellow' ? '#FFD70055' : '#3B82F655'}` : 'none',
+          boxShadow: canAdd ? `0 2px 8px ${selectedColor === 'red' ? '#FF3B3B22' : selectedColor === 'yellow' ? '#FFD70022' : '#3B82F622'}` : 'none',
           transition: 'all 0.2s',
           minWidth: '100px',
         }}
@@ -232,10 +232,12 @@ function Beaker({ container, recipe, selectedColor, onDrop, isPouring, pouringCo
       {/* Mix result */}
       {total > 0 && (
         <div style={{
-          background: 'rgba(0,0,0,0.4)',
+          background: 'white',
           borderRadius: '12px',
           padding: '8px 16px',
           textAlign: 'center',
+          border: '2px solid #E0D8F0',
+          boxShadow: '0 2px 8px rgba(124,58,237,0.08)',
         }}>
           <div style={{ fontSize: '28px', marginBottom: '2px' }}>{mixed.emoji}</div>
           <div style={{ color: mixed.color, fontSize: '14px', fontWeight: 700 }}>{mixed.name}</div>
@@ -253,12 +255,14 @@ function RecipeBook({ discoveries, onReset }: { discoveries: Set<string>; onRese
 
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.35)',
+      background: 'white',
       borderRadius: '16px',
       padding: '16px',
       minWidth: '200px',
+      border: '2px solid #E0D8F0',
+      boxShadow: '0 2px 12px rgba(124,58,237,0.08)',
     }}>
-      <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFD700', marginBottom: '8px', textAlign: 'center' }}>
+      <div style={{ fontSize: '14px', fontWeight: 700, color: '#7C3AED', marginBottom: '8px', textAlign: 'center' }}>
         📖 Color Book — {foundCount} / {totalRecipes} discovered
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '220px', justifyContent: 'center' }}>
@@ -271,8 +275,8 @@ function RecipeBook({ discoveries, onReset }: { discoveries: Set<string>; onRese
               width: '36px',
               height: '36px',
               borderRadius: '8px',
-              background: found ? color.color : 'rgba(255,255,255,0.1)',
-              border: found ? `2px solid ${color.color}` : '2px solid rgba(255,255,255,0.15)',
+              background: found ? color.color : 'rgba(124,58,237,0.08)',
+              border: found ? `2px solid ${color.color}` : '2px solid rgba(124,58,237,0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -294,9 +298,9 @@ function RecipeBook({ discoveries, onReset }: { discoveries: Set<string>; onRese
         width: '100%',
         padding: '6px',
         borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.2)',
-        background: 'rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.6)',
+        border: '1px solid #E0D8F0',
+        background: '#F3E8FF',
+        color: '#7C3AED',
         fontSize: '11px',
         cursor: 'pointer',
         fontFamily: 'Fredoka, system-ui, sans-serif',
@@ -376,7 +380,7 @@ export default function ColorLab({ onBack }: ColorLabProps) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a0033 0%, #0d1b3e 50%, #0a0a2e 100%)',
+      background: '#F8F6FF',
       fontFamily: 'Fredoka, system-ui, sans-serif',
       padding: '16px',
       display: 'flex',
@@ -423,20 +427,43 @@ export default function ColorLab({ onBack }: ColorLabProps) {
         }
       `}</style>
 
+      {/* Back button — top right */}
+      {onBack && (
+        <div style={{ width: '100%', maxWidth: '600px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onBack}
+            style={{
+              padding: '8px 20px',
+              borderRadius: '12px',
+              border: '2px solid #E0D8F0',
+              background: 'white',
+              color: '#7C3AED',
+              fontSize: '14px',
+              cursor: 'pointer',
+              fontFamily: 'Fredoka, system-ui, sans-serif',
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(124,58,237,0.1)',
+            }}
+          >
+            ← Back
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        background: 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(10px)',
+        background: 'white',
         borderRadius: '16px',
         padding: '10px 20px',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid #E0D8F0',
         width: '100%', maxWidth: '600px',
+        boxShadow: '0 2px 12px rgba(124,58,237,0.08)',
       }}>
         <div style={{ fontSize: '28px' }}>🎨</div>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#fff' }}>Color Lab</div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Mix primary colors to discover new ones!</div>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: '#4C1D95' }}>Color Lab</div>
+          <div style={{ fontSize: '12px', color: '#6B7280' }}>Mix primary colors to discover new ones!</div>
         </div>
         {foundDiscoveries === totalDiscoveries && foundDiscoveries > 0 && (
           <div style={{ marginLeft: 'auto', fontSize: '28px' }}>🏆</div>
@@ -445,16 +472,17 @@ export default function ColorLab({ onBack }: ColorLabProps) {
 
       {/* Color dispensers */}
       <div style={{
-        background: 'rgba(0,0,0,0.3)',
+        background: 'white',
         borderRadius: '20px',
         padding: '20px 24px',
         display: 'flex',
         gap: '20px',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid #E0D8F0',
         flexWrap: 'wrap',
         justifyContent: 'center',
+        boxShadow: '0 2px 12px rgba(124,58,237,0.08)',
       }}>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', width: '100%', textAlign: 'center', marginBottom: '4px', fontWeight: 600 }}>
+        <div style={{ fontSize: '13px', color: '#6B7280', width: '100%', textAlign: 'center', marginBottom: '4px', fontWeight: 600 }}>
           Pick a color:
         </div>
         {PRIMARY_COLORS.map(c => (
@@ -491,12 +519,13 @@ export default function ColorLab({ onBack }: ColorLabProps) {
         style={{
           padding: '6px 14px',
           borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.2)',
-          background: showHint ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.06)',
-          color: showHint ? '#FFD700' : 'rgba(255,255,255,0.5)',
+          border: '2px solid #E0D8F0',
+          background: showHint ? '#F3E8FF' : 'white',
+          color: showHint ? '#7C3AED' : '#6B7280',
           fontSize: '12px',
           cursor: 'pointer',
           fontFamily: 'Fredoka, system-ui, sans-serif',
+          fontWeight: 600,
         }}
       >
         💡 {showHint ? 'Hide Hint' : 'Need a hint?'}
@@ -504,12 +533,12 @@ export default function ColorLab({ onBack }: ColorLabProps) {
 
       {showHint && (
         <div style={{
-          background: 'rgba(255,215,0,0.1)',
-          border: '1px solid rgba(255,215,0,0.3)',
+          background: '#F3E8FF',
+          border: '2px solid #C4B5FD',
           borderRadius: '12px',
           padding: '10px 18px',
           fontSize: '12px',
-          color: '#FFD700',
+          color: '#5B21B6',
           textAlign: 'center',
           maxWidth: '500px',
         }}>
@@ -545,25 +574,6 @@ export default function ColorLab({ onBack }: ColorLabProps) {
         <RecipeBook discoveries={discoveries} onReset={handleReset} />
       </div>
 
-      {/* Back button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          style={{
-            padding: '10px 24px',
-            borderRadius: '12px',
-            border: '1px solid rgba(255,255,255,0.25)',
-            background: 'rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            fontFamily: 'Fredoka, system-ui, sans-serif',
-            marginTop: '8px',
-          }}
-        >
-          ← Back to GoodBot Kids
-        </button>
-      )}
     </div>
   );
 }
