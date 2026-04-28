@@ -19,7 +19,7 @@ const QUESTIONS = [
   { prompt: "Each of 4 equal parts has a special name. It is called a...", options: ["Half", "Quarter", "Whole"], answer: "Quarter", kind: "four-quarters" },
   { prompt: "Another word for QUARTERS is...", options: ["Halves", "Fourths", "Thirds"], answer: "Fourths", kind: "four-quarters" },
   { prompt: "When you cut a whole into 2 equal parts, you get...", options: ["Halves", "Quarters", "Fourths"], answer: "Halves", kind: "two-halves" },
-  { prompt: "Cut a rectangle into 4 equal parts. Each part is called a...", options: ["Half", "Quarter", "Piece"], answer: "Quarter", kind: "four-quarters" },
+  { prompt: "Cut a rectangle into 4 equal parts. Each part is called a...", options: ["Half", "Quarter", "Piece"], answer: "Quarter", kind: "four-rect-quarters" },
 ];
 
 // ── SHAPE RENDERERS ─────────────────────────────────────────────────────────
@@ -128,6 +128,31 @@ function FourQuarters() {
     </div>
   );
 }
+function FourRectQuarters() {
+  return (
+    <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:75,display:'block'}}>
+          <rect x="5" y="5" width="42" height="42" fill="#A7F3D0" stroke="#065F46" strokeWidth="2"/>
+          <rect x="53" y="5" width="42" height="42" fill="#6EE7B7" stroke="#065F46" strokeWidth="2"/>
+          <rect x="5" y="53" width="42" height="42" fill="#34D399" stroke="#065F46" strokeWidth="2"/>
+          <rect x="53" y="53" width="42" height="42" fill="#059669" stroke="#065F46" strokeWidth="2"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#065F46',fontFamily:'Fredoka,sans-serif'}}>4 = Quarters</p>
+      </div>
+      <span style={{fontSize:22,color:'#9CA3AF'}}>=</span>
+      <div style={{textAlign:'center'}}>
+        <svg viewBox="0 0 100 100" style={{width:90,height:75,display:'block'}}>
+          <rect x="5" y="5" width="42" height="42" fill="#A7F3D0" stroke="#065F46" strokeWidth="2"/>
+          <rect x="53" y="5" width="42" height="42" fill="#6EE7B7" stroke="#065F46" strokeWidth="2"/>
+          <rect x="5" y="53" width="42" height="42" fill="#34D399" stroke="#065F46" strokeWidth="2"/>
+          <rect x="53" y="53" width="42" height="42" fill="#059669" stroke="#065F46" strokeWidth="2"/>
+        </svg>
+        <p style={{margin:4,marginTop:4,fontSize:12,color:'#065F46',fontFamily:'Fredoka,sans-serif'}}>4 = Fourths</p>
+      </div>
+    </div>
+  );
+}
 function TwoHalves() {
   return (
     <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
@@ -161,6 +186,7 @@ function QuestionShape({ kind }: { kind: string }) {
   if (kind === 'circles-pair') return <CirclesPair/>;
   if (kind === 'more-parts') return <MoreParts/>;
   if (kind === 'four-quarters') return <FourQuarters/>;
+  if (kind === 'four-rect-quarters') return <FourRectQuarters/>;
   if (kind === 'two-halves') return <TwoHalves/>;
   return null;
 }
