@@ -86,7 +86,6 @@ function MoreParts() {
         <svg viewBox="0 0 90 90" style={{width:80,height:80,display:'block'}}>
           <circle cx="45" cy="45" r="40" fill="#FDE68A" stroke="#92400E" strokeWidth="2"/>
           <line x1="45" y1="5" x2="45" y2="85" stroke="#92400E" strokeWidth="2"/>
-          <line x1="5" y1="45" x2="85" y2="45" stroke="#92400E" strokeWidth="2"/>
         </svg>
         <p style={{margin:4,marginTop:6,fontSize:12,color:'#92400E',fontFamily:'Fredoka,sans-serif'}}>2 parts</p>
       </div>

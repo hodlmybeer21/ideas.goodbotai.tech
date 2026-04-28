@@ -1,569 +1,605 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import {
+  TILE_SIZE, WORLD_W, WORLD_H, VP_W, VP_H,
+  buildWorld, getBuildingDoor, BUILDINGS, getZone,
+} from './lib/worldData';
+import { INTERIORS } from './lib/interiors';
+import { NPC_DEFS, makeNPCState, type NPCState } from './lib/npcs';
+import { drawTile } from './lib/renderer';
+import { cameraUpdate, viewToTile } from './lib/camera';
 import PixelCanvas from '../components/PixelCanvas';
 import StateFinder from '../components/StateFinder';
+import ColorLab from '../components/ColorLab';
+import MathLab from '../components/MathLab';
+import AnimalMatch from '../components/AnimalMatch';
+import ReadAlong from '../components/ReadAlong';
+import SyllableScooper from '../components/SyllableScooper';
+import TrueFalse from '../components/TrueFalse';
+import SentenceBuilder from '../components/SentenceBuilder';
+import TellTime from '../components/TellTime';
+import StoryMachine from '../components/StoryMachine';
+import MadLibs from '../components/MadLibs';
+import CharacterTraits from '../components/CharacterTraits';
+import SoundLab from '../components/SoundLab';
 
-const T=32, GW=30, GH=24, CW=GW*T, CH=GH*T;
-const GRASS=0,PATH=1,WALL=2,FLOOR=3,DOOR=4,WATER=5,TREE=6,FLOWER=7,FENCE=8;
-const PCOLORS=['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FF9F43','#DDA0DD','#F472B6'];
-const HCOLS=['#4A3728','#8B4513','#2C1810','#D4A853','#1A1A2E'];
-const STEP=3;
+const STEP = 2;
+const NPC_COLORS = ['#FF6B6B', '#4ECDC4', '#DDA0DD', '#FF9F43', '#6B8DD6', '#4ECDC4'];
+const HAIR_COLORS = ['#2C1810', '#8B4513', '#1A1A2E', '#D4A853', '#F5C5A3', '#888888'];
 
-const NPC_GREETINGS=[
-  "Hey! Have you been to the Art Room yet? \U0001f3a8",
-  "The Gym is so fun! I love playing there! \U0001f3c0",
-  "I'm trying to learn all 50 states... so hard! \U0001f5fa",
-  "Hey friend! Have you checked out the Library? \U0001f4da",
-  "I heard there's a secret room somewhere... \U0001f440",
-  "Hi! I love this school! What grade are you in? \u2b50",
-  "The science experiments are so cool! \U0001f52c",
-];
 
-function buildMap(): number[][] {
-  const m: number[][]=Array.from({length:GH},()=>new Array(GW).fill(GRASS));
-  // Boundary fences
-  for(let x=0;x<GW;x++){ m[0][x]=FENCE; m[GH-1][x]=FENCE; }
-  for(let y=0;y<GH;y++){ m[y][0]=FENCE; m[y][GW-1]=FENCE; }
-  // Main building cols 8-21 rows 3-6
-  for(let y=3;y<=6;y++) for(let x=8;x<=21;x++) m[y][x]=WALL;
-  for(let y=4;y<=5;y++) for(let x=9;x<=20;x++) m[y][x]=FLOOR;
-  m[3][10]=DOOR; m[3][14]=DOOR; m[3][17]=DOOR; m[3][20]=DOOR; // north face doors
-  // Main quad path row 7
-  for(let x=0;x<GW;x++) m[7][x]=PATH;
-  // Path north to main building (cols 14-17, rows 4-7)
-  for(let y=4;y<=7;y++) for(let x=14;x<=17;x++) m[y][x]=PATH;
-  // Art building west (cols 1-6, rows 11-13)
-  for(let y=11;y<=13;y++) for(let x=1;x<=6;x++) m[y][x]=WALL;
-  for(let y=12;y<=12;y++) for(let x=2;x<=5;x++) m[y][x]=FLOOR;
-  m[11][3]=DOOR;
-  // West path (row 10, cols 1-6)
-  for(let x=1;x<=6;x++) m[10][x]=PATH;
-  // Gym east (cols 24-29, rows 11-13)
-  for(let y=11;y<=13;y++) for(let x=24;x<=29;x++) m[y][x]=WALL;
-  for(let y=12;y<=12;y++) for(let x=25;x<=28;x++) m[y][x]=FLOOR;
-  for(let x=25;x<=27;x++) m[11][x]=DOOR;
-  // East path (row 10, cols 24-29)
-  for(let x=24;x<=29;x++) m[10][x]=PATH;
-  // South connecting path row 15
-  for(let x=0;x<GW;x++) m[15][x]=PATH;
-  // South path extension rows 16-17
-  for(let x=0;x<GW;x++){ m[16][x]=PATH; m[17][x]=PATH; }
-  // Pond rows 19-20
-  for(let y=19;y<=20;y++) for(let x=10;x<=18;x++) m[y][x]=WATER;
-  // Trees scattered
-  [[2,3],[4,2],[2,26],[4,27],[9,2],[9,27],[16,3],[16,26],[18,2],[18,27],[22,5],[22,24]].forEach(([y,x])=>{ if(y<GH&&x<GW) m[y][x]=TREE; });
-  // Flowers
-  [[2,8],[2,15],[2,22],[9,8],[9,22],[16,8],[16,22],[18,10],[18,20],[21,12],[21,18]].forEach(([y,x])=>{ if(y<GH&&x<GW) m[y][x]=FLOWER; });
-  return m;
-}
 
-const ROOMS=[
-  {id:'art',    name:'Art Room',     color:'#FFF8DC',emoji:'\U0001f3a8',desc:'Color your world! Make pixel art and drawings.',  x1:1, y1:11,x2:6,y2:13, activityId:'pixelstudio' as const},
-  {id:'gym',    name:'Gym',          color:'#DEB887',emoji:'\U0001f3c0',desc:'Run, jump, and play! Keeping active is fun.',     x1:24,y1:11,x2:29,y2:13, activityId:null},
-  {id:'main',   name:'Main Hall',    color:'#F0F0F0',emoji:'\U0001f3eb',desc:'The heart of GoodBot School!',                 x1:9, y1:4, x2:20,y2:5, activityId:null},
-  {id:'class1', name:'Classroom 1',  color:'#E6F0FF',emoji:'\U0001f4d6',desc:'Learn and discover new things!',               x1:11,y1:4, x2:13,y2:5, activityId:'statefinder' as const},
-  {id:'class2', name:'Classroom 2',  color:'#E8FFE8',emoji:'\U0001f52c',desc:'Experiments and discoveries await!',            x1:15,y1:4, x2:16,y2:5, activityId:null},
-  {id:'class3', name:'Classroom 3',  color:'#FFF0E6',emoji:'\U0001f3b5',desc:'Make music and noise!',                      x1:18,y1:4, x2:19,y2:5, activityId:null},
-];
+// ─── Sprite — Pokémon GBC overworld style ───────────────────────────────────
+function drawSprite(c: CanvasRenderingContext2D, sx: number, sy: number, col: string, hair: string, dir: string, frame: number) {
+  const S = TILE_SIZE;
+  const bx = Math.round(sx - S / 2), by = Math.round(sy - S / 2);
 
-function getRoom(tx:number,ty:number): typeof ROOMS[0]|null {
-  return ROOMS.find(r=>tx>=r.x1&&tx<=r.x2&&ty>=r.y1&&ty<=r.y2)||null;
-}
+  // Ground shadow
+  c.fillStyle = 'rgba(0,0,0,0.18)';
+  c.beginPath(); c.ellipse(sx, by + S - 1, 5, 2, 0, 0, Math.PI * 2); c.fill();
 
-// ─── Tile Drawers ─────────────────────────────────────────────────────────────
-function dGrass(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  c.fillStyle='#7EC850'; c.fillRect(x,y,s,s);
-  const dots=[[3,5],[7,3],[12,9],[20,4],[25,11],[6,20],[15,17],[27,7],[9,25],[22,22]];
-  c.fillStyle='#5DAE3A';
-  dots.forEach(([dx,dy])=>{ if(dx<s&&dy<s) c.fillRect(x+dx,y+dy,2,2); });
-}
+  const walk = frame % 2;
+  const legOff = walk === 1 ? 1 : 0;
 
-function dPath(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  c.fillStyle='#D4B896'; c.fillRect(x,y,s,s);
-  c.fillStyle='#B89A70'; c.fillRect(x,y,s,1); c.fillRect(x,y,1,s);
-  c.fillStyle='#C4A882';
-  [[6,6],[16,6],[26,6],[6,18],[16,18],[26,18]].forEach(([dx,dy])=>c.fillRect(x+dx,y+dy,2,2));
-}
-
-function dWall(c:CanvasRenderingContext2D,x:number,y:number,s:number,win?:boolean){
-  c.fillStyle='#C05A3A'; c.fillRect(x,y,s,s);
-  c.fillStyle='#A04530';
-  for(let r=0;r<4;r++){
-    c.fillRect(x,y+r*8,s,2);
-    const off=(r%2)*8;
-    for(let c2=0;c2<4;c2++) c.fillRect(x+c2*8+off,y+r*8+2,2,6);
+  // Legs (dark pants)
+  c.fillStyle = '#28346C';
+  if (dir === 'S' || dir === 'N') {
+    c.fillRect(bx + 2, by + 8, 3, 4 + legOff);
+    c.fillRect(bx + S - 5, by + 8, 3, 4 + (1 - legOff));
+  } else {
+    c.fillRect(bx + 3, by + 8, 3, 4 + legOff);
+    c.fillRect(bx + 3, by + 8, 3, 4 + (1 - legOff));
   }
-  if(win){ c.fillStyle='#87CEEB'; c.fillRect(x+s*5/16,y+s/4,s*3/8,s*3/8); }
-}
 
-function dFloor(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  for(let gy=0;gy<4;gy++) for(let gx=0;gx<4;gx++){
-    c.fillStyle=(gx+gy)%2===0?'#E8E8E8':'#D0D0D0';
-    c.fillRect(x+gx*8,y+gy*8,8,8);
+  // Shoes
+  c.fillStyle = '#3A2010';
+  if (dir === 'S' || dir === 'N') {
+    c.fillRect(bx + 1, by + S - 2, 4, 2);
+    c.fillRect(bx + S - 5, by + S - 2, 4, 2);
+  }
+
+  // Body (colored shirt)
+  c.fillStyle = col;
+  c.fillRect(bx + 2, by + 5, S - 4, 5);
+  // Body shading
+  c.fillStyle = 'rgba(0,0,0,0.12)';
+  c.fillRect(bx + 2, by + 8, S - 4, 2);
+
+  // Arms
+  const armOff = walk === 1 ? 1 : 0;
+  c.fillStyle = '#F0C8A0';
+  if (dir === 'S' || dir === 'N') {
+    c.fillRect(bx, by + 5, 2, 4 - armOff);
+    c.fillRect(bx + S - 2, by + 5, 2, 4 + armOff);
+  } else {
+    // Arms out to sides when walking
+    c.fillStyle = col;
+    c.fillRect(bx, by + 5, 2, 4); c.fillRect(bx + S - 2, by + 5, 2, 4);
+    c.fillStyle = '#F0C8A0';
+    if (dir === 'E') {
+      c.fillRect(bx + S - 2, by + 5, 3, 3);
+      c.fillRect(bx, by + 5, 2, 4 - armOff);
+    } else {
+      c.fillRect(bx - 1, by + 5, 3, 3);
+      c.fillRect(bx + S - 2, by + 5, 2, 4 - armOff);
+    }
+  }
+
+  // Neck
+  c.fillStyle = '#F0C8A0';
+  c.fillRect(bx + S / 2 - 1, by + 4, 2, 2);
+
+  // Head (skin)
+  c.fillStyle = '#F0C8A0';
+  c.fillRect(bx + 2, by + 1, S - 4, 4);
+  c.fillRect(bx + 1, by + 2, S - 2, 3);
+
+  // Hair
+  c.fillStyle = hair;
+  if (dir === 'N') {
+    // Back of head — full coverage
+    c.fillRect(bx + 1, by, S - 2, 3);
+    c.fillRect(bx + 2, by + 1, S - 4, 2);
+  } else if (dir === 'S') {
+    c.fillRect(bx + 1, by, S - 2, 2); // bangs
+    c.fillRect(bx + 1, by + 1, 2, 2); // left side
+    c.fillRect(bx + S - 3, by + 1, 2, 2); // right side
+  } else {
+    c.fillRect(bx + 1, by, S - 2, 3);
+    if (dir === 'E') {
+      c.fillRect(bx + S - 3, by + 1, 2, 2); // hair sweeps right
+    } else {
+      c.fillRect(bx + 1, by + 1, 2, 2); // hair sweeps left
+    }
+  }
+
+  // Eyes (front view = both, side = one)
+  c.fillStyle = '#1A1020';
+  if (dir === 'S') {
+    c.fillRect(bx + 3, by + 3, 2, 2);
+    c.fillRect(bx + S - 5, by + 3, 2, 2);
+    // Eye shine
+    c.fillStyle = '#FFFFFF';
+    c.fillRect(bx + 3, by + 3, 1, 1);
+    c.fillRect(bx + S - 5, by + 3, 1, 1);
+  } else if (dir === 'N') {
+    // No eyes visible from back
+  } else {
+    // Side profile — one eye
+    const eyeX = dir === 'E' ? bx + 5 : bx + S - 7;
+    c.fillStyle = '#1A1020';
+    c.fillRect(eyeX, by + 3, 2, 2);
+    c.fillStyle = '#FFFFFF';
+    c.fillRect(eyeX, by + 3, 1, 1);
   }
 }
 
-function dDoor(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  c.fillStyle='#5C3A1A'; c.fillRect(x+2,y,s-4,s-2);
-  c.fillStyle='#8B5A2B'; c.fillRect(x+5,y+3,s-10,s-6);
-  c.fillStyle='#DAA520'; c.fillRect(x+s-12,y+s/2,3,3);
+// ─── Activity Router ─────────────────────────────────────────────────────────
+function ActivityView({ id, onBack }: { id: string; onBack: () => void }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const acts: any = {
+    pixelstudio: <PixelCanvas onBack={onBack} />,
+    statefinder: <StateFinder onBack={onBack} />,
+    colorlab: <ColorLab onBack={onBack} />,
+    mathlab: <MathLab onBack={onBack} kidName="Explorer" />,
+    animalmatch: <AnimalMatch onBack={onBack} kidName="Explorer" />,
+    readalong: <ReadAlong onBack={onBack} kidName="Explorer" />,
+    syllablescooper: <SyllableScooper />,
+    telltime: <TellTime onBack={onBack} kidName="Explorer" />,
+    sentencebuilder: <SentenceBuilder onBack={onBack} kidName="Explorer" />,
+    storymachine: <StoryMachine kidName="Explorer" onBack={onBack} />,
+    madlibs: <MadLibs onBack={onBack} kidName="Explorer" />,
+    charactertraits: <CharacterTraits onBack={onBack} />,
+    soundlab: <SoundLab onBack={onBack} kidName="Explorer" />,
+    truefalse: <TrueFalse onBack={onBack} kidName="Explorer" />,
+  };
+  return <>{acts[id] || <div className="flex items-center justify-center h-screen text-white text-xl">Coming soon! 🎮</div>}</>;
 }
 
-function dWater(c:CanvasRenderingContext2D,x:number,y:number,s:number,t:number){
-  c.fillStyle='#4A90D9'; c.fillRect(x,y,s,s);
-  c.strokeStyle='#6AABEF'; c.lineWidth=1.5;
-  const o=Math.sin(t*0.002+x*0.1)*3;
-  [[8,12],[6,22]].forEach(([oy,alpha])=>{
-    c.beginPath(); c.moveTo(x,y+oy+o*0.6); c.quadraticCurveTo(x+s/2,y+oy-3+o*0.6,x+s,y+oy+o*0.6); c.stroke();
-  });
-}
-
-function dTree(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  c.fillStyle='#6B4423'; c.fillRect(x+s/2-2,y+s-8,5,8);
-  c.fillStyle='#2D8B37';
-  c.beginPath(); c.moveTo(x+s/2,y+4); c.lineTo(x+s-2,y+s-8); c.lineTo(x+2,y+s-8); c.closePath(); c.fill();
-  c.fillStyle='#3BAA45';
-  c.beginPath(); c.moveTo(x+s/2,y); c.lineTo(x+s-3,y+12); c.lineTo(x+3,y+12); c.closePath(); c.fill();
-}
-
-function dFlower(c:CanvasRenderingContext2D,x:number,y:number,s:number,seed:number){
-  dGrass(c,x,y,s);
-  const rng=(n:number)=>{const v=Math.abs(Math.sin(seed*9301+n*49297+97)%1);return v;};
-  const cols=['#FF69B4','#FFD700','#FFFFFF','#FF6B6B','#DDA0DD'];
-  for(let i=0;i<4;i++){ c.fillStyle=cols[Math.floor(rng(i)*5)]; c.fillRect(x+Math.floor(rng(i+10)*s),y+Math.floor(rng(i+20)*s),3,3); }
-}
-
-function dFence(c:CanvasRenderingContext2D,x:number,y:number,s:number){
-  c.fillStyle='#F0F0F0'; c.fillRect(x,y,s,s);
-  c.fillStyle='#D0D0D0';
-  c.fillRect(x,y+7,s,3); c.fillRect(x,y+19,s,3);
-  for(let i=0;i<4;i++) c.fillRect(x+i*8+1,y+4,4,s-8);
-}
-
-// ─── Sprite ─────────────────────────────────────────────────────────────────
-function drawSprite(c:CanvasRenderingContext2D,sx:number,sy:number,col:string,hair:string,dir:string,frame:number){
-  const bx=Math.round(sx-T/2), by=Math.round(sy-T/2);
-  // shadow
-  c.fillStyle='rgba(0,0,0,0.15)'; c.beginPath(); c.ellipse(sx,by+T-2,8,3,0,0,Math.PI*2); c.fill();
-  // legs
-  const lo=frame===1?2:0;
-  c.fillStyle='#3A3A60';
-  if(dir==='N'||dir==='S'){ c.fillRect(bx+5,by+T-10+lo,4,8); c.fillRect(bx+T-9,by+T-10+lo,4,8); }
-  else { c.fillRect(bx+5,by+T-10,4,8-lo); c.fillRect(bx+T-9,by+T-10,4,8+lo); }
-  // body
-  c.fillStyle=col; c.fillRect(bx+4,by+12,T-8,14);
-  // arms
-  const ao=frame===1?1:0;
-  c.fillStyle=col; c.fillRect(bx+1,by+13+ao,4,10); c.fillRect(bx+T-5,by+13-ao,4,10);
-  // head
-  c.fillStyle='#F5C5A3'; c.fillRect(bx+5,by+4,T-10,10); c.fillRect(bx+4,by+5,T-8,8);
-  // hair
-  c.fillStyle=hair;
-  if(dir==='N'||dir==='S'){ c.fillRect(bx+4,by+2,T-8,5); c.fillRect(bx+3,by+4,T-6,4); }
-  else { c.fillRect(bx+5,by+2,T-10,5); c.fillRect(bx+4,by+3,T-8,4); }
-  // eyes
-  c.fillStyle='#333';
-  if(dir==='S'){ c.fillRect(bx+7,by+9,2,2); c.fillRect(bx+T-9,by+9,2,2); }
-  else if(dir==='N'){ /* no eyes */ }
-  else { c.fillRect(bx+8,by+9,2,2); c.fillRect(bx+12,by+9,2,2); }
-}
-
-// ─── IntroScreen ───────────────────────────────────────────────────────────────
-function IntroScreen({ onEnter, pCol, setPCol, hCol }: {
-  onEnter: () => void;
-  pCol: string;
-  setPCol: (c: string) => void;
-  hCol: string;
-}) {
+// ─── Intro ───────────────────────────────────────────────────────────────────
+function IntroScreen({ onEnter, pCol, setPCol, hCol }: { onEnter: () => void; pCol: string; setPCol: (c: string) => void; hCol: string }) {
   const previewRef = useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
-    const cv = previewRef.current;
-    if (!cv) return;
-    const c = cv.getContext('2d');
-    if (!c) return;
-    c.clearRect(0, 0, 64, 64);
-    drawSprite(c, 32, 32, pCol, hCol, 'S', 0);
+    const cv = previewRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d'); if (!ctx) return;
+    ctx.clearRect(0, 0, 64, 64);
+    drawSprite(ctx, 32, 32, pCol, hCol, 'S', 0);
   }, [pCol, hCol]);
-
-  const choices = [
-    { col: '#FF6B6B' },
-    { col: '#4ECDC4' },
-    { col: '#DDA0DD' },
-  ];
-
+  const choices = [{ col: '#FF6B6B' }, { col: '#4ECDC4' }, { col: '#DDA0DD' }];
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Fredoka, system-ui, sans-serif',
-      zIndex: 999,
-    }}>
-      <div style={{ fontSize: '48px', marginBottom: '8px' }}>\U0001f3eb</div>
-      <div style={{ color: 'white', fontSize: '32px', fontWeight: 700, marginBottom: '4px' }}>GoodBot School</div>
-      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '32px' }}>A top-down adventure</div>
-      <canvas ref={previewRef} width={64} height={64}
-        style={{ borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)', marginBottom: '24px' }} />
+    <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka, system-ui, sans-serif', zIndex: 999 }}>
+      <div style={{ fontSize: '48px', marginBottom: '8px' }}>🏫</div>
+      <div style={{ color: 'white', fontSize: '32px', fontWeight: 700, marginBottom: '4px' }}>GoodBot Campus</div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '32px' }}>An open-world adventure</div>
+      <canvas ref={previewRef} width={64} height={64} style={{ borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)', marginBottom: '24px' }} />
       <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '12px' }}>Choose your color</div>
       <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
         {choices.map(ch => (
-          <button key={ch.col} onClick={() => setPCol(ch.col)} style={{
-            width: '52px', height: '52px', borderRadius: '50%',
-            background: ch.col, border: pCol === ch.col ? '3px solid white' : '3px solid transparent',
-            cursor: 'pointer', fontSize: '24px', boxShadow: pCol === ch.col ? `0 0 16px ${ch.col}` : 'none',
-            transition: 'all 0.2s',
-          }} />
+          <button key={ch.col} onClick={() => setPCol(ch.col)} style={{ width: '52px', height: '52px', borderRadius: '50%', background: ch.col, border: pCol === ch.col ? '3px solid white' : '3px solid transparent', cursor: 'pointer', boxShadow: pCol === ch.col ? `0 0 16px ${ch.col}` : 'none', transition: 'all 0.2s' }} />
         ))}
       </div>
-      <button onClick={onEnter} style={{
-        background: 'linear-gradient(135deg,#4ECDC4,#45B7D1)',
-        color: 'white', border: 'none', borderRadius: '12px',
-        padding: '14px 48px', fontSize: '18px', fontWeight: 600,
-        cursor: 'pointer', boxShadow: '0 4px 20px rgba(78,205,196,0.4)',
-        fontFamily: 'inherit',
-      }}>
-        Enter School \U0001f680
-      </button>
+      <button onClick={onEnter} style={{ background: 'linear-gradient(135deg,#4ECDC4,#45B7D1)', color: 'white', border: 'none', borderRadius: '12px', padding: '14px 48px', fontSize: '18px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 20px rgba(78,205,196,0.4)', fontFamily: 'inherit' }}>Explore Campus 🚀</button>
     </div>
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function SchoolGame(){
-  const ref = useRef<HTMLCanvasElement>(null);
-
+// ─── Game ─────────────────────────────────────────────────────────────────────
+export default function CampusGame() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showIntro, setShowIntro] = useState(true);
-  const [activityView, setActivityView] = useState<React.ReactNode>(null);
-  const [pCol, setPCol] = useState(PCOLORS[Math.floor(Math.random()*PCOLORS.length)]);
-  const [hCol] = useState(HCOLS[Math.floor(Math.random()*HCOLS.length)]);
+  const [activityId, setActivityId] = useState<string | null>(null);
+  const [pCol, setPCol] = useState(NPC_COLORS[Math.floor(Math.random() * NPC_COLORS.length)]);
+  const [hCol] = useState(HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)]);
+  const worldRef = useRef<number[][] | null>(null);
+  const npcStatesRef = useRef<NPCState[]>([]);
 
-  useEffect(()=>{
-    const cv=ref.current; if(!cv) return;
-    const ctx=cv.getContext('2d'); if(!ctx) return;
-    const c=ctx;
-    const W=CW, H=CH;
-    const map=buildMap();
+  useEffect(() => {
+    const cv = canvasRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d'); if (!ctx) return;
+    const W = VP_W * TILE_SIZE, H = VP_H * TILE_SIZE;
 
-    // Camera
-    let camX=0, camY=0;
+    worldRef.current = buildWorld();
+    npcStatesRef.current = NPC_DEFS.map(makeNPCState);
 
-    // Player
-    let px=15*T+T/2, py=7*T+T/2; // start on main path
-    let ptx=15, pty=7;
-    let pdir='S', pFrame=0;
-    let pMoving=false, pTargetX=px, pTargetY=py;
+    // ─── Player ────────────────────────────────────────────────────────────
+    let px = 30 * TILE_SIZE + TILE_SIZE / 2, py = 17 * TILE_SIZE + TILE_SIZE / 2;
+    let ptx = 30, pty = 17;
+    let pdir = 'S', pFrame = 0;
+    let pMoving = false;
+    let pTargetX = px, pTargetY = py;
+    const cam = { x: px - W / 2, y: py - H / 2 };
 
-    // Interior
-    let inInterior=false, intRoom: typeof ROOMS[0]|null=null;
+    // ─── Mode: exterior | interior ─────────────────────────────────────────
+    let mode: 'exterior' | 'interior' = 'exterior';
+    let currentBid: string | null = null;
+    let iptx = 7, ipty = 5;
+    let ipx = 7 * TILE_SIZE + TILE_SIZE / 2, ipy = 5 * TILE_SIZE + TILE_SIZE / 2;
+    let ipMoving = false, ipTargetX = ipx, ipTargetY = ipy;
+    let ipdir = 'S', ipFrame = 0;
 
-    // NPC dialogue
-    let talkableNPC: {x:number,y:number,tx:number,ty:number,dir:string,col:string,hair:string,f:number,wp:number,route:{x:number,y:number}[]}|null=null;
-    let talkDialogue='';
-    let showDialogue=false;
+    // ─── NPC / Dialogue ───────────────────────────────────────────────────
+    let talkableNPC: NPCState | null = null;
+    let showDialogue = false, dialogueText = '';
+    let zoneName = 'GoodBot Campus', lastZoneUpdate = 0;
 
-    // NPCs with proper two-way patrol routes
-    const npcs=[
-      {x:10*T+T/2,y:7*T+T/2,tx:10,ty:7,dir:'E',col:'#4ECDC4',hair:'#8B4513',f:0,wp:0,route:[{x:10,y:7},{x:22,y:7},{x:10,y:7}]},
-      {x:5*T+T/2, y:10*T+T/2,tx:5,ty:10,dir:'S',col:'#FF9F43',hair:'#2C1810',f:0,wp:0,route:[{x:5,y:10},{x:5,y:15},{x:5,y:10}]},
-      {x:25*T+T/2,y:15*T+T/2,tx:25,ty:15,dir:'W',col:'#DDA0DD',hair:'#1A1A2E',f:0,wp:0,route:[{x:25,y:15},{x:5,y:15},{x:25,y:15}]},
-    ];
+    // ─── Input ─────────────────────────────────────────────────────────────
+    const keys = new Set<string>();
+    const onKeyDown = (e: KeyboardEvent) => { keys.add(e.key.toLowerCase()); if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','q','escape'].includes(e.key.toLowerCase())) e.preventDefault(); };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
+    cv.tabIndex = 0; cv.style.outline = 'none'; cv.focus();
+    const onFocus = () => cv.focus();
+    cv.addEventListener('click', onFocus); cv.addEventListener('touchstart', onFocus);
 
-    // Input
-    const keys=new Set<string>();
-    const onKeyDown=(e:KeyboardEvent)=>{ keys.add(e.key.toLowerCase()); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase())) e.preventDefault(); };
-    const onKeyUp=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
-    window.addEventListener('keydown',onKeyDown);
-    window.addEventListener('keyup',onKeyUp);
-
-    // Auto-focus canvas on mount and on click
-    cv.tabIndex=0;
-    cv.style.outline='none';
-    cv.focus();
-    const onFocus=()=>cv.focus();
-    cv.addEventListener('click',onFocus);
-    cv.addEventListener('touchstart',onFocus);
-
-    function canWalk(tx:number,ty:number):boolean{
-      if(tx<0||tx>=GW||ty<0||ty>=GH) return false;
-      const t=map[ty][tx];
-      return t!==WALL&&t!==TREE&&t!==FENCE&&t!==WATER;
+    // ─── Collision ─────────────────────────────────────────────────────────
+    function canWalk(tx: number, ty: number): boolean {
+      const world = worldRef.current!;
+      if (tx < 0 || tx >= WORLD_W || ty < 0 || ty >= WORLD_H) return false;
+      const t = world[ty][tx];
+      return t !== 2 && t !== 6 && t !== 8;
+    }
+    function canWalkInterior(tx: number, ty: number, bid: string): boolean {
+      const tiles = INTERIORS[bid]?.tiles; if (!tiles) return false;
+      if (tx < 0 || tx >= tiles[0].length || ty < 0 || ty >= tiles.length) return false;
+      const t = tiles[ty][tx];
+      return t !== 2;
     }
 
-    function nearDoor(): typeof ROOMS[0]|null{
-      const dirs=[[0,0],[0,-1],[0,1],[-1,0],[1,0]];
-      for(const[dx,dy]of dirs){
-        const nx=ptx+dx,ny=pty+dy;
-        if(nx<0||nx>=GW||ny<0||ny>=GH) continue;
-        if(map[ny][nx]===DOOR) return getRoom(nx,ny);
+    function nearExteriorDoor(): string | null {
+      for (const [dx, dy] of [[0,0],[0,-1],[0,1],[-1,0],[1,0],[0,-2],[0,2],[-2,0],[2,0]]) {
+        const nx = ptx + dx, ny = pty + dy;
+        const b = getBuildingDoor(nx, ny);
+        if (b) return b.id;
       }
       return null;
     }
-
-    function clickMove(tx:number,ty:number){
-      if(!canWalk(tx,ty)) return;
-      ptx=tx; pty=ty;
-      pTargetX=tx*T+T/2; pTargetY=ty*T+T/2;
-      pMoving=true;
+    function nearInteriorExit(): boolean {
+      if (!currentBid) return false;
+      const t = INTERIORS[currentBid]?.tiles[ipty]?.[iptx];
+      return t === 4;
+    }
+    function nearActivityTile(): string | null {
+      if (!currentBid) return null;
+      const t = INTERIORS[currentBid]?.tiles[ipty]?.[iptx];
+      if (t === 20) return INTERIORS[currentBid]?.activityId || 'pixelstudio';
+      if (t === 21) return 'colorlab';
+      return null;
     }
 
-    const onClick=(e:MouseEvent)=>{
-      const rect=cv.getBoundingClientRect();
-      const sx=W/rect.width, sy=H/rect.height;
-      const mx=(e.clientX-rect.left)*sx, my=(e.clientY-rect.top)*sy;
-      const worldX=mx+camX, worldY=my+camY;
-      const tx=Math.floor(worldX/T), ty=Math.floor(worldY/T);
-
-      if(inInterior && intRoom){
-        const bw=480,bh=340,bx=(W-bw)/2,by=(H-bh)/2;
-        const btnBX=W/2-80, btnBY=by+bh-55, btnW=160, btnH=34;
-        if(mx>=btnBX&&mx<=btnBX+btnW&&my>=btnBY&&my<=btnBY+btnH){
-          if(intRoom.activityId==='pixelstudio'){ setActivityView(<PixelCanvas onBack={()=>setActivityView(null)} />); }
-          else if(intRoom.activityId==='statefinder'){ setActivityView(<StateFinder onBack={()=>setActivityView(null)} />); }
-          return;
+    // ─── Click-to-walk ────────────────────────────────────────────────────
+    function clickMove(mx: number, my: number) {
+      if (mode === 'interior') {
+        const icamX = Math.max(0, Math.min(ipx - W / 2, (INTERIORS[currentBid!]?.tiles[0].length ?? 17) * TILE_SIZE - W));
+        const icamY = Math.max(0, Math.min(ipy - H / 2, (INTERIORS[currentBid!]?.tiles.length ?? 11) * TILE_SIZE - H));
+        const { tx, ty } = viewToTile(mx, my, { x: icamX, y: icamY });
+        if (canWalkInterior(tx, ty, currentBid!)) {
+          iptx = tx; ipty = ty;
+          ipTargetX = tx * TILE_SIZE + TILE_SIZE / 2;
+          ipTargetY = ty * TILE_SIZE + TILE_SIZE / 2;
+          ipMoving = true;
         }
-        if(intRoom.activityId===null){
-          const bbX=W/2-70, bbY=by+bh-55, bbW=140, bbH=34;
-          if(mx>=bbX&&mx<=bbX+bbW&&my>=bbY&&my<=bbY+bbH){ inInterior=false; intRoom=null; return; }
+      } else {
+        const { tx, ty } = viewToTile(mx, my, cam);
+        if (canWalk(tx, ty)) {
+          ptx = tx; pty = ty;
+          pTargetX = tx * TILE_SIZE + TILE_SIZE / 2;
+          pTargetY = ty * TILE_SIZE + TILE_SIZE / 2;
+          pMoving = true;
         }
-        return;
       }
+    }
 
-      if(canWalk(tx,ty)) clickMove(tx,ty);
+    const onClick = (e: MouseEvent) => {
+      const rect = cv.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (W / rect.width);
+      const my = (e.clientY - rect.top) * (H / rect.height);
+      if (showDialogue) { showDialogue = false; return; }
+      clickMove(mx, my);
     };
-    cv.addEventListener('click',onClick);
+    cv.addEventListener('click', onClick);
 
-    let lastNpc=0, animId=0;
-
-    function update(ts:number){
-      if(inInterior) return;
-
-      // NPC proximity
-      if(!pMoving && !showDialogue){
-        for(const n of npcs){
-          const dx=Math.abs(n.tx-ptx), dy=Math.abs(n.ty-pty);
-          if(dx<=1 && dy<=1 && dx+dy<=1){ talkableNPC=n; }
-        }
-      }
-      if(!showDialogue && !talkableNPC) talkableNPC=null;
-
-      // Movement keys
-      if(!pMoving){
-        let dx=0,dy=0;
-        if(keys.has('w')||keys.has('arrowup'))    {dy=-1;pdir='N';}
-        else if(keys.has('s')||keys.has('arrowdown'))  {dy=1;pdir='S';}
-        else if(keys.has('a')||keys.has('arrowleft'))  {dx=-1;pdir='W';}
-        else if(keys.has('d')||keys.has('arrowright')) {dx=1;pdir='E';}
-        if(dx||dy){
-          if(canWalk(ptx+dx,pty+dy)){ ptx+=dx; pty+=dy; pTargetX=ptx*T+T/2; pTargetY=pty*T+T/2; pMoving=true; pFrame=(pFrame+1)%2; }
-        }
-      }
-
-      // Smooth move
-      if(pMoving){
-        const dx=pTargetX-px,dy=pTargetY-py;
-        const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist<STEP){ px=pTargetX; py=pTargetY; pMoving=false; }
-        else{ px+=(dx/dist)*STEP; py+=(dy/dist)*STEP; }
-      }
-
-      // E to enter room
-      if(keys.has('e')){ keys.delete('e'); const d=nearDoor(); if(d){ inInterior=true; intRoom=d; } }
-
-      // Q to talk
-      if(keys.has('q') && talkableNPC){
-        keys.delete('q');
-        showDialogue=true;
-        talkDialogue=NPC_GREETINGS[Math.floor(Math.random()*NPC_GREETINGS.length)];
-      }
-
-      // NPCs
-      if(ts-lastNpc>350){
-        lastNpc=ts;
-        for(const n of npcs){
-          const tgt=n.route[n.wp];
-          if(n.tx===tgt.x&&n.ty===tgt.y){ n.wp=(n.wp+1)%n.route.length; continue; }
-          const dx2=Math.sign(tgt.x-n.tx), dy2=Math.sign(tgt.y-n.ty);
-          if(dx2){n.tx+=dx2;n.x=n.tx*T+T/2;n.dir=dx2>0?'E':'W';}
-          else if(dy2){n.ty+=dy2;n.y=n.ty*T+T/2;n.dir=dy2>0?'S':'N';}
-          n.f=(n.f+1)%2;
-        }
-      }
-
-      // Camera — lerp toward player
-      camX+=(px-W/2-camX)*0.1;
-      camY+=(py-H/2-camY)*0.1;
-      camX=Math.max(0,Math.min(W-W,camX));
-      camY=Math.max(0,Math.min(H-H,camY));
-    }
-
-    function render(ts:number){
-      // Background
-      c.fillStyle='#5C8B3A'; c.fillRect(0,0,W,H);
-
-      // Visible tile range
-      const sx0=Math.max(0,Math.floor(camX/T));
-      const sy0=Math.max(0,Math.floor(camY/T));
-      const sx1=Math.min(GW,Math.ceil((camX+W)/T)+1);
-      const sy1=Math.min(GH,Math.ceil((camY+H)/T)+1);
-
-      for(let ty=sy0;ty<sy1;ty++) for(let tx=sx0;tx<sx1;tx++){
-        const t=map[ty][tx];
-        const wx=tx*T-camX, wy=ty*T-camY;
-        if(t===GRASS)   dGrass(c,wx,wy,T);
-        else if(t===PATH)   dPath(c,wx,wy,T);
-        else if(t===WALL){
-          const isWindow=(ty===3||ty===6)&&tx>=9&&tx<=20&&tx!==10&&tx!==14&&tx!==17&&tx!==20;
-          dWall(c,wx,wy,T,isWindow);
-        }
-        else if(t===FLOOR) dFloor(c,wx,wy,T);
-        else if(t===DOOR)   dDoor(c,wx,wy,T);
-        else if(t===WATER)  dWater(c,wx,wy,T,ts);
-        else if(t===TREE)   dTree(c,wx,wy,T);
-        else if(t===FLOWER) dFlower(c,wx,wy,T,tx*17+ty);
-        else if(t===FENCE)  dFence(c,wx,wy,T);
-      }
-
-      // NPCs then player (depth sort)
-      const ents=[...npcs].sort((a,b)=>a.y-b.y);
-      ents.forEach(n=>{
-        const sxn=n.x-camX, syn=n.y-camY;
-        if(sxn<-T||sxn>W+T||syn<-T||syn>H+T) return;
-        drawSprite(c,sxn,syn,n.col,n.hair,n.dir,n.f);
-      });
-      drawSprite(c,px-camX,py-camY,pCol,hCol,pdir,pFrame);
-
-      // NPC talk prompt
-      if(talkableNPC && !showDialogue){
-        const nx2=talkableNPC.x-camX, ny2=talkableNPC.y-camY;
-        c.fillStyle='rgba(0,0,0,0.7)'; c.roundRect(nx2-50,ny2-50,100,22,6); c.fill();
-        c.fillStyle='#FFE066'; c.font='bold 10px sans-serif'; c.textAlign='center';
-        c.fillText('Q to Talk',nx2,ny2-36);
-      }
-
-      // Dialogue box
-      if(showDialogue && talkableNPC){
-        const bx2=W/2-160, by2=CH-130;
-        c.fillStyle='rgba(0,0,0,0.85)'; c.roundRect(bx2,by2,320,80,16); c.fill();
-        c.fillStyle=talkableNPC.col; c.beginPath(); c.arc(bx2+24,by2-8,10,0,Math.PI*2); c.fill();
-        c.fillStyle='white'; c.font='14px sans-serif';
-        const words2=talkDialogue.split(' ');
-        let line2='',ly2=by2+28;
-        for(const w of words2){
-          const t2=line2+w+' ';
-          if(c.measureText(t2).width>280){c.fillText(line2,bx2+20,ly2);line2=w+' ';ly2+=20;}
-          else line2=t2;
-        }
-        c.fillText(line2,bx2+20,ly2);
-        c.fillStyle='rgba(255,255,255,0.5)'; c.font='11px sans-serif'; c.fillText('(press Q to close)',bx2+160,by2+68);
-      }
-
-      // Door prompt
-      if(!inInterior){
-        const d=nearDoor();
-        if(d){
-          c.fillStyle='rgba(0,0,0,0.7)'; c.roundRect(W/2-100,H-80,200,28,8); c.fill();
-          c.fillStyle='#FFE066'; c.font='bold 12px sans-serif'; c.textAlign='center';
-          c.fillText(`E for ${d.emoji} ${d.name}`,W/2,H-62);
-        }
-      }
-
-      // Interior overlay
-      if(inInterior&&intRoom){
-        c.fillStyle='rgba(0,0,0,0.78)'; c.fillRect(0,0,W,H);
-        const bw=480,bh=340,bx=(W-bw)/2,by=(H-bh)/2;
-        c.fillStyle=intRoom.color; c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=4;
-        c.roundRect(bx,by,bw,bh,20); c.fill(); c.stroke();
-        c.font='72px sans-serif'; c.textAlign='center'; c.fillText(intRoom.emoji,W/2,by+100);
-        c.fillStyle='#222'; c.font='bold 26px sans-serif'; c.fillText(intRoom.name,W/2,by+150);
-        c.font='15px sans-serif'; c.fillStyle='#555';
-        let line='',ly=by+185;
-        for(const w of intRoom.desc.split(' ')){
-          const t=line+w+' ';
-          if(c.measureText(t).width>bw-60){c.fillText(line,W/2,ly);line=w+' ';ly+=22;}
-          else line=t;
-        }
-        c.fillText(line,W/2,ly);
-
-        if(intRoom.activityId==='pixelstudio' || intRoom.activityId==='statefinder'){
-          c.fillStyle='rgba(78,205,196,0.9)'; c.roundRect(W/2-80,by+bh-55,160,34,10); c.fill();
-          c.fillStyle='white'; c.font='bold 14px sans-serif'; c.fillText('\u25b6 Launch Activity!',W/2,by+bh-33);
-        } else {
-          c.fillStyle='rgba(0,0,0,0.12)'; c.roundRect(W/2-70,by+bh-55,140,34,10); c.fill();
-          c.fillStyle='#333'; c.font='bold 14px sans-serif'; c.fillText('\u2190 Back Outside (ESC)',W/2,by+bh-33);
-        }
-      }
-
-      // HUD — room name
-      c.fillStyle='rgba(0,0,0,0.55)'; c.roundRect(10,10,210,30,8); c.fill();
-      const room=getRoom(ptx,pty);
-      c.fillStyle='#fff'; c.font='bold 13px sans-serif'; c.textAlign='left';
-      c.fillText(room?`${room.emoji} ${room.name}`:'🏫 GoodBot School',18,30);
-
-      // Controls
-      const showQTip=!!(talkableNPC&&!showDialogue);
-      c.fillStyle='rgba(0,0,0,0.45)'; c.roundRect(10,H-34,showQTip?290:230,24,6); c.fill();
-      c.fillStyle='rgba(255,255,255,0.75)'; c.font='11px sans-serif';
-      c.fillText(showQTip?'WASD/Arrows move \u00b7 E interact \u00b7 Q talk \u00b7 Click to walk \u00b7 ESC exit':'WASD/Arrows move \u00b7 E interact \u00b7 Click to walk \u00b7 ESC exit',18,H-18);
-
-      // Minimap
-      const mw=110,mh=88,mx=W-mw-10,my=10;
-      c.fillStyle='rgba(0,0,0,0.6)'; c.roundRect(mx-2,my-2,mw+4,mh+4,6); c.fill();
-      const mxs=mw/GW,mys=mh/GH;
-      for(let ty=0;ty<GH;ty++) for(let tx=0;tx<GW;tx++){
-        const t=map[ty][tx];
-        if(t===WALL||t===TREE) c.fillStyle='#5C4033';
-        else if(t===PATH||t===DOOR) c.fillStyle='#B89A70';
-        else if(t===WATER) c.fillStyle='#4A90D9';
-        else if(t===FLOOR) c.fillStyle='#888';
-        else continue;
-        c.fillRect(mx+tx*mxs,my+ty*mys,mxs+0.5,mys+0.5);
-      }
-      npcs.forEach(n=>{ c.fillStyle=n.col; c.beginPath(); c.arc(mx+n.tx*mxs+mxs/2,my+n.ty*mys+mys/2,2,0,Math.PI*2); c.fill(); });
-      c.fillStyle=pCol; c.beginPath(); c.arc(mx+ptx*mxs+mxs/2,my+pty*mys+mys/2,3,0,Math.PI*2); c.fill();
-    }
-
-    function loop(ts:number){ update(ts); render(ts); animId=requestAnimationFrame(loop); }
-    animId=requestAnimationFrame(loop);
-
-    const onEsc=(e:KeyboardEvent)=>{
-      if(e.key==='Escape'){
-        if(showDialogue){ showDialogue=false; talkableNPC=null; }
-        else if(inInterior){ inInterior=false; intRoom=null; }
+    // ─── ESC ──────────────────────────────────────────────────────────────
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showDialogue) { showDialogue = false; return; }
+      if (mode === 'interior' && nearInteriorExit()) {
+        mode = 'exterior'; currentBid = null;
+        px = ptx * TILE_SIZE + TILE_SIZE / 2;
+        py = pty * TILE_SIZE + TILE_SIZE / 2;
       }
     };
-    window.addEventListener('keydown',onEsc);
+    window.addEventListener('keydown', onEsc);
 
-    return()=>{
+    // ─── NPC Update ──────────────────────────────────────────────────────
+    let lastNpc = 0;
+    function updateNPCs(ts: number) {
+      if (ts - lastNpc < 400) return;
+      lastNpc = ts;
+      for (const npc of npcStatesRef.current) {
+        const def = NPC_DEFS.find(d => d.id === npc.id)!;
+        const tgt = def.route[npc.wp];
+        if (npc.tx === tgt.tx && npc.ty === tgt.ty) { npc.wp = (npc.wp + 1) % def.route.length; continue; }
+        const dx = Math.sign(tgt.tx - npc.tx), dy = Math.sign(tgt.ty - npc.ty);
+        if (dx) { npc.tx += dx; npc.x = npc.tx * TILE_SIZE + TILE_SIZE / 2; npc.dir = dx > 0 ? 'E' : 'W'; }
+        else if (dy) { npc.ty += dy; npc.y = npc.ty * TILE_SIZE + TILE_SIZE / 2; npc.dir = dy > 0 ? 'S' : 'N'; }
+        npc.frame = (npc.frame + 1) % 2;
+      }
+    }
+
+    // ─── Render ───────────────────────────────────────────────────────────
+    function render(ts: number) {
+      if (!ctx) return;
+      const world = worldRef.current!;
+
+      // ── EXTERIOR ──────────────────────────────────────────────────────────
+      if (mode === 'exterior') {
+        ctx.fillStyle = '#6ABF40'; ctx.fillRect(0, 0, W, H);
+
+        const sx0 = Math.max(0, Math.floor(cam.x / TILE_SIZE));
+        const sy0 = Math.max(0, Math.floor(cam.y / TILE_SIZE));
+        const sx1 = Math.min(WORLD_W, Math.ceil((cam.x + W) / TILE_SIZE) + 1);
+        const sy1 = Math.min(WORLD_H, Math.ceil((cam.y + H) / TILE_SIZE) + 1);
+
+        for (let ty = sy0; ty < sy1; ty++) {
+          for (let tx = sx0; tx < sx1; tx++) {
+            drawTile(ctx, world[ty][tx], tx * TILE_SIZE - cam.x, ty * TILE_SIZE - cam.y, ts);
+          }
+        }
+
+        const sortedNPCs = [...npcStatesRef.current].sort((a, b) => a.y - b.y);
+        for (const npc of sortedNPCs) {
+          const vx = npc.x - cam.x, vy = npc.y - cam.y;
+          if (vx < -TILE_SIZE || vx > W + TILE_SIZE || vy < -TILE_SIZE || vy > H + TILE_SIZE) continue;
+          const def = NPC_DEFS.find(d => d.id === npc.id)!;
+          drawSprite(ctx, vx, vy, def.color, def.hairColor, npc.dir, npc.frame);
+        }
+
+        drawSprite(ctx, px - cam.x, py - cam.y, pCol, hCol, pdir, pFrame);
+
+        // Zone name
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(10, 10, 220, 28, 8); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(zoneName, 18, 29);
+
+        // Controls
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.roundRect(10, H - 34, 280, 24, 6); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '11px sans-serif';
+        ctx.fillText('WASD/Arrows:Move  E:Enter  Q:Talk  Click:Walk', 18, H - 18);
+
+        // NPC talk prompt
+        if (talkableNPC && !showDialogue) {
+          const nx = talkableNPC.x - cam.x, ny = talkableNPC.y - cam.y;
+          ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(nx - 50, ny - 52, 100, 22, 6); ctx.fill();
+          ctx.fillStyle = '#FFE066'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('Q to Talk', nx, ny - 38);
+        }
+
+        // Door prompt
+        const nearDoor = nearExteriorDoor();
+        if (nearDoor) {
+          const b = BUILDINGS.find(b => b.id === nearDoor)!;
+          ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(W / 2 - 100, H - 80, 200, 28, 8); ctx.fill();
+          ctx.fillStyle = '#FFE066'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`E for ${b.emoji} ${b.name}`, W / 2, H - 62);
+        }
+
+        // Minimap
+        const mw = 100, mh = 83;
+        const mmX = W - mw - 10, mmY = 10;
+        ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.beginPath(); ctx.roundRect(mmX - 2, mmY - 2, mw + 4, mh + 4, 6); ctx.fill();
+        const mxs = mw / WORLD_W, mys = mh / WORLD_H;
+        for (let ty = 0; ty < WORLD_H; ty++) {
+          for (let tx = 0; tx < WORLD_W; tx++) {
+            const t = world[ty][tx];
+            if (t === 2 || t === 6) ctx.fillStyle = '#5C4033';
+            else if (t === 1 || t === 4) ctx.fillStyle = '#B89A70';
+            else if (t === 5) ctx.fillStyle = '#4A90D9';
+            else continue;
+            ctx.fillRect(mmX + tx * mxs, mmY + ty * mys, mxs + 0.5, mys + 0.5);
+          }
+        }
+        npcStatesRef.current.forEach(n => { ctx.fillStyle = '#FFEB3B'; ctx.beginPath(); ctx.arc(mmX + n.tx * mxs + mxs / 2, mmY + n.ty * mys + mys / 2, 2, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = pCol; ctx.beginPath(); ctx.arc(mmX + ptx * mxs + mxs / 2, mmY + pty * mys + mys / 2, 3, 0, Math.PI * 2); ctx.fill();
+
+      } else {
+        // ── INTERIOR ─────────────────────────────────────────────────────────
+        const interior = INTERIORS[currentBid!]; if (!interior) return;
+        ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, W, H);
+
+        const iW = interior.tiles[0].length * TILE_SIZE;
+        const iH = interior.tiles.length * TILE_SIZE;
+        const icamX = Math.max(0, Math.min(ipx - W / 2, iW - W));
+        const icamY = Math.max(0, Math.min(ipy - H / 2, iH - H));
+
+        const sx0 = Math.max(0, Math.floor(icamX / TILE_SIZE));
+        const sy0 = Math.max(0, Math.floor(icamY / TILE_SIZE));
+        const sx1 = Math.min(interior.tiles[0].length, Math.ceil((icamX + W) / TILE_SIZE) + 1);
+        const sy1 = Math.min(interior.tiles.length, Math.ceil((icamY + H) / TILE_SIZE) + 1);
+
+        for (let ty = sy0; ty < sy1; ty++) {
+          for (let tx = sx0; tx < sx1; tx++) {
+            const t = interior.tiles[ty]?.[tx] ?? 0;
+            drawTile(ctx, t, tx * TILE_SIZE - icamX, ty * TILE_SIZE - icamY, ts);
+          }
+        }
+
+        drawSprite(ctx, ipx - icamX, ipy - icamY, pCol, hCol, ipdir, ipFrame);
+
+        const bld = BUILDINGS.find(b => b.id === currentBid);
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(10, 10, 200, 28, 8); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${bld?.emoji || ''} ${bld?.name || ''}`, 18, 29);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.roundRect(10, H - 34, 230, 24, 6); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '11px sans-serif';
+        ctx.fillText('WASD:Move  ESC:Exit Building  Click:Walk', 18, H - 18);
+
+        const nearAct = nearActivityTile();
+        if (nearAct) {
+          ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(W / 2 - 120, H - 80, 240, 28, 8); ctx.fill();
+          ctx.fillStyle = '#FFE066'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('Walk to ★ to start activity!', W / 2, H - 62);
+        }
+
+        // Interior minimap
+        const mw = 80, mh = 66;
+        const mmX = W - mw - 10, mmY = 10;
+        ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.beginPath(); ctx.roundRect(mmX - 2, mmY - 2, mw + 4, mh + 4, 6); ctx.fill();
+        const mxs = mw / interior.tiles[0].length, mys = mh / interior.tiles.length;
+        for (let ty = 0; ty < interior.tiles.length; ty++) {
+          for (let tx = 0; tx < interior.tiles[0].length; tx++) {
+            const t = interior.tiles[ty][tx];
+            if (t === 2) ctx.fillStyle = '#5C4033';
+            else if (t === 3 || t === 0) ctx.fillStyle = '#888';
+            else if (t === 4) ctx.fillStyle = '#B89A70';
+            else continue;
+            ctx.fillRect(mmX + tx * mxs, mmY + ty * mys, mxs + 0.5, mys + 0.5);
+          }
+        }
+        ctx.fillStyle = pCol; ctx.beginPath(); ctx.arc(mmX + iptx * mxs + mxs / 2, mmY + ipty * mys + mys / 2, 3, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Dialogue ─────────────────────────────────────────────────────────
+      if (showDialogue && talkableNPC) {
+        const npc = talkableNPC as NPCState;
+        const def = NPC_DEFS.find(d => d.id === npc.id)!;
+        const bx = W / 2 - 160, by = H - 120;
+        ctx.fillStyle = 'rgba(0,0,0,0.88)'; ctx.beginPath(); ctx.roundRect(bx, by, 320, 80, 16); ctx.fill();
+        ctx.fillStyle = def.color; ctx.beginPath(); ctx.arc(bx + 24, by - 8, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif';
+        const words = dialogueText.split(' ');
+        let line = '', ly = by + 28;
+        for (const w of words) {
+          const t2 = line + w + ' ';
+          if (ctx.measureText(t2).width > 280) { ctx.fillText(line, bx + 20, ly); line = w + ' '; ly += 20; }
+          else line = t2;
+        }
+        ctx.fillText(line, bx + 20, ly);
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '11px sans-serif';
+        ctx.fillText('(press Q to close)', bx + 160, by + 68);
+      }
+    }
+
+    // ─── Update ────────────────────────────────────────────────────────────
+    function update(ts: number) {
+      if (ts - lastZoneUpdate > 500) {
+        lastZoneUpdate = ts;
+        zoneName = getZone(ptx, pty)?.name || 'GoodBot Campus';
+      }
+
+      if (mode === 'exterior') {
+        // NPC proximity
+        if (!pMoving && !showDialogue) {
+          for (const npc of npcStatesRef.current) {
+            const dx = Math.abs(npc.tx - ptx), dy = Math.abs(npc.ty - pty);
+            if (dx <= 1 && dy <= 1 && dx + dy <= 1) { talkableNPC = npc; break; }
+          }
+          if (!talkableNPC) {
+            const inRange = npcStatesRef.current.some(n => Math.abs(n.tx - ptx) <= 1 && Math.abs(n.ty - pty) <= 1);
+            if (!inRange) talkableNPC = null;
+          }
+        }
+
+        // Movement
+        if (!pMoving) {
+          let dx = 0, dy = 0;
+          if (keys.has('w') || keys.has('arrowup')) { dy = -1; pdir = 'N'; }
+          else if (keys.has('s') || keys.has('arrowdown')) { dy = 1; pdir = 'S'; }
+          else if (keys.has('a') || keys.has('arrowleft')) { dx = -1; pdir = 'W'; }
+          else if (keys.has('d') || keys.has('arrowright')) { dx = 1; pdir = 'E'; }
+          if (dx || dy) {
+            if (canWalk(ptx + dx, pty + dy)) {
+              ptx += dx; pty += dy;
+              pTargetX = ptx * TILE_SIZE + TILE_SIZE / 2;
+              pTargetY = pty * TILE_SIZE + TILE_SIZE / 2;
+              pMoving = true; pFrame = (pFrame + 1) % 2;
+            }
+          }
+        }
+        if (pMoving) {
+          const dx = pTargetX - px, dy = pTargetY - py;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < STEP) { px = pTargetX; py = pTargetY; pMoving = false; }
+          else { px += (dx / dist) * STEP; py += (dy / dist) * STEP; }
+        }
+
+        cameraUpdate(cam, px, py, 0.08);
+
+        if (keys.has('e')) { keys.delete('e'); const bid = nearExteriorDoor(); if (bid) {
+          mode = 'interior'; currentBid = bid;
+          const interior = INTERIORS[bid];
+          iptx = interior.exitTile.tx; ipty = interior.exitTile.ty;
+          ipx = iptx * TILE_SIZE + TILE_SIZE / 2; ipy = ipty * TILE_SIZE + TILE_SIZE / 2;
+          ipMoving = false; ipdir = 'S';
+        }}
+        if (keys.has('q') && talkableNPC) { keys.delete('q'); showDialogue = true;
+          const def = NPC_DEFS.find(d => d.id === talkableNPC!.id)!;
+          dialogueText = def.dialogue[Math.floor(Math.random() * def.dialogue.length)]; }
+        if (keys.has('q') && showDialogue) { keys.delete('q'); showDialogue = false; }
+
+        updateNPCs(ts);
+
+      } else {
+        // ── INTERIOR ───────────────────────────────────────────────────────
+        if (!ipMoving) {
+          let dx = 0, dy = 0;
+          if (keys.has('w') || keys.has('arrowup')) { dy = -1; ipdir = 'N'; }
+          else if (keys.has('s') || keys.has('arrowdown')) { dy = 1; ipdir = 'S'; }
+          else if (keys.has('a') || keys.has('arrowleft')) { dx = -1; ipdir = 'W'; }
+          else if (keys.has('d') || keys.has('arrowright')) { dx = 1; ipdir = 'E'; }
+          if (dx || dy) {
+            if (canWalkInterior(iptx + dx, ipty + dy, currentBid!)) {
+              iptx += dx; ipty += dy;
+              ipTargetX = iptx * TILE_SIZE + TILE_SIZE / 2;
+              ipTargetY = ipty * TILE_SIZE + TILE_SIZE / 2;
+              ipMoving = true; ipFrame = (ipFrame + 1) % 2;
+            }
+          }
+        }
+        if (ipMoving) {
+          const dx = ipTargetX - ipx, dy = ipTargetY - ipy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < STEP) { ipx = ipTargetX; ipy = ipTargetY; ipMoving = false; }
+          else { ipx += (dx / dist) * STEP; ipy += (dy / dist) * STEP; }
+        }
+
+        const actId = nearActivityTile();
+        if (actId && !keys.has('keys_used')) { setActivityId(actId); }
+      }
+    }
+
+    let animId = 0;
+    function loop(ts: number) { update(ts); render(ts); animId = requestAnimationFrame(loop); }
+    animId = requestAnimationFrame(loop);
+
+    return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('keydown',onKeyDown);
-      window.removeEventListener('keyup',onKeyUp);
-      window.removeEventListener('keydown',onEsc);
-      cv.removeEventListener('click',onClick);
-      cv.removeEventListener('touchstart',onFocus);
+      window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('keydown', onEsc);
+      cv.removeEventListener('click', onClick); cv.removeEventListener('touchstart', onFocus);
     };
-  },[]);
+  }, []);
 
-  return(
+  return (
     <>
-      {showIntro && (
-        <IntroScreen onEnter={()=>setShowIntro(false)} pCol={pCol} setPCol={setPCol} hCol={hCol} />
-      )}
-      {activityView ? (
-        <div style={{width:'100vw',height:'100vh',overflow:'hidden'}}>
-          {activityView}
+      {showIntro && <IntroScreen onEnter={() => setShowIntro(false)} pCol={pCol} setPCol={setPCol} hCol={hCol} />}
+      {activityId ? (
+        <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+          <ActivityView id={activityId} onBack={() => { setActivityId(null); }} />
         </div>
       ) : (
-        <>
-          <div style={{color:'#fff',fontSize:'22px',fontWeight:700,fontFamily:'sans-serif',textShadow:'0 2px 8px rgba(0,0,0,0.4)',letterSpacing:'1px',textAlign:'center',padding:'16px 0'}}>
-            \U0001f3eb GoodBot School
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: '8px' }}>
+          <div style={{ color: '#fff', fontSize: '22px', fontWeight: 700, fontFamily: 'Fredoka, system-ui, sans-serif', textShadow: '0 2px 8px rgba(0,0,0,0.4)', letterSpacing: '1px' }}>
+            🏫 GoodBot Campus
           </div>
-          <div style={{borderRadius:'12px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.5)',border:'3px solid rgba(255,255,255,0.2)'}}>
-            <canvas ref={ref} width={CW} height={CH} tabIndex={0}
-              style={{display:'block',maxWidth:'100vw',height:'auto',outline:'none',cursor:'pointer'}} />
+          <div style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.2)' }}>
+            <canvas
+              ref={canvasRef} width={VP_W * TILE_SIZE} height={VP_H * TILE_SIZE} tabIndex={0}
+              style={{ display: 'block', maxWidth: '100vw', height: 'auto', outline: 'none', cursor: 'pointer', background: '#1a1a2e' }}
+            />
           </div>
-        </>
+        </div>
       )}
     </>
   );

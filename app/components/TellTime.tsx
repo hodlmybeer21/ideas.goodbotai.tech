@@ -358,7 +358,7 @@ function getHint(hour: number, minute: number, level: Level): string {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function TellTime({ onBack, kidName }: { onBack: () => void; kidName: string }) {
+export default function TellTime({ onBack, kidName }: { onBack: () => void; kidName?: string }) {
   const [screen, setScreen] = useState<Screen>('menu');
   const [level, setLevel] = useState<Level>('easy');
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -595,7 +595,7 @@ export default function TellTime({ onBack, kidName }: { onBack: () => void; kidN
                 activityName="Tell Time"
                 activityEmoji="🕐"
                 onClose={() => setRatingModalOpen(false)}
-                kidName={kidName}
+                kidName={kidName ?? 'Explorer'}
               />
             )}
           </div>
