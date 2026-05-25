@@ -203,8 +203,8 @@ export default function CampusGame() {
     npcStatesRef.current = NPC_DEFS.map(makeNPCState);
 
     // ─── Player ────────────────────────────────────────────────────────────
-    let px = 30 * TILE_SIZE + TILE_SIZE / 2, py = 17 * TILE_SIZE + TILE_SIZE / 2;
-    let ptx = 30, pty = 17;
+    let px = 60 * TILE_SIZE + TILE_SIZE / 2, py = 35 * TILE_SIZE + TILE_SIZE / 2;
+    let ptx = 60, pty = 35;
     let pdir = 'S', pFrame = 0;
     let pMoving = false;
     let pTargetX = px, pTargetY = py;
@@ -589,14 +589,15 @@ export default function CampusGame() {
           <ActivityView id={activityId} onBack={() => { setActivityId(null); }} />
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: '8px' }}>
-          <div style={{ color: '#fff', fontSize: '22px', fontWeight: 700, fontFamily: 'Fredoka, system-ui, sans-serif', textShadow: '0 2px 8px rgba(0,0,0,0.4)', letterSpacing: '1px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 12px', gap: '10px', width: '100vw', height: '100vh', overflow: 'hidden', boxSizing: 'border-box' }}>
+          <div style={{ color: '#fff', fontSize: '24px', fontWeight: 700, fontFamily: 'Fredoka, system-ui, sans-serif', textShadow: '0 2px 8px rgba(0,0,0,0.5)', letterSpacing: '1px', flexShrink: 0 }}>
             🏫 GoodBot Campus
           </div>
-          <div style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.2)' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', overflow: 'hidden', borderRadius: '14px' }}>
             <canvas
-              ref={canvasRef} width={VP_W * TILE_SIZE} height={VP_H * TILE_SIZE} tabIndex={0}
-              style={{ display: 'block', maxWidth: '100vw', height: 'auto', outline: 'none', cursor: 'pointer', background: '#1a1a2e' }}
+              ref={canvasRef} width={VP_W * TILE_SIZE} height={VP_H * TILE_SIZE}
+              tabIndex={0}
+              style={{ display: 'block', maxWidth: '100%', maxHeight: '100%', outline: 'none', cursor: 'pointer', background: '#1a1a2e', borderRadius: '12px' }}
             />
           </div>
         </div>

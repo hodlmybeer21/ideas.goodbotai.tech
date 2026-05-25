@@ -17,7 +17,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '👩‍🏫',
     color: '#FF9F9F',
     hairColor: '#2C1810',
-    route: [{ tx: 24, ty: 16 }, { tx: 27, ty: 16 }, { tx: 30, ty: 16 }, { tx: 33, ty: 16 }, { tx: 27, ty: 16 }],
+    route: [{ tx: 50, ty: 35 }, { tx: 55, ty: 35 }, { tx: 60, ty: 35 }, { tx: 65, ty: 35 }, { tx: 55, ty: 35 }],
     dialogue: [
       "Welcome to GoodBot Campus! Have you visited the Art Building yet? 🎨",
       "Learning is an adventure! What subject do you like best?",
@@ -30,7 +30,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '👨‍💼',
     color: '#6B8DD6',
     hairColor: '#1A1A2E',
-    route: [{ tx: 29, ty: 16 }, { tx: 35, ty: 16 }, { tx: 35, ty: 18 }, { tx: 25, ty: 18 }, { tx: 25, ty: 16 }],
+    route: [{ tx: 58, ty: 35 }, { tx: 66, ty: 35 }, { tx: 66, ty: 40 }, { tx: 50, ty: 40 }, { tx: 50, ty: 35 }],
     dialogue: [
       "Welcome, young explorer! This campus has so much to discover!",
       "The Gym is great for burning energy. Have you been to see Coach Ziggy?",
@@ -43,7 +43,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '🤖',
     color: '#DDA0DD',
     hairColor: '#888888',
-    route: [{ tx: 4, ty: 16 }, { tx: 4, ty: 20 }, { tx: 8, ty: 20 }, { tx: 8, ty: 16 }],
+    route: [{ tx: 5, ty: 35 }, { tx: 5, ty: 45 }, { tx: 10, ty: 45 }, { tx: 10, ty: 35 }],
     dialogue: [
       "BEEP BOOP! I am Paint Bot! I love colors more than anything!",
       "Primary colors are red, blue, and yellow. Try mixing them in Color Lab!",
@@ -56,7 +56,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '🏃',
     color: '#FF6B6B',
     hairColor: '#D4A853',
-    route: [{ tx: 25, ty: 14 }, { tx: 30, ty: 14 }, { tx: 35, ty: 14 }, { tx: 30, ty: 14 }],
+    route: [{ tx: 50, ty: 28 }, { tx: 58, ty: 28 }, { tx: 66, ty: 28 }, { tx: 58, ty: 28 }],
     dialogue: [
       "Hey there, athlete! Ready to get moving? 🏀",
       "Sports are great for your body AND your brain!",
@@ -69,7 +69,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '🦉',
     color: '#C8A87B',
     hairColor: '#8B6914',
-    route: [{ tx: 10, ty: 16 }, { tx: 14, ty: 16 }, { tx: 14, ty: 20 }, { tx: 10, ty: 20 }],
+    route: [{ tx: 10, ty: 35 }, { tx: 18, ty: 35 }, { tx: 18, ty: 42 }, { tx: 10, ty: 42 }],
     dialogue: [
       "Whoohoo! I love stories. Have you read anything good lately? 📖",
       "The Library has the best books and the coziest corners!",
@@ -82,7 +82,7 @@ export const NPC_DEFS: NPC[] = [
     emoji: '🧪',
     color: '#4ECDC4',
     hairColor: '#F5C5A3',
-    route: [{ tx: 42, ty: 16 }, { tx: 45, ty: 16 }, { tx: 45, ty: 20 }, { tx: 42, ty: 20 }],
+    route: [{ tx: 92, ty: 35 }, { tx: 98, ty: 35 }, { tx: 98, ty: 42 }, { tx: 92, ty: 42 }],
     dialogue: [
       "Greetings, young scientist! Today's experiment is going to be AMAZING!",
       "Science is all about asking questions and finding answers!",

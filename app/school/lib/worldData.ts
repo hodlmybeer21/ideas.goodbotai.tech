@@ -1,11 +1,11 @@
 // World dimensions
 export const TILE_SIZE = 10;
-export const WORLD_W = 60;  // tiles
-export const WORLD_H = 50;  // tiles
-export const VP_W = 80;     // viewport tiles wide
-export const VP_H = 60;     // viewport tiles tall
-export const WORLD_PIXEL_W = WORLD_W * TILE_SIZE; // 600
-export const WORLD_PIXEL_H = WORLD_H * TILE_SIZE; // 500
+export const WORLD_W = 120;  // tiles (doubled from 60)
+export const WORLD_H = 80;   // tiles (doubled from 50)
+export const VP_W = 120;     // viewport tiles wide (10 more per side)
+export const VP_H = 80;     // viewport tiles tall (10 more per side)
+export const WORLD_PIXEL_W = WORLD_W * TILE_SIZE; // 1200
+export const WORLD_PIXEL_H = WORLD_H * TILE_SIZE; // 800
 
 // Tile types
 export const T_GRASS   = 0;
@@ -93,9 +93,9 @@ export const BUILDINGS: Building[] = [
     id: 'main_school',
     name: 'Main School',
     emoji: '🏫',
-    x1: 22, y1: 18, x2: 38, y2: 28,
+    x1: 44, y1: 40, x2: 76, y2: 58,
     iW: 17, iH: 11,
-    doors: [{ tx: 28, ty: 18 }, { tx: 31, ty: 18 }, { tx: 35, ty: 18 }],
+    doors: [{ tx: 56, ty: 40 }, { tx: 60, ty: 40 }, { tx: 66, ty: 40 }, { tx: 71, ty: 40 }],
     exits: [{ tx: 7, ty: 8 }],
     activityId: null,
     desc: 'The heart of GoodBot Campus! Classrooms and learning await.',
@@ -104,9 +104,9 @@ export const BUILDINGS: Building[] = [
     id: 'art_building',
     name: 'Art Building',
     emoji: '🎨',
-    x1: 2, y1: 18, x2: 18, y2: 28,
+    x1: 2, y1: 40, x2: 35, y2: 58,
     iW: 17, iH: 11,
-    doors: [{ tx: 8, ty: 18 }],
+    doors: [{ tx: 15, ty: 40 }],
     exits: [{ tx: 7, ty: 8 }],
     activityId: null,
     desc: 'Color, creativity, and messy fun!',
@@ -115,12 +115,34 @@ export const BUILDINGS: Building[] = [
     id: 'gym',
     name: 'Gymnasium',
     emoji: '🏀',
-    x1: 22, y1: 2, x2: 38, y2: 14,
+    x1: 44, y1: 5, x2: 76, y2: 28,
     iW: 17, iH: 13,
-    doors: [{ tx: 28, ty: 14 }, { tx: 33, ty: 14 }],
+    doors: [{ tx: 56, ty: 28 }, { tx: 66, ty: 28 }],
     exits: [{ tx: 7, ty: 10 }],
     activityId: null,
     desc: 'Run, jump, and play! Keeping active is fun.',
+  },
+  {
+    id: 'library',
+    name: 'Library',
+    emoji: '📚',
+    x1: 2, y1: 10, x2: 35, y2: 25,
+    iW: 17, iH: 11,
+    doors: [{ tx: 15, ty: 25 }],
+    exits: [{ tx: 7, ty: 8 }],
+    activityId: null,
+    desc: 'Books, stories, and quiet corners for curious minds.',
+  },
+  {
+    id: 'science_building',
+    name: 'Science Lab',
+    emoji: '🔬',
+    x1: 85, y1: 10, x2: 118, y2: 25,
+    iW: 17, iH: 11,
+    doors: [{ tx: 95, ty: 25 }],
+    exits: [{ tx: 7, ty: 8 }],
+    activityId: null,
+    desc: 'Experiments and discoveries for young scientists!',
   },
 ];
 
@@ -152,116 +174,202 @@ export function buildWorld(): number[][] {
     fill(x1, y1, x2, y2, tile);
   }
 
-  // ─── Plaza / Paths ──────────────────────────────────────────────────────
+  // ─── Extended Plaza / Paths ──────────────────────────────────────────────
   // Main horizontal path (runs east-west across middle)
-  fill(0, 16, W - 1, 16, T_PATH);
+  fill(0, 35, W - 1, 35, T_PATH);
+  // Wide plaza area around center
+  fill(40, 33, 80, 37, T_PATH);
   // Vertical path north (through school entrance)
-  fill(28, 16, 32, 18, T_PATH);
+  fill(56, 35, 64, 40, T_PATH);
   // West path (north-south to art building)
-  fill(8, 16, 10, 18, T_PATH);
+  fill(15, 35, 18, 42, T_PATH);
   // East path
-  fill(41, 16, 43, 18, T_PATH);
+  fill(88, 35, 92, 42, T_PATH);
   // South connecting path
-  fill(22, 30, 38, 32, T_PATH);
-  // Wide plaza area
-  fill(18, 15, 42, 17, T_PATH);
+  fill(40, 55, 80, 57, T_PATH);
+  // Extended north path
+  fill(55, 8, 65, 35, T_PATH);
+  // West extension
+  fill(0, 30, 15, 40, T_PATH);
+  // East extension
+  fill(92, 30, W - 1, 40, T_PATH);
 
   // ─── Main School Building (exterior wall) ───────────────────────────────
-  fill(22, 18, 38, 18, T_WALL); // south face (entry)
-  fill(22, 19, 22, 28, T_WALL); // west wall
-  fill(38, 19, 38, 28, T_WALL); // east wall
-  fill(22, 28, 38, 28, T_WALL); // north face
+  fill(44, 40, 76, 40, T_WALL); // south face (entry)
+  fill(44, 41, 44, 58, T_WALL); // west wall
+  fill(76, 41, 76, 58, T_WALL); // east wall
+  fill(44, 58, 76, 58, T_WALL); // north face
   // Windows on school walls
-  for (let x = 23; x <= 37; x += 3) {
-    if (x !== 28 && x !== 31 && x !== 35) {
-      m[18][x] = T_WINDOW;
-      m[28][x] = T_WINDOW;
+  for (let x = 45; x <= 75; x += 4) {
+    if (x !== 56 && x !== 60 && x !== 66 && x !== 71) {
+      m[40][x] = T_WINDOW;
+      m[58][x] = T_WINDOW;
     }
   }
   // School doors
-  m[18][28] = T_DOOR;
-  m[18][31] = T_DOOR;
-  m[18][35] = T_DOOR;
+  m[40][56] = T_DOOR;
+  m[40][60] = T_DOOR;
+  m[40][66] = T_DOOR;
+  m[40][71] = T_DOOR;
 
   // ─── Art Building ──────────────────────────────────────────────────────
-  fill(2, 18, 18, 18, T_WALL);
-  fill(2, 19, 2, 28, T_WALL);
-  fill(18, 19, 18, 28, T_WALL);
-  fill(2, 28, 18, 28, T_WALL);
+  fill(2, 40, 35, 40, T_WALL);
+  fill(2, 41, 2, 58, T_WALL);
+  fill(35, 41, 35, 58, T_WALL);
+  fill(2, 58, 35, 58, T_WALL);
   // Murals on art building exterior
-  for (let x = 3; x <= 17; x += 4) m[19][x] = T_MURAL;
-  for (let x = 4; x <= 16; x += 4) m[27][x] = T_MURAL;
+  for (let x = 4; x <= 33; x += 5) m[41][x] = T_MURAL;
+  for (let x = 5; x <= 32; x += 5) m[57][x] = T_MURAL;
   // Art door
-  m[18][8] = T_DOOR;
+  m[40][15] = T_DOOR;
 
   // ─── Gym Building ───────────────────────────────────────────────────────
-  fill(22, 2, 38, 2, T_WALL);   // south face (entry)
-  fill(22, 3, 22, 14, T_WALL);  // west wall
-  fill(38, 3, 38, 14, T_WALL);  // east wall
-  fill(22, 14, 38, 14, T_WALL); // north face
+  fill(44, 5, 76, 5, T_WALL);   // south face (entry)
+  fill(44, 6, 44, 28, T_WALL);  // west wall
+  fill(76, 6, 76, 28, T_WALL);  // east wall
+  fill(44, 28, 76, 28, T_WALL); // north face
   // Gym windows
-  for (let x = 23; x <= 37; x += 4) m[14][x] = T_WINDOW;
+  for (let x = 45; x <= 75; x += 5) m[28][x] = T_WINDOW;
   // Gym doors
-  m[14][28] = T_DOOR;
-  m[14][33] = T_DOOR;
+  m[28][56] = T_DOOR;
+  m[28][66] = T_DOOR;
+
+  // ─── Library Building (new - west side) ─────────────────────────────────
+  fill(2, 10, 35, 10, T_WALL);
+  fill(2, 11, 2, 25, T_WALL);
+  fill(35, 11, 35, 25, T_WALL);
+  fill(2, 25, 35, 25, T_WALL);
+  for (let x = 4; x <= 33; x += 6) m[11][x] = T_WINDOW;
+  m[25][15] = T_DOOR;
+  // Library books exterior
+  for (let x = 5; x <= 30; x += 4) m[24][x] = T_BOOKSHELF;
+
+  // ─── Science Building (new - east side) ─────────────────────────────────
+  fill(85, 10, 118, 10, T_WALL);
+  fill(85, 11, 85, 25, T_WALL);
+  fill(118, 11, 118, 25, T_WALL);
+  fill(85, 25, 118, 25, T_WALL);
+  for (let x = 86; x <= 116; x += 6) m[11][x] = T_WINDOW;
+  m[25][95] = T_DOOR;
+  // Science lab benches exterior
+  for (let x = 88; x <= 114; x += 5) m[24][x] = T_LABBENCH;
 
   // ─── Outdoor benches ───────────────────────────────────────────────────
-  m[30][15] = T_BENCH;
-  m[32][15] = T_BENCH;
-  m[14][22] = T_BENCH;
-  m[14][24] = T_BENCH;
+  m[30][34] = T_BENCH;
+  m[32][34] = T_BENCH;
+  m[68][34] = T_BENCH;
+  m[70][34] = T_BENCH;
+  m[15][30] = T_BENCH;
+  m[95][30] = T_BENCH;
+  m[30][57] = T_BENCH;
+  m[70][57] = T_BENCH;
 
   // ─── Decorative signs ──────────────────────────────────────────────────
-  m[16][15] = T_SIGN;
-  m[32][22] = T_SIGN;
+  m[20][34] = T_SIGN;
+  m[80][34] = T_SIGN;
+  m[50][5] = T_SIGN;
+  m[50][60] = T_SIGN;
 
-  // ─── Trees ─────────────────────────────────────────────────────────────
+  // ─── Pond / Water Feature ──────────────────────────────────────────────
+  // Small pond in the south area
+  fill(10, 65, 18, 70, T_WATER);
+  fill(11, 64, 17, 65, T_WATER);
+  fill(12, 66, 14, 69, T_WATER);
+  // Path to pond
+  fill(14, 57, 16, 64, T_PATH);
+
+  // ─── Trees (extended) ─────────────────────────────────────────────────
   const trees: [number, number][] = [
-    [0,0],[1,0],[W-1,0],[W-2,0],
-    [0,1],[W-1,1],
-    [0,15],[1,15],[W-1,15],[W-2,15],
-    [0,17],[1,17],[W-1,17],[W-2,17],
-    [0,29],[1,29],[W-1,29],[W-2,29],
-    [0,30],[1,30],[W-1,30],[W-2,30],
-    [0,49],[1,49],[W-1,49],[W-2,49],
-    [15,0],[15,1],[15,2],[15,3],
-    [45,0],[45,1],[45,2],[45,3],
-    [50,10],[51,11],[52,12],
-    [50,15],[52,15],
-    [15,40],[16,41],[17,42],
-    [45,40],[46,41],[47,42],
-    [10,35],[11,36],[12,37],
-    [48,35],[49,36],[50,37],
-    [5,43],[6,44],[7,45],
-    [52,43],[53,44],[54,45],
+    // Border trees - north
+    [0,0],[1,0],[2,0],[3,0],[W-4,0],[W-3,0],[W-2,0],[W-1,0],
+    [0,1],[W-1,1],[0,2],[W-1,2],
+    // Border trees - south
+    [0,H-1],[1,H-1],[2,H-1],[3,H-1],[W-4,H-1],[W-3,H-1],[W-2,H-1],[W-1,H-1],
+    [0,H-2],[W-1,H-2],[0,H-3],[W-1,H-3],
+    // Border trees - west
+    [0,10],[0,11],[0,12],[0,H-4],[0,H-5],
+    // Border trees - east
+    [W-1,10],[W-1,11],[W-1,12],[W-1,H-4],[W-1,H-5],
+    // Scattered trees
+    [25,8],[26,9],[27,8],
+    [90,8],[91,9],[92,8],
+    [5,20],[7,22],[9,21],
+    [110,20],[112,22],[114,21],
+    [5,50],[7,52],[9,51],
+    [110,50],[112,52],[114,51],
+    [25,62],[27,64],[29,63],
+    [90,62],[92,64],[94,63],
+    [45,70],[50,72],[55,70],[60,73],[65,71],[70,70],
+    [15,70],[20,75],[25,78],
+    [95,70],[100,75],[105,78],
+    // Trees near buildings
+    [40,39],[41,39],
+    [79,39],[80,39],
+    [1,39],[36,39],
+    [84,39],[119,39],
+    // Trees near paths
+    [38,35],[38,33],
+    [82,35],[82,33],
   ];
   trees.forEach(([y, x]) => { if (y >= 0 && y < H && x >= 0 && x < W) m[y][x] = T_TREE; });
 
-  // ─── Flowers ───────────────────────────────────────────────────────────
+  // ─── Flowers (extended) ────────────────────────────────────────────────
   const flowers: [number, number][] = [
-    [14,5],[14,15],[14,25],[14,35],[14,45],[14,55],
-    [17,5],[17,25],[17,45],[17,55],
-    [20,3],[20,47],
-    [25,1],[33,1],[40,1],
-    [29,16],[30,16],[31,16],[32,16],
-    [35,16],[36,16],[37,16],[38,16],
-    [43,5],[43,15],[43,25],[43,35],
-    [47,8],[47,12],[47,16],
-    [3,30],[5,32],[10,33],[15,34],
-    [45,34],[50,33],[55,32],[57,30],
-    [20,48],[40,48],
+    // Near buildings
+    [42,10],[42,20],[42,30],
+    [78,10],[78,20],[78,30],
+    [10,35],[20,35],[30,35],
+    [90,35],[100,35],[110,35],
+    // Plaza flowers
+    [45,32],[50,32],[55,32],[60,32],[65,32],[70,32],[75,32],
+    [45,38],[50,38],[55,38],[60,38],[65,38],[70,38],[75,38],
+    // Path side flowers
+    [5,33],[5,37],[8,33],[8,37],
+    [95,33],[95,37],[98,33],[98,37],
+    [55,6],[60,6],[65,6],
+    [55,42],[65,42],
+    // South area flowers
+    [25,55],[30,55],[35,55],
+    [85,55],[90,55],[95,55],
+    [5,60],[10,62],[15,64],
+    [105,60],[110,62],[115,64],
+    // Around pond
+    [8,63],[12,63],[20,68],[22,66],
+    // Extended area
+    [3,15],[5,18],[8,22],[3,28],
+    [117,15],[115,18],[112,22],[117,28],
+    [50,75],[55,77],[60,75],[65,77],[70,75],
+    [3,70],[5,73],[8,76],
+    [117,70],[115,73],[112,76],
   ];
   flowers.forEach(([y, x]) => { if (y >= 0 && y < H && x >= 0 && x < W) m[y][x] = T_FLOWER; });
 
-  // ─── Fence borders ─────────────────────────────────────────────────────
+  // ─── Fence borders (only where grass) ──────────────────────────────────
   // North border
-  for (let x = 0; x < W; x++) { if (m[0][x] === T_GRASS) m[0][x] = T_FENCE; }
+  for (let x = 4; x < W - 4; x++) { if (m[3][x] === T_GRASS) m[3][x] = T_FENCE; }
   // South border
-  for (let x = 0; x < W; x++) { if (m[H-1][x] === T_GRASS) m[H-1][x] = T_FENCE; }
+  for (let x = 4; x < W - 4; x++) { if (m[H-3][x] === T_GRASS) m[H-3][x] = T_FENCE; }
   // West border
-  for (let y = 0; y < H; y++) { if (m[y][0] === T_GRASS) m[y][0] = T_FENCE; }
+  for (let y = 4; y < H - 4; y++) { if (m[y][3] === T_GRASS) m[y][3] = T_FENCE; }
   // East border
-  for (let y = 0; y < H; y++) { if (m[y][W-1] === T_GRASS) m[y][W-1] = T_FENCE; }
+  for (let y = 4; y < H - 4; y++) { if (m[y][W-4] === T_GRASS) m[y][W-4] = T_FENCE; }
+
+  // ─── Courtyard garden between buildings ─────────────────────────────────
+  fill(42, 42, 78, 50, T_GRASS);
+  // Garden path
+  fill(58, 42, 62, 50, T_PATH);
+  // Garden flowers
+  for (let x = 44; x <= 56; x += 3) for (let y = 43; y <= 49; y += 3) {
+    if (m[y][x] === T_GRASS) m[y][x] = T_FLOWER;
+  }
+  for (let x = 64; x <= 76; x += 3) for (let y = 43; y <= 49; y += 3) {
+    if (m[y][x] === T_GRASS) m[y][x] = T_FLOWER;
+  }
+  // Garden benches
+  m[46][46] = T_BENCH;
+  m[74][46] = T_BENCH;
+  m[46][48] = T_BENCH;
+  m[74][48] = T_BENCH;
 
   return m;
 }
