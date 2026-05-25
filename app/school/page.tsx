@@ -159,6 +159,29 @@ export default function CampusGame() {
     cv.tabIndex = 0; cv.style.outline = 'none'; cv.focus();
     cv.addEventListener('touchstart', () => cv.focus(), { passive: true });
 
+    // ─── Web Audio (synthesized sounds, no files) ─────────────────────────
+    let audioCtx: AudioContext | null = null;
+    function getAudio(): AudioContext {
+      if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      return audioCtx;
+    }
+    function playTone(freq: number, duration: number, type: OscillatorType = 'square', vol = 0.08) {
+      try {
+        const ac = getAudio();
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+        osc.start(); osc.stop(ac.currentTime + duration);
+      } catch (_) {}
+    }
+    function footstep() { playTone(120 + Math.random() * 40, 0.06, 'square', 0.04); }
+    function doorCreak() { playTone(200, 0.15, 'sine', 0.06); playTone(280, 0.2, 'sine', 0.04); }
+    function chime() { playTone(880, 0.1, 'sine', 0.08); setTimeout(() => playTone(1100, 0.15, 'sine', 0.08), 100); }
+    function npcGreet() { playTone(440, 0.1, 'triangle', 0.06); setTimeout(() => playTone(550, 0.1, 'triangle', 0.06), 120); }
+
     function canWalk(tx: number, ty: number): boolean {
       const world = worldRef.current!;
       if (tx < 0 || tx >= WORLD_W || ty < 0 || ty >= WORLD_H) return false;
@@ -330,7 +353,7 @@ export default function CampusGame() {
           interiorCamY += (targetCamY - interiorCamY) * 0.15;
         }
         if (keys.has('escape')) { keys.delete('escape'); if (nearInteriorExit()) { mode = 'exterior'; currentBid = null; px = ptx * TILE_SIZE + TILE_SIZE / 2; py = pty * TILE_SIZE + TILE_SIZE / 2; } }
-        const actId = nearActivityTile(); if (actId) setActivityId(actId);
+        const actId = nearActivityTile(); if (actId) { chime(); setActivityId(actId); }
       } else if (trans.phase !== 'none') { const done = updateTransition(ts, trans); if (done) { trans.phase = 'none'; } }
     }
     function render(ts: number) {
@@ -343,6 +366,16 @@ export default function CampusGame() {
         const sx1 = Math.min(WORLD_W, Math.ceil((camX + W) / TILE_SIZE) + 1);
         const sy1 = Math.min(WORLD_H, Math.ceil((camY + H) / TILE_SIZE) + 1);
         for (let ty = sy0; ty < sy1; ty++) { for (let tx = sx0; tx < sx1; tx++) { if (ty < 0 || ty >= WORLD_H || tx < 0 || tx >= WORLD_W) continue; drawTile(ctx, world[ty][tx], tx * TILE_SIZE - camX, ty * TILE_SIZE - camY, ts); } }
+        // NPCs face toward player when nearby
+        for (const npc of npcStatesRef.current) {
+          const dx = ptx - npc.tx, dy = pty - npc.ty;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= 3) {
+            // Face the player
+            if (Math.abs(dx) >= Math.abs(dy)) npc.dir = dx > 0 ? 'E' : 'W';
+            else npc.dir = dy > 0 ? 'S' : 'N';
+          }
+        }
         const sortedNPCs = [...npcStatesRef.current].sort((a, b) => a.y - b.y);
         for (const npc of sortedNPCs) {
           const vx = npc.x - camX, vy = npc.y - camY;
