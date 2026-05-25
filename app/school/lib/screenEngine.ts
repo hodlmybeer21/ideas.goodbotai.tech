@@ -37,6 +37,7 @@ export interface TransitionState {
   progress: number; // 0→1
   targetScreen: ScreenCoord;
   callback: (() => void) | null;
+  _startTime?: number;
 }
 
 // Fade constants (milliseconds)

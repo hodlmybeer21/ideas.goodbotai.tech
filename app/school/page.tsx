@@ -372,8 +372,7 @@ export default function CampusGame() {
         const mmX = W - mw - 8, mmY = 8;
         ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.beginPath(); ctx.roundRect(mmX - 2, mmY - 2, mw + 4, mh + 4, 6); ctx.fill();
         const mxs = mw / interior.tiles[0].length, mys = mh / interior.tiles.length;
-        for (let ty = 0; ty < interior.tiles.length; ty++) { for (let tx = 0; tx < interior.tiles[0].length; tx++) { const t = interior.tiles[ty][tx]; ctx.fillStyle = t === 2
-
+        for (let ty = 0; ty < interior.tiles.length; ty++) { for (let tx = 0; tx < interior.tiles[0].length; tx++) { const t = interior.tiles[ty][tx]; ctx.fillStyle = t === 2 ? '#5C4033' : t === 3 ? '#D0C8B0' : '#1a1a2e'; ctx.fillRect(mmX + tx * mxs, mmY + ty * mys, mxs + 0.5, mys + 0.5); } }
         for (let ty = 0; ty < interior.tiles.length; ty++) { for (let tx = 0; tx < interior.tiles[0].length; tx++) { const t = interior.tiles[ty][tx]; ctx.fillStyle = t === 2 ? '#5C4033' : t === 3 ? '#D0C8B0' : '#1a1a2e'; ctx.fillRect(mmX + tx * mxs, mmY + ty * mys, mxs + 0.5, mys + 0.5); } }
         ctx.fillStyle = pCol; ctx.beginPath(); ctx.arc(mmX + iptx * mxs + mxs / 2, mmY + ipty * mys + mys / 2, 3, 0, Math.PI * 2); ctx.fill();
         if (trans.phase === 'fadingOut' || trans.phase === 'fadingIn') { ctx.fillStyle = 'rgba(0,0,0,' + trans.progress + ')'; ctx.fillRect(0, 0, W, H); }
@@ -383,7 +382,7 @@ export default function CampusGame() {
     let animId = 0;
     function loop(ts: number) { update(ts); render(ts); animId = requestAnimationFrame(loop); }
 
-    function onClick(e: MouseEvent) { const rect = cv.getBoundingClientRect(); const mx = (e.clientX - rect.left) * (W / rect.width); const my = (e.clientY - rect.top) * (H / rect.height); if (showDialogue) { showDialogue = false; return; } clickMove(mx, my); }
+    function onClick(e: MouseEvent) { if (!cv) return; const rect = cv.getBoundingClientRect(); const mx = (e.clientX - rect.left) * (W / rect.width); const my = (e.clientY - rect.top) * (H / rect.height); if (showDialogue) { showDialogue = false; return; } clickMove(mx, my); }
     function clickMove(mx: number, my: number) {
       if (mode === 'exterior') {
         const tx = Math.floor((mx + camX) / TILE_SIZE), ty = Math.floor((my + camY) / TILE_SIZE);
