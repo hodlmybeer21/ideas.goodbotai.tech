@@ -19,8 +19,15 @@ import SentenceBuilder from './components/SentenceBuilder';
 import StateFinder from './components/StateFinder';
 import PixelCanvas from './components/PixelCanvas';
 import ColorLab from './components/ColorLab';
+import TensOnesExplorer from './components/TensOnesExplorer';
+import BossyRRacer from './components/BossyRRacer';
+import CoinChallenge from './components/CoinChallenge';
+import StoryQA from './components/StoryQA';
+import SentenceFixer from './components/SentenceFixer';
+import PlantLifeCycle from './components/PlantLifeCycle';
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'dashboard';
+
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -96,6 +103,13 @@ export default function Home() {
         {view === 'statefinder' && <StateFinder onBack={() => setView('home')} kidName={kidName} />}
         {view === 'pixelstudio' && <PixelCanvas onBack={() => setView('home')} kidName={kidName} />}
         {view === 'colorlab' && <ColorLab onBack={() => setView('home')} />}
+        {view === 'tensones' && <TensOnesExplorer onBack={() => setView('home')} />}
+        {view === 'bossyr' && <BossyRRacer onBack={() => setView('home')} />}
+        {view === 'coin' && <CoinChallenge onBack={() => setView('home')} />}
+        {view === 'storyqa' && <StoryQA onBack={() => setView('home')} />}
+        {view === 'sentfix' && <SentenceFixer onBack={() => setView('home')} />}
+        {view === 'plantcycle' && <PlantLifeCycle onBack={() => setView('home')} />}
+
       </main>
     </>
   );
@@ -158,6 +172,13 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'statefinder' as View, icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green' },
     { id: 'pixelstudio' as View, icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink' },
     { id: 'colorlab' as View, icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue' },
+    { id: 'tensones' as View, icon: '🔢', name: 'Tens & Ones', desc: 'Explore place value with base-10 blocks!', color: 'pink' },
+    { id: 'bossyr' as View, icon: '🏎️', name: 'Bossy R Racer', desc: 'Master bossy R words with a race!', color: 'orange' },
+    { id: 'coin' as View, icon: '💰', name: 'Coin Challenge', desc: 'Count coins and make change!', color: 'yellow' },
+    { id: 'storyqa' as View, icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple' },
+    { id: 'sentfix' as View, icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green' },
+    { id: 'plantcycle' as View, icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green' },
+
   ];
 
   return (

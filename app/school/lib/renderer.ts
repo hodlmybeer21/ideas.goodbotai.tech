@@ -1,7 +1,8 @@
 import {
   T_GRASS, T_PATH, T_WALL, T_FLOOR, T_DOOR, T_WATER, T_TREE,
   T_FLOWER, T_FENCE, T_BENCH, T_BOOKSHELF, T_LABBENCH, T_COUNTER,
-  T_STAIR, T_WINDOW, T_MURAL, T_SIGN, TILE_SIZE,
+  T_STAIR, T_WINDOW, T_MURAL, T_SIGN, T_LAKE, T_BRIDGE, T_HEDGE,
+  T_STATUE, T_FOUNTAIN, T_POND, T_ROCK, TILE_SIZE,
 } from './worldData';
 
 const S = TILE_SIZE;
@@ -236,14 +237,76 @@ export function drawCounter(c: CanvasRenderingContext2D, wx: number, wy: number)
   c.fillStyle = '#E8C898'; c.fillRect(wx, wy, S, 1);
 }
 
-// Activity trigger tile
-function drawActivityTile(c: CanvasRenderingContext2D, wx: number, wy: number) {
+// Activity trigger tiles (20-34) — all render as glowing floor star
+export function drawActivityTile(c: CanvasRenderingContext2D, wx: number, wy: number) {
   drawFloor(c, wx, wy);
-  // Glowing star
-  c.fillStyle = '#FFE066'; c.beginPath();
-  c.arc(wx + S / 2, wy + S / 2, 3.5, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#FFF8A0';
-  c.beginPath(); c.arc(wx + S / 2 - 1, wy + S / 2 - 1, 1.5, 0, Math.PI * 2); c.fill();
+  const shimmer = Math.floor(Date.now() / 600) % 2;
+  c.fillStyle = shimmer ? '#FFE066' : '#FFF08A';
+  c.beginPath();
+  // 4-point star
+  const cx = wx + S / 2, cy = wy + S / 2;
+  c.moveTo(cx, cy - 4);
+  c.lineTo(cx + 2, cy - 1);
+  c.lineTo(cx + 4, cy);
+  c.lineTo(cx + 2, cy + 1);
+  c.lineTo(cx, cy + 4);
+  c.lineTo(cx - 2, cy + 1);
+  c.lineTo(cx - 4, cy);
+  c.lineTo(cx - 2, cy - 1);
+  c.closePath();
+  c.fill();
+  c.fillStyle = '#FFFDE0';
+  c.beginPath(); c.arc(cx - 1, cy - 1, 1.5, 0, Math.PI * 2); c.fill();
+}
+
+export function drawLake(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  c.fillStyle = '#2878B8'; c.fillRect(wx, wy, S, S);
+  c.fillStyle = '#3898E8';
+  c.fillRect(wx + 1, wy + 1, S - 2, 2);
+}
+
+export function drawBridge(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  drawPath(c, wx, wy);
+  c.fillStyle = '#8B6914';
+  c.fillRect(wx + 1, wy + 3, S - 2, 1);
+  c.fillRect(wx + 1, wy + 6, S - 2, 1);
+}
+
+export function drawHedge(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  c.fillStyle = '#50A018'; c.fillRect(wx, wy, S, S);
+  c.fillStyle = '#38A010';
+  c.beginPath(); c.arc(wx + S/2, wy + S/2, S/2 - 1, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#68C038';
+  c.beginPath(); c.arc(wx + S/2 - 1, wy + S/2 - 1, S/2 - 3, 0, Math.PI * 2); c.fill();
+}
+
+export function drawStatue(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  drawFloor(c, wx, wy);
+  c.fillStyle = '#B0B0B0'; c.fillRect(wx + 3, wy + 2, 4, 6);
+  c.fillStyle = '#909090'; c.fillRect(wx + 2, wy + 1, 6, 1);
+  c.fillStyle = '#D0D0D0'; c.beginPath(); c.arc(wx + S/2, wy + 2, 2, 0, Math.PI * 2); c.fill();
+}
+
+export function drawFountain(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  drawFloor(c, wx, wy);
+  c.fillStyle = '#8090A0'; c.fillRect(wx + 1, wy + 1, S - 2, S - 2);
+  c.fillStyle = '#60A8D8'; c.fillRect(wx + 2, wy + 2, S - 4, S - 4);
+  c.fillStyle = '#80C0F0';
+  c.fillRect(wx + S/2 - 1, wy + 1, 2, 3);
+  c.fillStyle = '#A0D8FF';
+  c.beginPath(); c.arc(wx + S/2, wy + 4, 2, 0, Math.PI * 2); c.fill();
+}
+
+export function drawPond(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  c.fillStyle = '#60A8D8'; c.fillRect(wx, wy, S, S);
+  c.fillStyle = '#80C0E8'; c.fillRect(wx + 1, wy + 1, S - 2, S - 2);
+  c.fillStyle = '#A0D8F8'; c.fillRect(wx + 2, wy + 2, S - 4, 1);
+}
+
+export function drawRock(c: CanvasRenderingContext2D, wx: number, wy: number) {
+  drawGrass(c, wx, wy, 0);
+  c.fillStyle = '#888'; c.fillRect(wx + 2, wy + 3, 6, 5);
+  c.fillStyle = '#A0A0A0'; c.fillRect(wx + 3, wy + 2, 4, 2);
 }
 
 // ─── Main Tile Renderer ──────────────────────────────────────────────────────
@@ -262,11 +325,19 @@ export function drawTile(c: CanvasRenderingContext2D, tileType: number, wx: numb
     case T_BOOKSHELF: drawBookshelf(c, wx, wy); break;
     case T_LABBENCH:  drawLabbench(c, wx, wy); break;
     case T_COUNTER:   drawCounter(c, wx, wy); break;
-    case T_STAIR:
-    case 20:
-    case 21:          drawActivityTile(c, wx, wy); break;
+    case 20: case 21: case 22: case 23: case 24:
+    case 25: case 26: case 27: case 28: case 29:
+    case 30: case 31: case 32: case 33: case 34:
+      drawActivityTile(c, wx, wy); break;
     case T_MURAL:     drawMural(c, wx, wy); break;
     case T_SIGN:      drawSign(c, wx, wy); break;
+    case T_LAKE:      drawLake(c, wx, wy); break;
+    case T_BRIDGE:    drawBridge(c, wx, wy); break;
+    case T_HEDGE:     drawHedge(c, wx, wy); break;
+    case T_STATUE:    drawStatue(c, wx, wy); break;
+    case T_FOUNTAIN:  drawFountain(c, wx, wy); break;
+    case T_POND:      drawPond(c, wx, wy); break;
+    case T_ROCK:      drawRock(c, wx, wy); break;
     case T_WINDOW:
       c.fillStyle = '#A8D8F0'; c.fillRect(wx, wy, S, S);
       c.fillStyle = '#88B8D0';
