@@ -183,9 +183,11 @@ export default function CampusGame() {
     }
     function nearActivityTile(): string | null {
       if (!currentBid) return null;
-      const t = INTERIORS[currentBid]?.tiles[ipty]?.[iptx];
-      if (t === 20) return INTERIORS[currentBid]?.activityId || 'statefinder';
-      if (t === 21) return 'colorlab';
+      const interior = INTERIORS[currentBid];
+      if (!interior?.activityTiles) return null;
+      for (const at of interior.activityTiles) {
+        if (at.tx === iptx && at.ty === ipty) return at.activityId;
+      }
       return null;
     }
     function tryMove(dx: number, dy: number) {
