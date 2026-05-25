@@ -22,10 +22,6 @@ import TellTime from '../components/TellTime';
 import StoryMachine from '../components/StoryMachine';
 import MadLibs from '../components/MadLibs';
 import CharacterTraits from '../components/CharacterTraits';
-import EqualParts from '../components/EqualParts';
-import BossyRRacer from '../components/BossyRRacer';
-import CoinChallenge from '../components/CoinChallenge';
-import PlantLifeCycle from '../components/PlantLifeCycle';
 import SoundLab from '../components/SoundLab';
 
 const STEP = 2;
@@ -157,10 +153,6 @@ function ActivityView({ id, onBack }: { id: string; onBack: () => void }) {
     charactertraits: <CharacterTraits onBack={onBack} />,
     soundlab: <SoundLab onBack={onBack} kidName="Explorer" />,
     truefalse: <TrueFalse onBack={onBack} kidName="Explorer" />,
-    bossyr: <BossyRRacer onBack={onBack} />,
-    coinchallenge: <CoinChallenge onBack={onBack} />,
-    equalparts: <EqualParts />,
-    plantcycle: <PlantLifeCycle onBack={onBack} />,
   };
   return <>{acts[id] || <div className="flex items-center justify-center h-screen text-white text-xl">Coming soon! 🎮</div>}</>;
 }
@@ -269,13 +261,10 @@ export default function CampusGame() {
     }
     function nearActivityTile(): string | null {
       if (!currentBid) return null;
-      const interior = INTERIORS[currentBid];
-      if (!interior) return null;
-      const tile = interior.tiles[ipty]?.[iptx];
-      if (!tile || tile < 20) return null;
-      if (!interior.activities) return null;
-      const act = interior.activities.find(a => a.tx === iptx && a.ty === ipty);
-      return act?.activityId ?? null;
+      const t = INTERIORS[currentBid]?.tiles[ipty]?.[iptx];
+      if (t === 20) return INTERIORS[currentBid]?.activityId || 'pixelstudio';
+      if (t === 21) return 'colorlab';
+      return null;
     }
 
     // ─── Click-to-walk ────────────────────────────────────────────────────
