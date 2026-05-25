@@ -232,19 +232,46 @@ export default function CampusGame() {
           if (dist < MOVE_SPEED) {
             px = pTargetX; py = pTargetY; pMoving = false;
             px = ptx * TILE_SIZE + TILE_SIZE / 2; py = pty * TILE_SIZE + TILE_SIZE / 2;
-            const newScreen = playerScreen(px, py);
-            if (newScreen.col !== curScreen.col || newScreen.row !== curScreen.row) {
-              const dir = screenEdgeDirection(px, py);
-              if (dir) {
-                const result = snapPlayerToNewScreen(px, py, dir);
-                const targetScreen: ScreenCoord = { col: result.screenCol, row: result.screenRow };
-                trans = startTransition(targetScreen, () => {
-                  px = result.px; py = result.py;
-                  ptx = Math.floor(px / TILE_SIZE); pty = Math.floor(py / TILE_SIZE);
-                  curScreen = targetScreen;
-                  camX = curScreen.col * VP_W * TILE_SIZE; camY = curScreen.row * VP_H * TILE_SIZE;
-                });
-              }
+            // Check screen transition: detect at viewport edges
+            const relX = px - curScreen.col * VP_W * TILE_SIZE;
+            const relY = py - curScreen.row * VP_H * TILE_SIZE;
+            // Check each direction at screen edge
+            if (relX < TILE_SIZE && curScreen.col > 0 && (keys.has('a') || keys.has('arrowleft'))) {
+              const result = snapPlayerToNewScreen(px, py, 'left');
+              const targetScreen: ScreenCoord = { col: result.screenCol, row: result.screenRow };
+              trans = startTransition(targetScreen, () => {
+                px = result.px; py = result.py;
+                ptx = Math.floor(px / TILE_SIZE); pty = Math.floor(py / TILE_SIZE);
+                curScreen = targetScreen;
+                camX = curScreen.col * VP_W * TILE_SIZE; camY = curScreen.row * VP_H * TILE_SIZE;
+              });
+            } else if (relX > (VP_W - 1) * TILE_SIZE && curScreen.col < Math.ceil(WORLD_W / VP_W) - 1 && (keys.has('d') || keys.has('arrowright'))) {
+              const result = snapPlayerToNewScreen(px, py, 'right');
+              const targetScreen: ScreenCoord = { col: result.screenCol, row: result.screenRow };
+              trans = startTransition(targetScreen, () => {
+                px = result.px; py = result.py;
+                ptx = Math.floor(px / TILE_SIZE); pty = Math.floor(py / TILE_SIZE);
+                curScreen = targetScreen;
+                camX = curScreen.col * VP_W * TILE_SIZE; camY = curScreen.row * VP_H * TILE_SIZE;
+              });
+            } else if (relY < TILE_SIZE && curScreen.row > 0 && (keys.has('w') || keys.has('arrowup'))) {
+              const result = snapPlayerToNewScreen(px, py, 'up');
+              const targetScreen: ScreenCoord = { col: result.screenCol, row: result.screenRow };
+              trans = startTransition(targetScreen, () => {
+                px = result.px; py = result.py;
+                ptx = Math.floor(px / TILE_SIZE); pty = Math.floor(py / TILE_SIZE);
+                curScreen = targetScreen;
+                camX = curScreen.col * VP_W * TILE_SIZE; camY = curScreen.row * VP_H * TILE_SIZE;
+              });
+            } else if (relY > (VP_H - 1) * TILE_SIZE && curScreen.row < Math.ceil(WORLD_H / VP_H) - 1 && (keys.has('s') || keys.has('arrowdown'))) {
+              const result = snapPlayerToNewScreen(px, py, 'down');
+              const targetScreen: ScreenCoord = { col: result.screenCol, row: result.screenRow };
+              trans = startTransition(targetScreen, () => {
+                px = result.px; py = result.py;
+                ptx = Math.floor(px / TILE_SIZE); pty = Math.floor(py / TILE_SIZE);
+                curScreen = targetScreen;
+                camX = curScreen.col * VP_W * TILE_SIZE; camY = curScreen.row * VP_H * TILE_SIZE;
+              });
             }
           } else {
             px += (dx / dist) * MOVE_SPEED; py += (dy / dist) * MOVE_SPEED;
@@ -259,14 +286,18 @@ export default function CampusGame() {
         camY += (targetCamY - camY) * 0.15;
         camX = Math.max(screenOX, Math.min(screenOX + W, camX));
         camY = Math.max(screenOY, Math.min(screenOY + H, camY));
+        // E key as fallback — only if not already on door tile
         if (keys.has('e')) { keys.delete('e');
-          const bid = nearExteriorDoor();
-          if (bid) {
-            mode = 'interior'; currentBid = bid;
-            const interior = INTERIORS[bid];
-            iptx = interior.exitTile.tx; ipty = interior.exitTile.ty;
-            ipx = iptx * TILE_SIZE + TILE_SIZE / 2; ipy = ipty * TILE_SIZE + TILE_SIZE / 2;
-            ipMoving = false; ipdir = 'S'; interiorCamX = 0; interiorCamY = 0;
+          const world = worldRef.current!;
+          if (!(world[pty] && world[pty][ptx] === 4)) {
+            const bid = nearExteriorDoor();
+            if (bid) {
+              mode = 'interior'; currentBid = bid;
+              const interior = INTERIORS[bid];
+              iptx = interior.exitTile.tx; ipty = interior.exitTile.ty;
+              ipx = iptx * TILE_SIZE + TILE_SIZE / 2; ipy = ipty * TILE_SIZE + TILE_SIZE / 2;
+              ipMoving = false; ipdir = 'S'; interiorCamX = 0; interiorCamY = 0;
+            }
           }
         }
         if (keys.has('q') && talkableNPC) { keys.delete('q'); showDialogue = true; const def = NPC_DEFS.find(d => d.id === talkableNPC!.id)!; dialogueText = def.dialogue[Math.floor(Math.random() * def.dialogue.length)]; }
