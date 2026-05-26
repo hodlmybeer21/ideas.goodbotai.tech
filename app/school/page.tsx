@@ -6,6 +6,7 @@ import { INTERIORS } from './lib/interiors';
 import { NPC_DEFS, makeNPCState, type NPCState } from './lib/npcs';
 import { drawTile } from './lib/renderer';
 import { playerScreen, screenEdgeDirection, snapPlayerToNewScreen, type TransitionState, startTransition, updateTransition, type ScreenCoord } from './lib/screenEngine';
+import { buildSpriteSheets, loadSpriteSheet, drawSpriteFrame, type SpriteSheet } from './lib/sprites';
 import PixelCanvas from '../components/PixelCanvas';
 import StateFinder from '../components/StateFinder';
 import ColorLab from '../components/ColorLab';
@@ -22,6 +23,43 @@ import CharacterTraits from '../components/CharacterTraits';
 import SoundLab from '../components/SoundLab';
 
 const MOVE_SPEED = 2;
+
+// Draw player using sprite sheet (if loaded) or fillRect fallback
+function drawPlayer(c: CanvasRenderingContext2D, sx: number, sy: number, _col: string, _hair: string, _dir: string, frame: number, sheet: SpriteSheet | null) {
+  const S = TILE_SIZE;
+  const bx = Math.round(sx - S / 2), by = Math.round(sy - S / 2);
+  if (sheet) {
+    const walkFrame = Math.floor(frame / 8) % 4; // 8 game frames per sprite frame
+    drawSpriteFrame(c, sheet, walkFrame, bx, by, 1);
+  } else {
+    // Fallback: fillRect pixel art (original)
+    c.fillStyle = 'rgba(0,0,0,0.18)';
+    c.beginPath(); c.ellipse(sx, by + S - 1, 5, 2, 0, 0, Math.PI * 2); c.fill();
+    const walk = frame % 2;
+    const legOff = walk === 1 ? 1 : 0;
+    c.fillStyle = '#28366C';
+    c.fillRect(bx + 2, by + 8, 3, 4 + legOff);
+    c.fillRect(bx + S - 5, by + 8, 3, 4 + (1 - legOff));
+    c.fillStyle = '#3A2010';
+    c.fillRect(bx + 1, by + S - 2, 4, 2);
+    c.fillRect(bx + S - 5, by + S - 2, 4, 2);
+    c.fillStyle = _col;
+    c.fillRect(bx + 2, by + 5, S - 4, 5);
+    c.fillStyle = 'rgba(0,0,0,0.12)';
+    c.fillRect(bx + 2, by + 8, S - 4, 2);
+    const armOff = walk === 1 ? 1 : 0;
+    c.fillStyle = '#F0C8A0';
+    c.fillRect(bx, by + 5, 2, 4 - armOff);
+    c.fillRect(bx + S - 2, by + 5, 2, 4 + armOff);
+    c.fillRect(bx + S / 2 - 1, by + 4, 2, 2);
+    c.fillRect(bx + 2, by + 1, S - 4, 4);
+    c.fillRect(bx + 1, by + 2, S - 2, 3);
+    c.fillStyle = _hair;
+    c.fillRect(bx + 1, by, S - 2, 3); c.fillRect(bx + 2, by + 1, S - 4, 2);
+    c.fillStyle = '#1A2020';
+    c.fillRect(bx + 3, by + 3, 2, 2); c.fillRect(bx + S - 5, by + 3, 2, 2); c.fillStyle = '#FFFFFF'; c.fillRect(bx + 3, by + 3, 1, 1); c.fillRect(bx + S - 5, by + 3, 1, 1);
+  }
+}
 
 function drawSprite(c: CanvasRenderingContext2D, sx: number, sy: number, col: string, hair: string, dir: string, frame: number) {
   const S = TILE_SIZE;
@@ -124,11 +162,41 @@ export default function CampusGame() {
   useEffect(() => {
     const cv = canvasRef.current; if (!cv) return;
     const ctx = cv.getContext('2d'); if (!ctx) return;
-    const W = VP_W * TILE_SIZE;
-    const H = VP_H * TILE_SIZE;
+    const W = VP_W * TILE_SIZE; // 200px canvas buffer width
+    const H = VP_H * TILE_SIZE; // 140px canvas buffer height
+    const canvas = cv; // non-null alias for nested functions
     cv.width = W; cv.height = H;
+    // Scale canvas to fit within viewport — preserves aspect ratio, no overflow
+    // Canvas is centered within the flex container
+    function applyCanvasScaling() { if (!canvas) return; 
+      const ww = window.innerWidth, wh = window.innerHeight;
+      // Scale by height — portrait mobile, canvas fills vertical space
+      const scale = wh / H;
+      const cssW = Math.round(W * scale);
+      const cssH = Math.round(H * scale);
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      // Center horizontally
+      canvas.style.marginLeft = Math.round((ww - cssW) / 2) + 'px';
+      canvas.style.marginTop = '0px';
+    }
+    applyCanvasScaling();
+    window.addEventListener('resize', applyCanvasScaling);
     worldRef.current = buildWorld();
     npcStatesRef.current = NPC_DEFS.map(makeNPCState);
+
+    // Load programmatic sprite sheets
+    const spriteSheetURLs = buildSpriteSheets(); // { player, npcGirl, npcTeacher }
+    const playerSheetRef = { current: null as SpriteSheet | null };
+    const npcSheetsRef = { player: null as SpriteSheet | null, npcGirl: null as SpriteSheet | null, npcTeacher: null as SpriteSheet | null };
+    const spriteLoadPromises = Object.entries(spriteSheetURLs).map(async ([key, url]) => {
+      try {
+        const sheet = await loadSpriteSheet(url, 40, 40, 4); // 40x40 per frame, 4 frames
+        if (key === 'player') playerSheetRef.current = sheet;
+        (npcSheetsRef as any)[key].current = sheet;
+      } catch(e) { console.warn('Sprite load failed:', key, e); }
+    });
+    Promise.all(spriteLoadPromises).then(() => { console.log('Sprites loaded!'); });
 
     let px = 30 * TILE_SIZE + TILE_SIZE / 2;
     let py = 17 * TILE_SIZE + TILE_SIZE / 2;
@@ -383,7 +451,7 @@ export default function CampusGame() {
           const def = NPC_DEFS.find(d => d.id === npc.id)!;
           drawSprite(ctx, vx, vy, def.color, def.hairColor, npc.dir, npc.frame);
         }
-        drawSprite(ctx, px - camX, py - camY, pCol, hCol, pdir, Math.floor(pFrame));
+        drawPlayer(ctx, px - camX, py - camY, pCol, hCol, pdir, Math.floor(pFrame), playerSheetRef.current);
         ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(10, 10, 180, 26, 8); ctx.fill();
         ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Fredoka,sans-serif'; ctx.textAlign = 'left';
         ctx.fillText('Screen ' + (curScreen.col + 1) + ',' + (curScreen.row + 1), 18, 28);
@@ -424,7 +492,7 @@ export default function CampusGame() {
         const sx1 = Math.min(interior.tiles[0].length, Math.ceil((interiorCamX + W) / TILE_SIZE) + 1);
         const sy1 = Math.min(interior.tiles.length, Math.ceil((interiorCamY + H) / TILE_SIZE) + 1);
         for (let ty = sy0; ty < sy1; ty++) { for (let tx = sx0; tx < sx1; tx++) { const t = interior.tiles[ty]?.[tx] ?? 0; drawTile(ctx, t, tx * TILE_SIZE - interiorCamX, ty * TILE_SIZE - interiorCamY, ts); } }
-        drawSprite(ctx, ipx - interiorCamX, ipy - interiorCamY, pCol, hCol, ipdir, Math.floor(ipFrame));
+        drawPlayer(ctx, ipx - interiorCamX, ipy - interiorCamY, pCol, hCol, ipdir, Math.floor(ipFrame), playerSheetRef.current);
         const bld = BUILDINGS.find(b => b.id === currentBid);
         ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(10, 10, 200, 26, 8); ctx.fill();
         ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Fredoka,sans-serif'; ctx.textAlign = 'left';
@@ -448,7 +516,8 @@ export default function CampusGame() {
     let animId = 0;
     function loop(ts: number) { update(ts); render(ts); animId = requestAnimationFrame(loop); }
 
-    function onClick(e: MouseEvent) { if (!cv) return; const rect = cv.getBoundingClientRect(); const mx = (e.clientX - rect.left) * (W / rect.width); const my = (e.clientY - rect.top) * (H / rect.height); if (showDialogue) { showDialogue = false; return; } clickMove(mx, my); }
+    function onClick(e: MouseEvent) { if (!cv) return; const rect = cv.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight; const mx = (e.clientX - rect.left) * (W / rect.width); const my = (e.clientY - rect.top) * (H / rect.height); if (showDialogue) { showDialogue = false; return; } clickMove(mx, my); }
     function clickMove(mx: number, my: number) {
       if (mode === 'exterior') {
         const tx = Math.floor((mx + camX) / TILE_SIZE), ty = Math.floor((my + camY) / TILE_SIZE);
@@ -471,11 +540,14 @@ export default function CampusGame() {
     <>
       {showIntro && <IntroScreen onEnter={() => setShowIntro(false)} pCol={pCol} setPCol={setPCol} hCol={hCol} />}
       {activityId ? <ActivityView id={activityId} onBack={() => { setActivityId(null); }} /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: '8px' }}>
-          <div style={{ color: '#fff', fontSize: '22px', fontWeight: 700, fontFamily: 'Fredoka, system-ui, sans-serif', textShadow: '0 2px 8px rgba(0,0,0,0.4)', letterSpacing: '1px' }}>GoodBot Campus</div>
-          <div style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.2)' }}>
-            <canvas ref={canvasRef} width={VP_W * TILE_SIZE} height={VP_H * TILE_SIZE} tabIndex={0} style={{ display: 'block', maxWidth: '100vw', height: 'auto', outline: 'none', cursor: 'pointer', background: '#1a1a2e' }} />
-          </div>
+        <div style={{ position: 'fixed', inset: 0, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <canvas ref={canvasRef} tabIndex={0}
+            style={{
+              display: 'block',
+              outline: 'none',
+              cursor: 'pointer',
+              imageRendering: 'pixelated',
+            }} />
         </div>
       )}
     </>
