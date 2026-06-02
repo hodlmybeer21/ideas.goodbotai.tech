@@ -195,7 +195,7 @@
     this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
 
     makeCourtyardTexture(this);
-    BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); }, this);
+    console.log('DEBUG: making buildings, count=' + BUILDINGS.length); BUILDINGS.forEach(function(b){ if(!b.isCourtyard) { console.log('DEBUG: make building',b.key,'cx='+(b.x+b.w/2+20)+' cy='+(b.y+b.h/2+b.roofOffY+10)); makeBuildingTexture(this, b); } }, this);
     NPCS.forEach(function(n){ makeNPCTexture(this, n.color, n.id); }, this);
     makeDoorTexture(this); makeDpadTextures(this);
     makeBubbleTexture(this); makePanelTexture(this);
