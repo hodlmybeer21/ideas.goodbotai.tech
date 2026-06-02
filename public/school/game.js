@@ -1,3 +1,5 @@
+/* CAMPUS GAME v2 DEBUG */
+/* CAMPUS GAME vPhase2_DEBUG - XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
 // Phaser 3 game for GoodBot Kids School Explorer
 // Phase 2: Doors + NPCs + Building Panel + Mini-map
 (() => {
@@ -178,7 +180,9 @@
 
   SchoolScene.prototype.create = function(){
     var self = this;
-    var playerColor = sessionStorage.getItem('school_player_color') || '#FF6B9D';
+    console.error('CAMPUS: create() BEGIN');
+  try {
+  var playerColor = sessionStorage.getItem('school_player_color') || '#FF6B9D';
     var colorHex = parseInt(playerColor.replace('#','0x'));
     this.progress = getProgress();
     this.moveSpeed = 195; this.walkTimer = 0; this.walkFrame = 0; this.playerDir = 0;
