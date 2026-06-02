@@ -73,9 +73,9 @@
     var key=b.key,x=b.x,y=b.y,w=b.w,h=b.h,roofOffY=b.roofOffY,trimColor=b.trimColor;
     var totalH=h+roofOffY,g=scene.make.graphics({add:false});
     g.fillStyle(0,0.10); g.fillRoundedRect(x+8,y+roofOffY+8,w,h,8);
-    g.fillStyle(0xF5F0E8,1); g.fillRoundedRect(x,y+roofOffY,w,h,6);
-    g.fillStyle(trimColor,0.18); g.fillRect(x+4,y+roofOffY,w-8,h-4);
-    g.fillStyle(C.roof,1); g.beginPath(); var rT=16; g.moveTo(x+rT,y+roofOffY); g.lineTo(x+w-rT,y+roofOffY); g.lineTo(x+w,y+totalH); g.lineTo(x,y+totalH); g.closePath(); g.fillPath();
+    g.fillStyle(trimColor,0.45); g.fillRoundedRect(x,y+roofOffY,w,h,6);
+    g.fillStyle(trimColor,0.35); g.fillRect(x+4,y+roofOffY,w-8,h-4);
+    g.fillStyle(0x4E342E,1); g.beginPath(); var rT=16; g.moveTo(x+rT,y+roofOffY); g.lineTo(x+w-rT,y+roofOffY); g.lineTo(x+w,y+totalH); g.lineTo(x,y+totalH); g.closePath(); g.fillPath();
     g.lineStyle(3,0x3E2723,0.35); g.beginPath(); g.moveTo(x+rT,y+roofOffY); g.lineTo(x+w-rT,y+roofOffY); g.strokePath();
     if(b.key!=='playground'){g.fillStyle(0x795548,1); g.fillRect(x+w-56,y+roofOffY-18,18,22);}
     var winW=42,winH=34,winY=y+roofOffY+22;
@@ -180,9 +180,7 @@
 
   SchoolScene.prototype.create = function(){
     var self = this;
-    console.error('CAMPUS: create() BEGIN');
-  try {
-  var playerColor = sessionStorage.getItem('school_player_color') || '#FF6B9D';
+    var playerColor = sessionStorage.getItem('school_player_color') || '#FF6B9D';
     var colorHex = parseInt(playerColor.replace('#','0x'));
     this.progress = getProgress();
     this.moveSpeed = 195; this.walkTimer = 0; this.walkFrame = 0; this.playerDir = 0;
@@ -199,7 +197,7 @@
     this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
 
     makeCourtyardTexture(this);
-    console.log('DEBUG: making buildings, count=' + BUILDINGS.length); BUILDINGS.forEach(function(b){ if(!b.isCourtyard) { console.log('DEBUG: make building',b.key,'cx='+(b.x+b.w/2+20)+' cy='+(b.y+b.h/2+b.roofOffY+10)); makeBuildingTexture(this, b); } }, this);
+BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); }, this);
     NPCS.forEach(function(n){ makeNPCTexture(this, n.color, n.id); }, this);
     makeDoorTexture(this); makeDpadTextures(this);
     makeBubbleTexture(this); makePanelTexture(this);
