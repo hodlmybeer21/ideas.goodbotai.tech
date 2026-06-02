@@ -17,6 +17,8 @@ import IsTheRobotRight from './components/IsTheRobotRight';
 import TrueFalse from './components/TrueFalse';
 import SentenceBuilder from './components/SentenceBuilder';
 import StateFinder from './components/StateFinder';
+import PluralBuilder from './components/PluralBuilder';
+import BasewordSorter from './components/BasewordSorter';
 import PixelCanvas from './components/PixelCanvas';
 import ColorLab from './components/ColorLab';
 import TensOnesExplorer from './components/TensOnesExplorer';
@@ -27,7 +29,7 @@ import SentenceFixer from './components/SentenceFixer';
 import PlantLifeCycle from './components/PlantLifeCycle';
 
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -109,6 +111,8 @@ export default function Home() {
         {view === 'storyqa' && <StoryQA onBack={() => setView('home')} />}
         {view === 'sentfix' && <SentenceFixer onBack={() => setView('home')} />}
         {view === 'plantcycle' && <PlantLifeCycle onBack={() => setView('home')} />}
+        {view === 'pluralbuilder' && <PluralBuilder onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'basewordsorter' && <BasewordSorter onBack={() => setView('home')} kidName={kidName} />}
 
       </main>
     </>
@@ -178,6 +182,8 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'storyqa' as View, icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple' },
     { id: 'sentfix' as View, icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green' },
     { id: 'plantcycle' as View, icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green' },
+    { id: 'pluralbuilder' as View, icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo' },
+    { id: 'basewordsorter' as View, icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue' },
 
   ];
 
