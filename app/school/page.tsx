@@ -67,7 +67,7 @@ export default function SchoolPage() {
       script.onload = () => {
         // Load game after Phaser is ready
         const gameScript = document.createElement('script');
-        gameScript.src = '/school/game.js';
+        gameScript.src = '/school/campus.js';
         gameScript.onload = () => {
           // Phaser attaches to window.__schoolGame
         };
