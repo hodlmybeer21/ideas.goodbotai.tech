@@ -67,8 +67,18 @@ export default function SchoolPage() {
       script.onload = () => {
         // Load game after Phaser is ready
         const gameScript = document.createElement('script');
-        gameScript.src = '/school/campus-game.js';
-        gameScript.onload = () => {
+        console.error('GAME: Setting gameScript.src to /school/campus-game.js'); gameScript.src = '/school/campus-game.js';
+        gameScript.onload = () => { console.error('GAME SCRIPT: onload fired');
+          console.error('GAME SCRIPT LOADED');
+          var statusDiv = document.getElementById('game-status');
+          if(statusDiv) statusDiv.textContent = '🎮 Game script loaded, starting engine...';
+          setTimeout(function(){
+            var statusDiv2 = document.getElementById('game-status');
+            if(statusDiv2) statusDiv2.textContent = '🎮 Game loading...';
+            console.error('GAME: Calling initGame() now');
+            initGame();
+          }, 100);
+        
           // Phaser attaches to window.__schoolGame
         };
         document.head.appendChild(gameScript);
@@ -130,7 +140,28 @@ export default function SchoolPage() {
       </div>
 
       {/* Phaser canvas container */}
-      <div id="phaser-container" ref={phaserRef} style={styles.phaserContainer} />
+      <div id="phaser-container" ref={phaserRef} style={{...styles.phaserContainer, border:'3px solid red', minHeight:'600px', position:'relative' }}>
+
+        <div id="game-status" style={{position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',background:'#FFD93D',border:'2px solid #E65100',borderRadius:12,padding:'8px 20px',zIndex:20,fontFamily:'Fredoka,sans-serif',fontSize:'18px',color:'#2D1B00',fontWeight:'bold',boxShadow:'0 2px 8px rgba(0,0,0,0.2)'}}>🌎 Loading campus...</div>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            var status = document.getElementById('game-status');
+            var observer = new MutationObserver(function(){
+              var canvas = document.querySelector('#phaser-container canvas');
+              if(canvas && status) {
+                status.textContent = '🎮 Campus loaded!';
+                status.style.background = '#4CAF50';
+                status.style.color = 'white';
+                setTimeout(function(){ if(status) status.style.display='none'; }, 4000);
+                observer.disconnect();
+              }
+            });
+            var cont = document.getElementById('phaser-container');
+            if(cont) observer.observe(cont, {childList:true, subtree:true});
+            setTimeout(function(){ if(status && status.textContent === '🌎 Loading campus...') status.textContent = '⏳ Taking a while...'; }, 8000);
+          })();
+        `}} />
+      </div>
 
       {/* Activity Modal */}
       {activeActivity && (

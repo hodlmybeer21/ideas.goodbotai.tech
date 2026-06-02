@@ -58,8 +58,8 @@
   function saveProgress(p){localStorage.setItem('goodbot_progress',JSON.stringify(p))}
 
   function makeCourtyardTexture(scene){
-    var W=840,H=480,g=scene.make.graphics({add:false});
-    g.fillStyle(C.grass,1); g.fillRect(0,0,W,H);
+    var W=840,H=480,ox=-W/2,oy=-H/2,g=scene.make.graphics({add:false});
+    g.fillStyle(C.grass,1); g.fillRect(ox,oy,W,H);
     g.fillStyle(0x689F38,0.18); for(var i=0;i<55;i++) g.fillCircle(Math.random()*W,Math.random()*H,3+Math.random()*4);
     g.fillStyle(C.pathway,1); g.fillRect(0,H/2-20,W,40); g.fillRect(W/2-20,0,40,H);
     g.fillStyle(C.pathway,0.85); g.fillCircle(W/2,H/2,70);
@@ -72,7 +72,11 @@
 
   function makeBuildingTexture(scene,b){
     var key=b.key,x=b.x,y=b.y,w=b.w,h=b.h,roofOffY=b.roofOffY,trimColor=b.trimColor;
-    var totalH=h+roofOffY,g=scene.make.graphics({add:false});
+    var totalH=h+roofOffY;
+    // Offset drawing so building centers within the sprite (sprite pos = b.x+b.w/2+20, b.y+b.h/2+roofOffY+10)
+    var ox=-(w/2+20), oy=-(h/2+roofOffY+10);
+    x+=ox; y+=oy;
+    var g=scene.make.graphics({add:false});
     g.fillStyle(0,0.10); g.fillRoundedRect(x+8,y+roofOffY+8,w,h,8);
     g.fillStyle(trimColor,0.45); g.fillRoundedRect(x,y+roofOffY,w,h,6);
     g.fillStyle(trimColor,0.35); g.fillRect(x+4,y+roofOffY,w-8,h-4);
@@ -92,7 +96,7 @@
   }
 
   function makeStationTexture(scene,id,completed){
-    var S=88,g=scene.make.graphics({add:false});
+    var S=88,ox=-S/2,oy=-S/2,g=scene.make.graphics({add:false});
     var pC=completed?0x4CAF50:0xFFD54F,iC=completed?0x66BB6A:0xFFFFFF,rC=completed?0x2E7D32:0xE65100;
     g.fillStyle(pC,0.16); g.fillCircle(S/2,S/2,S/2);
     g.fillStyle(pC,0.12); g.fillCircle(S/2,S/2,S/2-8);
@@ -102,10 +106,10 @@
   }
 
   function makeDoorTexture(scene){
-    var W=60,H=70,g=scene.make.graphics({add:false});
-    g.fillStyle(0xFFD54F,0.30); g.fillRoundedRect(0,0,W,H,10);
-    g.fillStyle(0xFFD54F,0.18); g.fillRoundedRect(4,4,W-8,H-8,8);
-    g.lineStyle(3,0xE65100,0.7); g.strokeRoundedRect(2,2,W-4,H-4,9);
+    var W=80,H=80,ox=-W/2,oy=-H/2,g=scene.make.graphics({add:false});
+    g.fillStyle(0xFFD54F,0.30); g.fillRoundedRect(ox,oy,W,H,10);
+    g.fillStyle(0xFFD54F,0.18); g.fillRoundedRect(ox+4,oy+4,W-8,H-8,8);
+    g.lineStyle(3,0xE65100,0.7); g.strokeRoundedRect(ox+2,oy+2,W-4,H-4,9);
     g.generateTexture('door_trigger',W,H); g.destroy();
   }
 
@@ -126,7 +130,7 @@
       g.fillStyle(0,0.10); g.fillEllipse(S/2+2,S-4,S-14,S/5);
       g.fillStyle(colorHex,1); g.fillCircle(S/2,S/2+bob,S/2-4);
       g.fillStyle(0xFFFFFF,1); g.fillCircle(S/2+de[d].ex,S/2+de[d].ey+bob,8); g.fillCircle(S/2+de[d].ex+20,S/2+de[d].ey+bob,8);
-      g.fillStyle(0x1A1A237E,1); g.fillCircle(S/2+de[d].ex+2,S/2+de[d].ey+bob+1,4); g.fillCircle(S/2+de[d].ex+22,S/2+de[d].ey+bob+1,4);
+      g.fillStyle(0x1A237E,1); g.fillCircle(S/2+de[d].ex+2,S/2+de[d].ey+bob+1,4); g.fillCircle(S/2+de[d].ex+22,S/2+de[d].ey+bob+1,4);
       g.lineStyle(2.5,0x1A237E,1); g.beginPath(); g.arc(S/2,S/2+2+bob,10,0.3,Math.PI-0.3); g.strokePath();
       if(f===1){g.fillStyle(colorHex,0.55); g.fillCircle(S/2-10,S-10,6); g.fillCircle(S/2+10,S-10,6);}
       g.generateTexture(key,S,S); g.destroy(); keys.push(key);
@@ -181,6 +185,7 @@
 
   SchoolScene.prototype.create = function(){
     var self = this;
+    try {
     var playerColor = sessionStorage.getItem('school_player_color') || '#FF6B9D';
     var colorHex = parseInt(playerColor.replace('#','0x'));
     this.progress = getProgress();
@@ -201,11 +206,14 @@
 BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); }, this);
     NPCS.forEach(function(n){ makeNPCTexture(this, n.color, n.id); }, this);
     makeDoorTexture(this); makeDpadTextures(this);
+    console.error('CAMPUS: generate textures step 1');
     makeBubbleTexture(this); makePanelTexture(this);
+    console.error('CAMPUS: generate textures step 2');
     var walkKeys = makeWalkTextures(this, colorHex); walkKeys.push('player');
     this.walkAtlas = walkKeys;
     makePlayerTexture(this, colorHex);
 
+    console.error('CAMPUS: adding background rects');
     this.add.rectangle(MAP_W/2, MAP_H/2, MAP_W, MAP_H, C.sky).setDepth(-10);
     this.add.rectangle(MAP_W/2, MAP_H/2, MAP_W, MAP_H, 0x6AAF20).setDepth(-9);
 
@@ -218,12 +226,15 @@ BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); 
     P.fillRect(370,1340,100,60);
     P.fillRect(500,618,840,44); P.fillRect(896,400,48,480);
     P.setDepth(0);
+    console.error('CAMPUS: courtyard sprite added');
     this.add.sprite(920, 640, 'courtyard').setDepth(1);
 
+    console.error('CAMPUS: about to create wall group and buildings');
     this.wallGroup = this.physics.add.staticGroup();
     BUILDINGS.forEach(function(b){
       if(b.isCourtyard) return;
       var cx = b.x + b.w/2 + 20, cy = b.y + b.h/2 + b.roofOffY + 10;
+      console.error('CAMPUS: adding building sprite', b.key, 'at', cx, cy);
       this.add.sprite(cx, cy, 'bldg_'+b.key).setDepth(2);
       this.add.text(cx, b.y+b.roofOffY-18, b.label, {fontSize:'14px',fontFamily:'Fredoka,sans-serif',color:'#FFFFFF',fontStyle:'bold',stroke:'#2D1B00',strokeThickness:4}).setOrigin(0.5,1).setDepth(4);
       this
@@ -272,7 +283,9 @@ BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); 
       });
     });
 
+    console.error('CAMPUS: about to create player');
     this.player = this.physics.add.sprite(MAP_W/2, MAP_H/2, 'player');
+    console.error('CAMPUS: player created');
     this.player.setCollideWorldBounds(true); this.player.setDepth(10);
     this.physics.add.collider(this.player, this.wallGroup);
     this.physics.add.overlap(this.player, this.doorGroup, function(p,d){ if(self.cooldown<=0){self._checkDoor(d);} }, null, self);
@@ -285,6 +298,14 @@ BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); 
 
     this._createMiniMap();
     if(this.sys.game.device.input.touch) this._createDpad();
+    console.error('CAMPUS: create() COMPLETE');
+    } catch(e) {
+      console.error('CAMPUS EXCEPTION in create:', e.message, e.stack);
+      var errDiv = document.createElement('div');
+      errDiv.style = 'position:fixed;top:60px;left:0;background:#ff0000;color:white;z-index:99999;padding:20px;width:100vw;font-family:monospace;font-size:14px';
+      errDiv.innerHTML = '<b>CAMPUS ERROR:</b><br>' + e.message + '<br><br><pre>' + (e.stack||'').slice(0,800) + '</pre>';
+      document.body.appendChild(errDiv);
+    }
   };
 
   SchoolScene.prototype.update = function(time, delta){
@@ -501,12 +522,22 @@ BUILDINGS.forEach(function(b){ if(!b.isCourtyard) makeBuildingTexture(this, b); 
     if(!cont) return;
     var w = cont.clientWidth || 800, h = cont.clientHeight || 600;
     if(game){ game.destroy(true); game = null; }
-    game = new Phaser.Game({
-      type:Phaser.AUTO, width:w, height:h, parent:'phaser-container', backgroundColor:'#87CEEB',
-      physics:{ default:'arcade', arcade:{ gravity:{y:0}, debug:false } },
-      scale:{ mode:Phaser.Scale.RESIZE, autoCenter:Phaser.Scale.CENTER_BOTH },
-      scene:SchoolScene,
-    });
+    console.error('CAMPUS: Creating Phaser.Game, container size:', w, h);
+    try {
+      game = new Phaser.Game({
+        type:Phaser.AUTO, width:w, height:h, parent:'phaser-container', backgroundColor:'#87CEEB',
+        physics:{ default:'arcade', arcade:{ gravity:{y:0}, debug:false } },
+        scale:{ mode:Phaser.Scale.RESIZE, autoCenter:Phaser.Scale.CENTER_BOTH },
+        scene:SchoolScene,
+      });
+      console.error('CAMPUS: Phaser.Game created, scenes:', game.scene ? game.scene.count : 0);
+    } catch(e) {
+      console.error('CAMPUS: Phaser.Game creation failed:', e.message);
+      var errDiv = document.createElement('div');
+      errDiv.style = 'position:fixed;top:0;left:0;background:#ff0000;color:white;z-index:99999;padding:20px';
+      errDiv.textContent = 'Phaser.Game creation failed: ' + e.message;
+      document.body.appendChild(errDiv);
+    }
   }
 
   window.__schoolGame = null;
