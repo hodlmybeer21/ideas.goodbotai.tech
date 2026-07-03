@@ -590,3 +590,10 @@ h1, h2, h3 {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
+
+/* === Bunny Hop Counting (added 2026-07-03) === */
+@keyframes hoppy {
+  0%   { transform: translateX(-50%) translateY(0); }
+  40%  { transform: translateX(-50%) translateY(-12px); }
+  100% { transform: translateX(-50%) translateY(0); }
+}

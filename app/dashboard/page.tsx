@@ -37,6 +37,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'true-or-false':  { name: 'True or False?',         emoji: '✅❌', color: 'var(--accent-green)',  bestKey: 'truefalse_best_easy' },
   'sentence-builder': { name: 'Sentence Builder',    emoji: '📝',   color: 'var(--accent-yellow)', bestKey: 'sentencebuilder_best_easy' },
   'bug-catcher': { name: 'Bug Catcher',           emoji: '🐛',   color: 'var(--accent-blue)',    bestKey: 'bugcatcher_best_streak' },
+  'bunny-hop': { name: 'Bunny Hop Counting',  emoji: '🐰',   color: 'var(--accent-orange)', bestKey: 'bunnyhop_best_streak' },
 };
 
 export default function Dashboard() {

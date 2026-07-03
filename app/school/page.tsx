@@ -29,6 +29,7 @@ import BasewordSorter from '../components/BasewordSorter';
 import PluralBuilder from '../components/PluralBuilder';
 import CharacterTraits from '../components/CharacterTraits';
 import BugCatcher from '../components/BugCatcher';
+import BunnyHop from '../components/BunnyHop';
 import StoryQA from '../components/StoryQA';
 import TrueFalse from '../components/TrueFalse';
 import IsTheRobotRight from '../components/IsTheRobotRight';
@@ -244,6 +245,7 @@ function ActivityBridge({ component, onDone }) {
     case 'pluralbuilder': return <PluralBuilder     onBack={onDone} />;
     case 'characterraits':return <CharacterTraits    onBack={onDone} />;
     case 'bugcatcher':    return <BugCatcher          onBack={onDone} kidName={''} />;
+    case 'bunnyhop':      return <BunnyHop            onBack={onDone} kidName={''} />;
     case 'storyqa':       return <StoryQA           onBack={onDone} />;
     case 'equalparts':    return <EqualParts        onBack={onDone} />;
     case 'tensonesexplorer': return <TensOnesExplorer onBack={onDone} />;
