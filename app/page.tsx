@@ -30,9 +30,10 @@ import PlantLifeCycle from './components/PlantLifeCycle';
 import BugCatcher from './components/BugCatcher';
 import BunnyHop from './components/BunnyHop';
 import PhotoFrameMaker from './components/PhotoFrameMaker';
+import MirrorDraw from './components/MirrorDraw';
 
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'bunnyhop' | 'photoframe' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'bunnyhop' | 'photoframe' | 'mirrordraw' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -119,6 +120,7 @@ export default function Home() {
         {view === 'bugcatcher' && <BugCatcher onBack={() => setView('home')} kidName={kidName} />}
         {view === 'bunnyhop' && <BunnyHop onBack={() => setView('home')} kidName={kidName} />}
         {view === 'photoframe' && <PhotoFrameMaker onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'mirrordraw' && <MirrorDraw onBack={() => setView('home')} kidName={kidName} />}
 
       </main>
     </>
@@ -193,6 +195,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'bugcatcher' as View, icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue' },
     { id: 'bunnyhop' as View, icon: '🐰', name: 'Bunny Hop Counting', desc: 'Hop the bunny to the target number!', color: 'orange' },
     { id: 'photoframe' as View, icon: '🖼️', name: 'Photo Frame Maker', desc: 'Draw, name, and frame your art!', color: 'purple' },
+    { id: 'mirrordraw' as View, icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue' },
 
   ];
 
