@@ -584,3 +584,9 @@ h1, h2, h3 {
 .feedback-stars {
   font-size: 20px;
 }
+
+/* === Bug Catcher (added 2026-07-03) === */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}

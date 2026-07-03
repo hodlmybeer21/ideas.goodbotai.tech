@@ -27,9 +27,10 @@ import CoinChallenge from './components/CoinChallenge';
 import StoryQA from './components/StoryQA';
 import SentenceFixer from './components/SentenceFixer';
 import PlantLifeCycle from './components/PlantLifeCycle';
+import BugCatcher from './components/BugCatcher';
 
 
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'dashboard';
+type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -113,6 +114,7 @@ export default function Home() {
         {view === 'plantcycle' && <PlantLifeCycle onBack={() => setView('home')} />}
         {view === 'pluralbuilder' && <PluralBuilder onBack={() => setView('home')} kidName={kidName} />}
         {view === 'basewordsorter' && <BasewordSorter onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'bugcatcher' && <BugCatcher onBack={() => setView('home')} kidName={kidName} />}
 
       </main>
     </>
@@ -184,6 +186,7 @@ function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName:
     { id: 'plantcycle' as View, icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green' },
     { id: 'pluralbuilder' as View, icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo' },
     { id: 'basewordsorter' as View, icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue' },
+    { id: 'bugcatcher' as View, icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue' },
 
   ];
 
