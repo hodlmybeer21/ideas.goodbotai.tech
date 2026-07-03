@@ -40,6 +40,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'bunny-hop': { name: 'Bunny Hop Counting',  emoji: '🐰',   color: 'var(--accent-orange)', bestKey: 'bunnyhop_best_streak' },
   'photo-frame-maker': { name: 'Photo Frame Maker', emoji: '🖼️', color: 'var(--accent-purple)', bestKey: 'photoframemaker_best_count' },
   'mirror-draw': { name: 'Mirror Draw', emoji: '🪞', color: 'var(--accent-blue)', bestKey: 'mirrordraw_best_score' },
+  'number-bingo': { name: 'Number Bingo', emoji: '🎯', color: 'var(--accent-green)', bestKey: 'numberbingo_best' },
 };
 
 export default function Dashboard() {
