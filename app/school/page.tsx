@@ -34,6 +34,7 @@ import PhotoFrameMaker from '../components/PhotoFrameMaker';
 import MirrorDraw from '../components/MirrorDraw';
 import NumberBingo from '../components/NumberBingo';
 import BeatComposer from '../components/BeatComposer';
+import DotsAndBoxes from '../components/DotsAndBoxes';
 import StoryQA from '../components/StoryQA';
 import TrueFalse from '../components/TrueFalse';
 import IsTheRobotRight from '../components/IsTheRobotRight';
@@ -254,6 +255,7 @@ function ActivityBridge({ component, onDone }) {
     case 'mirrordraw':    return <MirrorDraw           onBack={onDone} kidName={''} />;
     case 'numberbingo':   return <NumberBingo          onBack={onDone} kidName={''} />;
     case 'beatcomposer':  return <BeatComposer         onBack={onDone} kidName={''} />;
+    case 'dotsandboxes':  return <DotsAndBoxes         onBack={onDone} kidName={''} />;
     case 'storyqa':       return <StoryQA           onBack={onDone} />;
     case 'equalparts':    return <EqualParts        onBack={onDone} />;
     case 'tensonesexplorer': return <TensOnesExplorer onBack={onDone} />;
