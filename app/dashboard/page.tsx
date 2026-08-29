@@ -57,6 +57,20 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'mood-wheel': { name: 'Mood Wheel', emoji: '😊', color: 'var(--accent-yellow)', bestKey: 'moodwheel_count' },
   'conversation-starters': { name: 'Conversation Starters', emoji: '🗣️', color: 'var(--accent-purple)', bestKey: 'convstarters_count' },
   'kind-word-bingo': { name: 'Kind Word Bingo', emoji: '💬', color: 'var(--accent-green)', bestKey: 'kindbingo_best_streak' },
+  // 2nd Grade back-to-school 2026 expansion — math + ELA additions
+  'shape-safari': { name: 'Shape Safari', emoji: '🦒', color: 'var(--accent-green)', bestKey: 'shapesafari_best_streak' },
+  'odd-even-oasis': { name: 'Odd-Even Oasis', emoji: '🐫', color: 'var(--accent-orange)', bestKey: 'oddeven_best_streak' },
+  'compare-castles': { name: 'Compare Castles', emoji: '🏰', color: 'var(--accent-purple)', bestKey: 'comparecastles_best_streak' },
+  'time-travel': { name: 'Time Travel', emoji: '⏳', color: 'var(--accent-blue)', bestKey: 'timetravel_best_streak' },
+  'triple-digit-treasure': { name: 'Triple-Digit Treasure', emoji: '💎', color: 'var(--accent-pink)', bestKey: 'tripledigit_best_streak' },
+  'array-architect': { name: 'Array Architect', emoji: '🏗️', color: 'var(--accent-orange)', bestKey: 'arrayarchitect_best_streak' },
+  'hundreds-hide-seek': { name: 'Hundreds Hide & Seek', emoji: '🔍', color: 'var(--accent-purple)', bestKey: 'hundreds_best_streak' },
+  'prefix-pals': { name: 'Prefix Pals', emoji: '🔑', color: 'var(--accent-blue)', bestKey: 'prefixpals_best_streak' },
+  'plural-puzzlers': { name: 'Plural Puzzlers', emoji: '🧩', color: 'var(--accent-green)', bestKey: 'pluralpuzzlers_best_streak' },
+  'context-clue-cove': { name: 'Context Clue Cove', emoji: '🔎', color: 'var(--accent-purple)', bestKey: 'contextcluecove_best_streak' },
+  'comma-crew': { name: 'Comma Crew', emoji: '✉️', color: 'var(--accent-pink)', bestKey: 'commacrew_best_streak' },
+  'conjunction-junction': { name: 'Conjunction Junction', emoji: '🚂', color: 'var(--accent-blue)', bestKey: 'conjunctionjunction_best_streak' },
+  'poetry-park': { name: 'Poetry Park', emoji: '🎭', color: 'var(--accent-purple)', bestKey: 'poetrypark_best_streak' },
 };
 
 export default function Dashboard() {

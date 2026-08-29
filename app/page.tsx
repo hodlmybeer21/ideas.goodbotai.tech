@@ -47,6 +47,19 @@ import FriendshipFixer from './components/FriendshipFixer';
 import MoodWheel from './components/MoodWheel';
 import ConversationStarters from './components/ConversationStarters';
 import KindWordBingo from './components/KindWordBingo';
+import ShapeSafari from './components/ShapeSafari';
+import OddEvenOasis from './components/OddEvenOasis';
+import CompareCastles from './components/CompareCastles';
+import TimeTravel from './components/TimeTravel';
+import TripleDigitTreasure from './components/TripleDigitTreasure';
+import ArrayArchitect from './components/ArrayArchitect';
+import HundredsHideSeek from './components/HundredsHideSeek';
+import PrefixPals from './components/PrefixPals';
+import PluralPuzzlers from './components/PluralPuzzlers';
+import ContextClueCove from './components/ContextClueCove';
+import CommaCrew from './components/CommaCrew';
+import ConjunctionJunction from './components/ConjunctionJunction';
+import PoetryPark from './components/PoetryPark';
 
 type Track = 'g1' | 'g2' | 'feelings';
 type View =
@@ -58,6 +71,9 @@ type View =
   | 'twodigit' | 'borrowbay' | 'timeto5'
   | 'equalgroups' | 'contraction' | 'compound' | 'skipcount' | 'suffixsort'
   | 'feelingsmatch' | 'friendfixer' | 'moodwheel' | 'convstarters' | 'kindwordbingo'
+  | 'shapesafari' | 'oddeven' | 'comparecastles' | 'timetravel' | 'tripledigit'
+  | 'arrayarchitect' | 'hundreds' | 'prefixpals' | 'pluralpuzzlers' | 'contextcluecove'
+  | 'commacrew' | 'conjunctionjunction' | 'poetrypark'
   | 'dashboard';
 
 export default function Home() {
@@ -182,6 +198,19 @@ export default function Home() {
         {view === 'moodwheel' && <MoodWheel onBack={() => setView('home')} kidName={kidName} />}
         {view === 'convstarters' && <ConversationStarters onBack={() => setView('home')} kidName={kidName} />}
         {view === 'kindwordbingo' && <KindWordBingo onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'shapesafari' && <ShapeSafari onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'oddeven' && <OddEvenOasis onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'comparecastles' && <CompareCastles onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'timetravel' && <TimeTravel onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'tripledigit' && <TripleDigitTreasure onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'arrayarchitect' && <ArrayArchitect onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'hundreds' && <HundredsHideSeek onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'prefixpals' && <PrefixPals onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'pluralpuzzlers' && <PluralPuzzlers onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'contextcluecove' && <ContextClueCove onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'commacrew' && <CommaCrew onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'conjunctionjunction' && <ConjunctionJunction onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'poetrypark' && <PoetryPark onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -281,6 +310,20 @@ const ACTIVITIES: Activity[] = [
   { id: 'moodwheel', icon: '😊', name: 'Mood Wheel', desc: 'Spin a wheel of feelings + coping cards!', color: 'yellow', track: 'feelings' },
   { id: 'convstarters', icon: '🗣️', name: 'Conversation Starters', desc: 'Try out different ways to start a chat!', color: 'purple', track: 'feelings' },
   { id: 'kindwordbingo', icon: '💬', name: 'Kind Word Bingo', desc: 'Find kind acts on a card — solo or 2-player!', color: 'green', track: 'feelings' },
+  // 2nd Grade — back-to-school 2026 expansion
+  { id: 'shapesafari', icon: '🦒', name: 'Shape Safari', desc: 'Spot shapes in the savanna!', color: 'green', track: 'g2' },
+  { id: 'oddeven', icon: '🐫', name: 'Odd-Even Oasis', desc: 'Sort camels into odd or even pairs!', color: 'orange', track: 'g2' },
+  { id: 'comparecastles', icon: '🏰', name: 'Compare Castles', desc: 'Which castle wins the bigger number?', color: 'purple', track: 'g2' },
+  { id: 'timetravel', icon: '⏳', name: 'Time Travel', desc: 'Pilot the clock through time jumps!', color: 'blue', track: 'g2' },
+  { id: 'tripledigit', icon: '💎', name: 'Triple-Digit Treasure', desc: 'Add up a pile of pirate gold!', color: 'pink', track: 'g2' },
+  { id: 'arrayarchitect', icon: '�️', name: 'Array Architect', desc: 'Build rectangles from rows of bricks!', color: 'orange', track: 'g2' },
+  { id: 'hundreds', icon: '🔍', name: 'Hundreds Hide & Seek', desc: 'Count to find hiding animals!', color: 'purple', track: 'g2' },
+  { id: 'prefixpals', icon: '🔑', name: 'Prefix Pals', desc: 'Crack the prefix code!', color: 'blue', track: 'g2' },
+  { id: 'pluralpuzzlers', icon: '🧩', name: 'Plural Puzzlers', desc: 'Pick the right plural — even the tricky ones!', color: 'green', track: 'g2' },
+  { id: 'contextcluecove', icon: '🔎', name: 'Context Clue Cove', desc: 'Read the sentence, find the meaning!', color: 'purple', track: 'g2' },
+  { id: 'commacrew', icon: '✉️', name: 'Comma Crew', desc: 'Mail letters with commas in the right spots!', color: 'pink', track: 'g2' },
+  { id: 'conjunctionjunction', icon: '🚂', name: 'Conjunction Junction', desc: 'Couple sentences with and, but, or, so, because!', color: 'blue', track: 'g2' },
+  { id: 'poetrypark', icon: '🎭', name: 'Poetry Park', desc: 'Rhymes, rhythm, and poem types!', color: 'purple', track: 'g2' },
 ];
 
 function TrackTabs({

@@ -269,6 +269,19 @@ function ActivityBridge({ component, onDone }) {
     case 'truefalse':     return <TrueFalse         onBack={onDone} />;
     case 'istherobotright': return <IsTheRobotRight onBack={onDone} />;
     case 'drawingcanvas': return <DrawingCanvas     onBack={onDone} />;
+    case 'shapesafari':   return <ShapeSafari      onBack={onDone} />;
+    case 'oddeven':       return <OddEvenOasis     onBack={onDone} />;
+    case 'comparecastles': return <CompareCastles   onBack={onDone} />;
+    case 'timetravel':    return <TimeTravel       onBack={onDone} />;
+    case 'tripledigit':   return <TripleDigitTreasure onBack={onDone} />;
+    case 'arrayarchitect': return <ArrayArchitect   onBack={onDone} />;
+    case 'hundreds':      return <HundredsHideSeek  onBack={onDone} />;
+    case 'prefixpals':    return <PrefixPals        onBack={onDone} />;
+    case 'pluralpuzzlers': return <PluralPuzzlers   onBack={onDone} />;
+    case 'contextcluecove': return <ContextClueCove onBack={onDone} />;
+    case 'commacrew':     return <CommaCrew         onBack={onDone} />;
+    case 'conjunctionjunction': return <ConjunctionJunction onBack={onDone} />;
+    case 'poetrypark':    return <PoetryPark        onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':
