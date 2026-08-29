@@ -42,8 +42,13 @@ import ContractionCoop from './components/ContractionCoop';
 import CompoundForge from './components/CompoundForge';
 import SkipCounter from './components/SkipCounter';
 import SuffixSorter from './components/SuffixSorter';
+import FeelingsMatch from './components/FeelingsMatch';
+import FriendshipFixer from './components/FriendshipFixer';
+import MoodWheel from './components/MoodWheel';
+import ConversationStarters from './components/ConversationStarters';
+import KindWordBingo from './components/KindWordBingo';
 
-type Grade = 1 | 2;
+type Track = 'g1' | 'g2' | 'feelings';
 type View =
   | 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time'
   | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder'
@@ -52,6 +57,7 @@ type View =
   | 'photoframe' | 'mirrordraw' | 'numberbingo' | 'beatcomposer' | 'dotsandboxes'
   | 'twodigit' | 'borrowbay' | 'timeto5'
   | 'equalgroups' | 'contraction' | 'compound' | 'skipcount' | 'suffixsort'
+  | 'feelingsmatch' | 'friendfixer' | 'moodwheel' | 'convstarters' | 'kindwordbingo'
   | 'dashboard';
 
 export default function Home() {
@@ -60,7 +66,7 @@ export default function Home() {
   const [isWelcomed, setIsWelcomed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   // Default to Grade 1 so existing users / younger siblings keep their games visible on first load.
-  const [activeGrade, setActiveGrade] = useState<Grade>(1);
+  const [activeTrack, setActiveTrack] = useState<Track>('g1');
 
   useEffect(() => {
     try {
@@ -69,8 +75,17 @@ export default function Home() {
         setKidName(saved);
         setIsWelcomed(true);
       }
-      const savedGrade = localStorage.getItem('goodbotkids_grade');
-      if (savedGrade === '2') setActiveGrade(2);
+      // Migrate from the old goodbotkids_grade key (kept until 2026-08-29 refactor).
+      const oldGrade = localStorage.getItem('goodbotkids_grade');
+      if (oldGrade) {
+        const migrated: Track = oldGrade === '2' ? 'g2' : 'g1';
+        localStorage.setItem('goodbotkids_track', migrated);
+        localStorage.removeItem('goodbotkids_grade');
+        setActiveTrack(migrated);
+      } else {
+        const newTrack = localStorage.getItem('goodbotkids_track');
+        if (newTrack === 'g2' || newTrack === 'feelings') setActiveTrack(newTrack);
+      }
     } catch {}
   }, []);
 
@@ -118,8 +133,8 @@ export default function Home() {
           <HomeScreen
             setView={setView}
             kidName={kidName}
-            activeGrade={activeGrade}
-            onGradeChange={setActiveGrade}
+            activeTrack={activeTrack}
+            onTrackChange={setActiveTrack}
           />
         )}
         {view === 'draw' && <DrawingCanvas onBack={() => setView('home')} kidName={kidName} />}
@@ -162,6 +177,11 @@ export default function Home() {
         {view === 'compound' && <CompoundForge onBack={() => setView('home')} kidName={kidName} />}
         {view === 'skipcount' && <SkipCounter onBack={() => setView('home')} kidName={kidName} />}
         {view === 'suffixsort' && <SuffixSorter onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'feelingsmatch' && <FeelingsMatch onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'friendfixer' && <FriendshipFixer onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'moodwheel' && <MoodWheel onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'convstarters' && <ConversationStarters onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'kindwordbingo' && <KindWordBingo onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -209,76 +229,85 @@ interface Activity {
   name: string;
   desc: string;
   color: 'pink' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'indigo';
-  grade: Grade;
+  track: Track;
 }
 
 const ACTIVITIES: Activity[] = [
-  { id: 'draw', icon: '🎨', name: 'Magic Canvas', desc: 'Draw anything you imagine!', color: 'pink', grade: 1 },
-  { id: 'story', icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple', grade: 1 },
-  { id: 'match', icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow', grade: 1 },
-  { id: 'sound', icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange', grade: 1 },
-  { id: 'math', icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink', grade: 1 },
-  { id: 'madlib', icon: '📝', name: 'Mad Libs', desc: 'Fill in the blanks for silly stories!', color: 'yellow', grade: 1 },
-  { id: 'readalong', icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple', grade: 1 },
-  { id: 'time', icon: '🕐', name: 'Tell Time', desc: 'Learn to read the clock!', color: 'blue', grade: 1 },
-  { id: 'robot', icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple', grade: 1 },
-  { id: 'truefalse', icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green', grade: 1 },
-  { id: 'sentence', icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow', grade: 1 },
-  { id: 'equal', icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple', grade: 1 },
-  { id: 'syllable', icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo', grade: 1 },
-  { id: 'codebots', icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue', grade: 1 },
-  { id: 'statefinder', icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green', grade: 1 },
-  { id: 'pixelstudio', icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink', grade: 1 },
-  { id: 'colorlab', icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue', grade: 1 },
-  { id: 'tensones', icon: '🔢', name: 'Tens & Ones', desc: 'Explore place value with base-10 blocks!', color: 'pink', grade: 1 },
-  { id: 'bossyr', icon: '🏎️', name: 'Bossy R Racer', desc: 'Master bossy R words with a race!', color: 'orange', grade: 1 },
-  { id: 'coin', icon: '💰', name: 'Coin Challenge', desc: 'Count coins and make change!', color: 'yellow', grade: 1 },
-  { id: 'storyqa', icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple', grade: 1 },
-  { id: 'sentfix', icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green', grade: 1 },
-  { id: 'plantcycle', icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green', grade: 1 },
-  { id: 'pluralbuilder', icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo', grade: 1 },
-  { id: 'basewordsorter', icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue', grade: 1 },
-  { id: 'bugcatcher', icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue', grade: 1 },
-  { id: 'bunnyhop', icon: '🐰', name: 'Bunny Hop Counting', desc: 'Hop the bunny to the target number!', color: 'orange', grade: 1 },
-  { id: 'photoframe', icon: '🖼️', name: 'Photo Frame Maker', desc: 'Draw, name, and frame your art!', color: 'purple', grade: 1 },
-  { id: 'mirrordraw', icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue', grade: 1 },
-  { id: 'numberbingo', icon: '🎯', name: 'Number Bingo', desc: 'Listen, match, and call BINGO!', color: 'green', grade: 1 },
-  { id: 'beatcomposer', icon: '🎵', name: 'Beat Composer', desc: 'Build your own beats and songs!', color: 'orange', grade: 1 },
-  { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', grade: 1 },
+  // 1st Grade (existing 32)
+  { id: 'draw', icon: '🎨', name: 'Magic Canvas', desc: 'Draw anything you imagine!', color: 'pink', track: 'g1' },
+  { id: 'story', icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple', track: 'g1' },
+  { id: 'match', icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow', track: 'g1' },
+  { id: 'sound', icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange', track: 'g1' },
+  { id: 'math', icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink', track: 'g1' },
+  { id: 'madlib', icon: '📝', name: 'Mad Libs', desc: 'Fill in the blanks for silly stories!', color: 'yellow', track: 'g1' },
+  { id: 'readalong', icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple', track: 'g1' },
+  { id: 'time', icon: '🕐', name: 'Tell Time', desc: 'Learn to read the clock!', color: 'blue', track: 'g1' },
+  { id: 'robot', icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple', track: 'g1' },
+  { id: 'truefalse', icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green', track: 'g1' },
+  { id: 'sentence', icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow', track: 'g1' },
+  { id: 'equal', icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple', track: 'g1' },
+  { id: 'syllable', icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo', track: 'g1' },
+  { id: 'codebots', icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue', track: 'g1' },
+  { id: 'statefinder', icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green', track: 'g1' },
+  { id: 'pixelstudio', icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink', track: 'g1' },
+  { id: 'colorlab', icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue', track: 'g1' },
+  { id: 'tensones', icon: '🔢', name: 'Tens & Ones', desc: 'Explore place value with base-10 blocks!', color: 'pink', track: 'g1' },
+  { id: 'bossyr', icon: '🏎️', name: 'Bossy R Racer', desc: 'Master bossy R words with a race!', color: 'orange', track: 'g1' },
+  { id: 'coin', icon: '💰', name: 'Coin Challenge', desc: 'Count coins and make change!', color: 'yellow', track: 'g1' },
+  { id: 'storyqa', icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple', track: 'g1' },
+  { id: 'sentfix', icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green', track: 'g1' },
+  { id: 'plantcycle', icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green', track: 'g1' },
+  { id: 'pluralbuilder', icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo', track: 'g1' },
+  { id: 'basewordsorter', icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue', track: 'g1' },
+  { id: 'bugcatcher', icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue', track: 'g1' },
+  { id: 'bunnyhop', icon: '🐰', name: 'Bunny Hop Counting', desc: 'Hop the bunny to the target number!', color: 'orange', track: 'g1' },
+  { id: 'photoframe', icon: '🖼️', name: 'Photo Frame Maker', desc: 'Draw, name, and frame your art!', color: 'purple', track: 'g1' },
+  { id: 'mirrordraw', icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue', track: 'g1' },
+  { id: 'numberbingo', icon: '🎯', name: 'Number Bingo', desc: 'Listen, match, and call BINGO!', color: 'green', track: 'g1' },
+  { id: 'beatcomposer', icon: '🎵', name: 'Beat Composer', desc: 'Build your own beats and songs!', color: 'orange', track: 'g1' },
+  { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', track: 'g1' },
   // 2nd Grade — added for back-to-school 2026
-  { id: 'twodigit', icon: '🏃', name: 'Two-Digit Sprint', desc: 'Add big numbers with carrying!', color: 'pink', grade: 2 },
-  { id: 'borrowbay', icon: '🏴‍☠️', name: 'Borrow Bay', desc: 'Subtract and borrow pirate gold!', color: 'orange', grade: 2 },
-  { id: 'timeto5', icon: '⏰', name: 'Time to 5', desc: 'Read clocks to the nearest 5 minutes!', color: 'blue', grade: 2 },
-  { id: 'equalgroups', icon: '🍪', name: 'Equal Groups', desc: 'Count cookie trays and find missing factors!', color: 'pink', grade: 2 },
-  { id: 'contraction', icon: '🤝', name: 'Contraction Co-op', desc: 'Pair up words with an apostrophe!', color: 'purple', grade: 2 },
-  { id: 'compound', icon: '⚒️', name: 'Compound Forge', desc: 'Hammer two words into a compound!', color: 'orange', grade: 2 },
-  { id: 'skipcount', icon: '🔢', name: 'Skip Counter', desc: 'Count by 5s, 10s, and 25s!', color: 'blue', grade: 2 },
-  { id: 'suffixsort', icon: '✏️', name: 'Suffix Sorter', desc: 'Match the right suffix to the sentence!', color: 'purple', grade: 2 },
+  { id: 'twodigit', icon: '🏃', name: 'Two-Digit Sprint', desc: 'Add big numbers with carrying!', color: 'pink', track: 'g2' },
+  { id: 'borrowbay', icon: '🏴‍☠️', name: 'Borrow Bay', desc: 'Subtract and borrow pirate gold!', color: 'orange', track: 'g2' },
+  { id: 'timeto5', icon: '⏰', name: 'Time to 5', desc: 'Read clocks to the nearest 5 minutes!', color: 'blue', track: 'g2' },
+  { id: 'equalgroups', icon: '🍪', name: 'Equal Groups', desc: 'Count cookie trays and find missing factors!', color: 'pink', track: 'g2' },
+  { id: 'contraction', icon: '🤝', name: 'Contraction Co-op', desc: 'Pair up words with an apostrophe!', color: 'purple', track: 'g2' },
+  { id: 'compound', icon: '⚒️', name: 'Compound Forge', desc: 'Hammer two words into a compound!', color: 'orange', track: 'g2' },
+  { id: 'skipcount', icon: '🔢', name: 'Skip Counter', desc: 'Count by 5s, 10s, and 25s!', color: 'blue', track: 'g2' },
+  { id: 'suffixsort', icon: '✏️', name: 'Suffix Sorter', desc: 'Match the right suffix to the sentence!', color: 'purple', track: 'g2' },
+  // Feelings track — added 2026-08-29 (social-emotional learning, separate from academics)
+  { id: 'feelingsmatch', icon: '🤝', name: 'Feelings Match', desc: 'Read the situation, pick the feeling!', color: 'pink', track: 'feelings' },
+  { id: 'friendfixer', icon: '🌟', name: 'Friendship Fixer', desc: 'Pick the kindest response to tricky moments!', color: 'pink', track: 'feelings' },
+  { id: 'moodwheel', icon: '😊', name: 'Mood Wheel', desc: 'Spin a wheel of feelings + coping cards!', color: 'yellow', track: 'feelings' },
+  { id: 'convstarters', icon: '🗣️', name: 'Conversation Starters', desc: 'Try out different ways to start a chat!', color: 'purple', track: 'feelings' },
+  { id: 'kindwordbingo', icon: '💬', name: 'Kind Word Bingo', desc: 'Find kind acts on a card — solo or 2-player!', color: 'green', track: 'feelings' },
 ];
 
-function GradeTabs({
-  active, onChange, g1Count, g2Count,
+function TrackTabs({
+  active, onChange, counts,
 }: {
-  active: Grade; onChange: (g: Grade) => void; g1Count: number; g2Count: number;
+  active: Track; onChange: (t: Track) => void;
+  counts: { g1: number; g2: number; feelings: number };
 }) {
   const tabBase: React.CSSProperties = {
     flex: 1,
-    fontSize: 15,
-    padding: '12px 14px',
+    fontSize: 14,
+    padding: '11px 10px',
     border: 'none',
     borderRadius: 14,
     cursor: 'pointer',
     fontFamily: 'Fredoka, sans-serif',
     fontWeight: 600,
     transition: 'transform 0.1s, background 0.2s, color 0.2s',
+    whiteSpace: 'nowrap',
   };
   return (
     <div
       role="tablist"
-      aria-label="Grade level"
+      aria-label="Activity track"
       style={{
         display: 'flex',
-        gap: 8,
+        gap: 6,
         marginBottom: 18,
         background: 'white',
         padding: 6,
@@ -289,58 +318,70 @@ function GradeTabs({
     >
       <button
         role="tab"
-        aria-selected={active === 1}
-        onClick={() => {
-          onChange(1);
-          try { localStorage.setItem('goodbotkids_grade', '1'); } catch {}
-        }}
-        className={`activity-card ${active === 1 ? 'green' : ''}`}
+        aria-selected={active === 'g1'}
+        onClick={() => { onChange('g1'); try { localStorage.setItem('goodbotkids_track', 'g1'); } catch {} }}
+        className={`activity-card ${active === 'g1' ? 'green' : ''}`}
         style={{
           ...tabBase,
-          background: active === 1 ? 'var(--accent-green)' : 'transparent',
-          color: active === 1 ? 'white' : 'var(--text-medium)',
-          boxShadow: active === 1 ? '0 4px 0 #3D8B47' : 'none',
-          opacity: active === 1 ? 1 : 0.85,
+          background: active === 'g1' ? 'var(--accent-green)' : 'transparent',
+          color: active === 'g1' ? 'white' : 'var(--text-medium)',
+          boxShadow: active === 'g1' ? '0 4px 0 #3D8B47' : 'none',
+          opacity: active === 'g1' ? 1 : 0.85,
         }}
       >
-        🟢 1st Grade <span style={{ fontSize: 12, opacity: 0.85 }}>({g1Count})</span>
+        🟢 1st <span style={{ fontSize: 12, opacity: 0.85 }}>({counts.g1})</span>
       </button>
       <button
         role="tab"
-        aria-selected={active === 2}
-        onClick={() => {
-          onChange(2);
-          try { localStorage.setItem('goodbotkids_grade', '2'); } catch {}
-        }}
-        className={`activity-card ${active === 2 ? 'blue' : ''}`}
+        aria-selected={active === 'g2'}
+        onClick={() => { onChange('g2'); try { localStorage.setItem('goodbotkids_track', 'g2'); } catch {} }}
+        className={`activity-card ${active === 'g2' ? 'blue' : ''}`}
         style={{
           ...tabBase,
-          background: active === 2 ? 'var(--accent-blue)' : 'transparent',
-          color: active === 2 ? 'white' : 'var(--text-medium)',
-          boxShadow: active === 2 ? '0 4px 0 #2299CC' : 'none',
-          opacity: active === 2 ? 1 : 0.85,
+          background: active === 'g2' ? 'var(--accent-blue)' : 'transparent',
+          color: active === 'g2' ? 'white' : 'var(--text-medium)',
+          boxShadow: active === 'g2' ? '0 4px 0 #2299CC' : 'none',
+          opacity: active === 'g2' ? 1 : 0.85,
         }}
       >
-        🔵 2nd Grade <span style={{ fontSize: 12, opacity: 0.85 }}>({g2Count})</span>
+        🔵 2nd <span style={{ fontSize: 12, opacity: 0.85 }}>({counts.g2})</span>
+      </button>
+      <button
+        role="tab"
+        aria-selected={active === 'feelings'}
+        onClick={() => { onChange('feelings'); try { localStorage.setItem('goodbotkids_track', 'feelings'); } catch {} }}
+        className={`activity-card ${active === 'feelings' ? 'yellow' : ''}`}
+        style={{
+          ...tabBase,
+          background: active === 'feelings' ? 'var(--accent-yellow)' : 'transparent',
+          color: active === 'feelings' ? 'var(--text-dark)' : 'var(--text-medium)',
+          boxShadow: active === 'feelings' ? '0 4px 0 #CC9900' : 'none',
+          opacity: active === 'feelings' ? 1 : 0.85,
+        }}
+      >
+        🌈 Feelings <span style={{ fontSize: 12, opacity: 0.85 }}>({counts.feelings})</span>
       </button>
     </div>
   );
 }
 
 function HomeScreen({
-  setView, kidName, activeGrade, onGradeChange,
+  setView, kidName, activeTrack, onTrackChange,
 }: {
   setView: (v: View) => void;
   kidName: string;
-  activeGrade: Grade;
-  onGradeChange: (g: Grade) => void;
+  activeTrack: Track;
+  onTrackChange: (t: Track) => void;
 }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  const g1Count = ACTIVITIES.filter(a => a.grade === 1).length;
-  const g2Count = ACTIVITIES.filter(a => a.grade === 2).length;
-  const visible = ACTIVITIES.filter(a => a.grade === activeGrade);
+  const counts = {
+    g1: ACTIVITIES.filter(a => a.track === 'g1').length,
+    g2: ACTIVITIES.filter(a => a.track === 'g2').length,
+    feelings: ACTIVITIES.filter(a => a.track === 'feelings').length,
+  };
+  const visible = ACTIVITIES.filter(a => a.track === activeTrack);
 
   return (
     <div className="slide-up">
@@ -351,7 +392,7 @@ function HomeScreen({
         What would you like to do today?
       </p>
 
-      <GradeTabs active={activeGrade} onChange={onGradeChange} g1Count={g1Count} g2Count={g2Count} />
+      <TrackTabs active={activeTrack} onChange={onTrackChange} counts={counts} />
 
       <div className="activity-grid">
         {visible.map(a => (
@@ -359,23 +400,30 @@ function HomeScreen({
             key={a.id}
             className={`activity-card ${a.color}`}
             onClick={() => setView(a.id)}
-            data-grade={a.grade}
+            data-track={a.track}
           >
             <span className="activity-icon">{a.icon}</span>
             <span className="activity-name">{a.name}</span>
             <span className="activity-desc">{a.desc}</span>
-            {a.grade === 2 && (
+            {a.track === 'g2' && (
               <span style={{
                 fontSize: 11, fontWeight: 700,
                 background: 'var(--accent-blue)', color: 'white',
                 padding: '3px 10px', borderRadius: 999, marginTop: 4,
               }}>NEW · 2nd</span>
             )}
+            {a.track === 'feelings' && (
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                background: 'var(--accent-yellow)', color: 'var(--text-dark)',
+                padding: '3px 10px', borderRadius: 999, marginTop: 4,
+              }}>NEW · Feelings</span>
+            )}
           </button>
         ))}
       </div>
 
-      {activeGrade === 1 && g2Count > 0 && (
+      {activeTrack === 'g1' && counts.g2 > 0 && (
         <div style={{
           textAlign: 'center', marginTop: 28,
           padding: 16, background: 'white',
@@ -384,7 +432,7 @@ function HomeScreen({
           <p style={{ fontSize: 14, color: 'var(--text-medium)', margin: 0 }}>
             🆕 Ready for a challenge? Try{' '}
             <button
-              onClick={() => onGradeChange(2)}
+              onClick={() => onTrackChange('g2')}
               style={{
                 background: 'none', border: 'none',
                 color: 'var(--accent-blue)', fontWeight: 700,
@@ -392,7 +440,74 @@ function HomeScreen({
               }}
             >
               2nd Grade games
+            </button>
+            , or warm up with{' '}
+            <button
+              onClick={() => onTrackChange('feelings')}
+              style={{
+                background: 'none', border: 'none',
+                color: '#CC9900', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit',
+              }}
+            >
+              Feelings games
             </button>!
+          </p>
+        </div>
+      )}
+
+      {activeTrack === 'g2' && counts.feelings > 0 && (
+        <div style={{
+          textAlign: 'center', marginTop: 28,
+          padding: 16, background: 'white',
+          borderRadius: 16, border: '2px dashed var(--accent-yellow)',
+        }}>
+          <p style={{ fontSize: 14, color: 'var(--text-medium)', margin: 0 }}>
+            💛 Need a break? Try{' '}
+            <button
+              onClick={() => onTrackChange('feelings')}
+              style={{
+                background: 'none', border: 'none',
+                color: '#CC9900', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit',
+              }}
+            >
+              Feelings games
+            </button>!
+          </p>
+        </div>
+      )}
+
+      {activeTrack === 'feelings' && (counts.g1 > 0 || counts.g2 > 0) && (
+        <div style={{
+          textAlign: 'center', marginTop: 28,
+          padding: 16, background: 'white',
+          borderRadius: 16, border: '2px dashed #E5E0D8',
+        }}>
+          <p style={{ fontSize: 14, color: 'var(--text-medium)', margin: 0 }}>
+            🧠 Want a brain-stretch?{' '}
+            <button
+              onClick={() => onTrackChange('g1')}
+              style={{
+                background: 'none', border: 'none',
+                color: '#3D8B47', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit',
+              }}
+            >
+              Grade 1 games
+            </button>
+            {' '}or{' '}
+            <button
+              onClick={() => onTrackChange('g2')}
+              style={{
+                background: 'none', border: 'none',
+                color: 'var(--accent-blue)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit',
+              }}
+            >
+              Grade 2 games
+            </button>
+            {' '}are still here.
           </p>
         </div>
       )}

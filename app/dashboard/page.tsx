@@ -51,6 +51,12 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'compound-forge': { name: 'Compound Word Forge', emoji: '⚒️', color: 'var(--accent-orange)', bestKey: 'compound_best_streak' },
   'skip-counter': { name: 'Skip Counter', emoji: '🏃', color: 'var(--accent-blue)', bestKey: 'skipcount_best_streak' },
   'suffix-sorter': { name: 'Suffix Sorter', emoji: '✏️', color: 'var(--accent-purple)', bestKey: 'suffixsort_best_streak' },
+  // Feelings track — 2026-08-29 social-emotional learning batch
+  'feelings-match': { name: 'Feelings Match', emoji: '🤝', color: 'var(--accent-pink)', bestKey: 'feelings_best_streak' },
+  'friendship-fixer': { name: 'Friendship Fixer', emoji: '🌟', color: 'var(--accent-pink)', bestKey: 'friendfixer_best_streak' },
+  'mood-wheel': { name: 'Mood Wheel', emoji: '😊', color: 'var(--accent-yellow)', bestKey: 'moodwheel_count' },
+  'conversation-starters': { name: 'Conversation Starters', emoji: '🗣️', color: 'var(--accent-purple)', bestKey: 'convstarters_count' },
+  'kind-word-bingo': { name: 'Kind Word Bingo', emoji: '💬', color: 'var(--accent-green)', bestKey: 'kindbingo_best_streak' },
 };
 
 export default function Dashboard() {
