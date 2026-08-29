@@ -42,6 +42,7 @@ import StateFinder from '../components/StateFinder';
 import ColorLab from '../components/ColorLab';
 import PixelCanvas from '../components/PixelCanvas';
 import TensOnesExplorer from '../components/TensOnesExplorer';
+import TicTacToe from '../components/TicTacToe';
 
 const PLAYER_COLORS = [
   { color: '#FF6B9D', label: 'Pink', emoji: '🩷' },
@@ -295,6 +296,7 @@ function ActivityBridge({ component, onDone }) {
     case 'mapskills':      return <MapSkills         onBack={onDone} />;
     case 'fivesenseslab':  return <FiveSensesLab     onBack={onDone} />;
     case 'communityhelpers': return <CommunityHelpers onBack={onDone} />;
+    case 'tictactoe':      return <TicTacToe         onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':

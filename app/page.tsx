@@ -73,8 +73,9 @@ import SymmetrySafari from './components/SymmetrySafari';
 import MapSkills from './components/MapSkills';
 import FiveSensesLab from './components/FiveSensesLab';
 import CommunityHelpers from './components/CommunityHelpers';
+import TicTacToe from './components/TicTacToe';
 
-type Track = 'g1' | 'g2' | 'feelings';
+type Track = 'g1' | 'g2' | 'feelings' | 'games';
 type View =
   | 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time'
   | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder'
@@ -90,6 +91,7 @@ type View =
   | 'wordproblemwoods' | 'measureme' | 'placevaluepirates' | 'graphgarden' | 'plusminus10and100'
   | 'adjectiveadventure' | 'verbvault' | 'symmetrysafari' | 'mapskills' | 'fivesenseslab'
   | 'communityhelpers'
+  | 'tictactoe'
   | 'dashboard';
 
 export default function Home() {
@@ -229,6 +231,7 @@ export default function Home() {
         {view === 'poetrypark' && <PoetryPark onBack={() => setView('home')} kidName={kidName} />}
         {view === 'earthexplorer' && <EarthExplorer onBack={() => setView('home')} kidName={kidName} />}
         {view === 'mattermixer' && <MatterMixer onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'tictactoe' && <TicTacToe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -323,7 +326,6 @@ const ACTIVITIES: Activity[] = [
   { id: 'mirrordraw', icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue', track: 'g1' },
   { id: 'numberbingo', icon: '🎯', name: 'Number Bingo', desc: 'Listen, match, and call BINGO!', color: 'green', track: 'g1' },
   { id: 'beatcomposer', icon: '🎵', name: 'Beat Composer', desc: 'Build your own beats and songs!', color: 'orange', track: 'g1' },
-  { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', track: 'g1' },
   // 2nd Grade — added for back-to-school 2026
   { id: 'twodigit', icon: '🏃', name: 'Two-Digit Sprint', desc: 'Add big numbers with carrying!', color: 'pink', track: 'g2' },
   { id: 'borrowbay', icon: '🏴‍☠️', name: 'Borrow Bay', desc: 'Subtract and borrow pirate gold!', color: 'orange', track: 'g2' },
@@ -368,6 +370,9 @@ const ACTIVITIES: Activity[] = [
   { id: 'mapskills', icon: '🗺️', name: 'Map Skills', desc: 'Compass rose and grid maps!', color: 'blue', track: 'g2' },
   { id: 'fivesenseslab', icon: '👁️', name: 'Five Senses Lab', desc: 'Body science with senses!', color: 'green', track: 'g2' },
   { id: 'communityhelpers', icon: '👮', name: 'Community Helpers', desc: 'Who to call for what!', color: 'blue', track: 'g2' },
+  // Games (pure games, cross-grade)
+  { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', track: 'games' },
+  { id: 'tictactoe', icon: '⭕', name: 'Tic Tac Toe', desc: 'X vs O — three in a row wins!', color: 'orange', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
@@ -390,11 +395,21 @@ const G2_SUBJECT_MAP: Record<string, 'math' | 'ela' | 'science'> = {
   mapskills: 'science', fivesenseslab: 'science', communityhelpers: 'science',
 };
 
+// Maps each 1st Grade game to its subject for sub-tab filtering.
+const G1_SUBJECT_MAP: Record<string, 'reading' | 'math' | 'creative'> = {
+  // Reading / ELA (3)
+  pluralbuilder: 'reading', basewordsorter: 'reading', bugcatcher: 'reading',
+  // Math (2)
+  bunnyhop: 'math', numberbingo: 'math',
+  // Creative (3)
+  photoframe: 'creative', mirrordraw: 'creative', beatcomposer: 'creative',
+};
+
 function TrackTabs({
   active, onChange, counts,
 }: {
   active: Track; onChange: (t: Track) => void;
-  counts: { g1: number; g2: number; feelings: number };
+  counts: { g1: number; g2: number; feelings: number; games: number };
 }) {
   const tabBase: React.CSSProperties = {
     flex: 1,
@@ -468,23 +483,41 @@ function TrackTabs({
       >
         🌈 Feelings <span style={{ fontSize: 12, opacity: 0.85 }}>({counts.feelings})</span>
       </button>
+      <button
+        role="tab"
+        aria-selected={active === 'games'}
+        onClick={() => { onChange('games'); try { localStorage.setItem('goodbotkids_track', 'games'); } catch {} }}
+        className={`activity-card ${active === 'games' ? 'pink' : ''}`}
+        style={{
+          ...tabBase,
+          background: active === 'games' ? 'var(--accent-pink)' : 'transparent',
+          color: active === 'games' ? 'white' : 'var(--text-medium)',
+          boxShadow: active === 'games' ? '0 4px 0 #FF6B9D' : 'none',
+          opacity: active === 'games' ? 1 : 0.85,
+        }}
+      >
+        🎮 Games <span style={{ fontSize: 12, opacity: 0.85 }}>({counts.games})</span>
+      </button>
     </div>
   );
 }
 
+interface SubjectTab {
+  id: string | null;
+  label: string;
+  emoji: string;
+  color: string;
+  shadow: string;
+  count: number;
+}
+
 function SubjectTabs({
-  active, onChange, counts,
+  tabs, active, onChange,
 }: {
-  active: 'math' | 'ela' | 'science' | null;
-  onChange: (s: 'math' | 'ela' | 'science' | null) => void;
-  counts: { math: number; ela: number; science: number };
+  tabs: SubjectTab[];
+  active: string | null;
+  onChange: (id: string | null) => void;
 }) {
-  const tabs: { id: 'math' | 'ela' | 'science' | null; label: string; emoji: string; color: string; count: number }[] = [
-    { id: null,     label: 'All',      emoji: '🎯', color: 'var(--accent-orange)', count: counts.math + counts.ela + counts.science },
-    { id: 'math',    label: 'Math',     emoji: '🔢', color: 'var(--accent-blue)',   count: counts.math },
-    { id: 'ela',     label: 'Reading',  emoji: '📖', color: 'var(--accent-purple)', count: counts.ela },
-    { id: 'science', label: 'Science',  emoji: '🌍', color: 'var(--accent-green)',  count: counts.science },
-  ];
   const tabBase: React.CSSProperties = {
     flex: 1,
     fontSize: 13,
@@ -496,12 +529,6 @@ function SubjectTabs({
     fontWeight: 600,
     transition: 'transform 0.1s, background 0.2s, color 0.2s',
     whiteSpace: 'nowrap',
-  };
-  const shadowFor = (id: 'math' | 'ela' | 'science' | null): string => {
-    if (id === 'math') return '0 4px 0 #2299CC';
-    if (id === 'ela') return '0 4px 0 #8B5CF6';
-    if (id === 'science') return '0 4px 0 #3D8B47';
-    return '0 4px 0 #CC9900';
   };
   return (
     <div
@@ -531,7 +558,7 @@ function SubjectTabs({
               ...tabBase,
               background: isActive ? tab.color : 'transparent',
               color: isActive ? 'white' : 'var(--text-medium)',
-              boxShadow: isActive ? shadowFor(tab.id) : 'none',
+              boxShadow: isActive ? tab.shadow : 'none',
               opacity: isActive ? 1 : 0.85,
             }}
           >
@@ -559,21 +586,51 @@ function HomeScreen({
     g1: ACTIVITIES.filter(a => a.track === 'g1').length,
     g2: ACTIVITIES.filter(a => a.track === 'g2').length,
     feelings: ACTIVITIES.filter(a => a.track === 'feelings').length,
+    games: ACTIVITIES.filter(a => a.track === 'games').length,
   };
 
-  // Subject filter for the 2nd Grade sub-tabs. null = show every subject.
-  const [activeSubject, setActiveSubject] = useState<'math' | 'ela' | 'science' | null>(null);
+  // Subject filter for the grade-tab sub-tabs. null = show every subject.
+  const [activeSubject, setActiveSubject] = useState<string | null>(null);
   useEffect(() => {
-    if (activeTrack !== 'g2') setActiveSubject(null);
+    if (activeTrack !== 'g2' && activeTrack !== 'g1') setActiveSubject(null);
   }, [activeTrack]);
 
-  const subjectCounts = {
-    math: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'math').length,
-    ela: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'ela').length,
-    science: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'science').length,
-  };
+  // Counts for the active track's subjects.
+  const subjectCounts: Record<string, number> = activeTrack === 'g2'
+    ? {
+        math: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'math').length,
+        ela: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'ela').length,
+        science: ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === 'science').length,
+      }
+    : activeTrack === 'g1'
+    ? {
+        reading: ACTIVITIES.filter(a => a.track === 'g1' && G1_SUBJECT_MAP[a.id] === 'reading').length,
+        math: ACTIVITIES.filter(a => a.track === 'g1' && G1_SUBJECT_MAP[a.id] === 'math').length,
+        creative: ACTIVITIES.filter(a => a.track === 'g1' && G1_SUBJECT_MAP[a.id] === 'creative').length,
+      }
+    : {};
 
-  const visible = activeTrack === 'g2' && activeSubject
+  // Build the sub-tab list for the active grade track.
+  const subjectTabs: SubjectTab[] = activeTrack === 'g2'
+    ? [
+        { id: null,     label: 'All',      emoji: '🎯', color: 'var(--accent-orange)', shadow: '0 4px 0 #CC9900' },
+        { id: 'math',    label: 'Math',     emoji: '🔢', color: 'var(--accent-blue)',   shadow: '0 4px 0 #2299CC' },
+        { id: 'ela',     label: 'Reading',  emoji: '📖', color: 'var(--accent-purple)', shadow: '0 4px 0 #8B5CF6' },
+        { id: 'science', label: 'Science',  emoji: '🌍', color: 'var(--accent-green)',  shadow: '0 4px 0 #3D8B47' },
+      ].map(t => ({ ...t, count: subjectCounts[t.id ?? '_'] ?? 0 }))
+    : activeTrack === 'g1'
+    ? [
+        { id: null,       label: 'All',       emoji: '🎯', color: 'var(--accent-orange)', shadow: '0 4px 0 #CC9900' },
+        { id: 'reading',   label: 'Reading',   emoji: '📖', color: 'var(--accent-purple)', shadow: '0 4px 0 #8B5CF6' },
+        { id: 'math',      label: 'Math',      emoji: '🔢', color: 'var(--accent-blue)',   shadow: '0 4px 0 #2299CC' },
+        { id: 'creative',  label: 'Creative',  emoji: '🎨', color: 'var(--accent-pink)',   shadow: '0 4px 0 #FF6B9D' },
+      ].map(t => ({ ...t, count: subjectCounts[t.id ?? '_'] ?? 0 }))
+    : [];
+
+  // Build the visible cards list based on track + subject filter.
+  const visible = activeTrack === 'g1' && activeSubject
+    ? ACTIVITIES.filter(a => a.track === 'g1' && G1_SUBJECT_MAP[a.id] === activeSubject)
+    : activeTrack === 'g2' && activeSubject
     ? ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === activeSubject)
     : ACTIVITIES.filter(a => a.track === activeTrack);
 
@@ -588,11 +645,11 @@ function HomeScreen({
 
       <TrackTabs active={activeTrack} onChange={onTrackChange} counts={counts} />
 
-      {activeTrack === 'g2' && (
+      {(activeTrack === 'g2' || activeTrack === 'g1') && subjectTabs.length > 0 && (
         <SubjectTabs
+          tabs={subjectTabs}
           active={activeSubject}
           onChange={setActiveSubject}
-          counts={subjectCounts}
         />
       )}
 
