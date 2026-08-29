@@ -62,6 +62,17 @@ import ConjunctionJunction from './components/ConjunctionJunction';
 import PoetryPark from './components/PoetryPark';
 import EarthExplorer from './components/EarthExplorer';
 import MatterMixer from './components/MatterMixer';
+import WordProblemWoods from './components/WordProblemWoods';
+import MeasureMe from './components/MeasureMe';
+import PlaceValuePirates from './components/PlaceValuePirates';
+import GraphGarden from './components/GraphGarden';
+import PlusMinus10And100 from './components/PlusMinus10And100';
+import AdjectiveAdventure from './components/AdjectiveAdventure';
+import VerbVault from './components/VerbVault';
+import SymmetrySafari from './components/SymmetrySafari';
+import MapSkills from './components/MapSkills';
+import FiveSensesLab from './components/FiveSensesLab';
+import CommunityHelpers from './components/CommunityHelpers';
 
 type Track = 'g1' | 'g2' | 'feelings';
 type View =
@@ -76,6 +87,9 @@ type View =
   | 'shapesafari' | 'oddeven' | 'comparecastles' | 'timetravel' | 'tripledigit'
   | 'arrayarchitect' | 'hundreds' | 'prefixpals' | 'pluralpuzzlers' | 'contextcluecove'
   | 'commacrew' | 'conjunctionjunction' | 'poetrypark' | 'earthexplorer' | 'mattermixer'
+  | 'wordproblemwoods' | 'measureme' | 'placevaluepirates' | 'graphgarden' | 'plusminus10and100'
+  | 'adjectiveadventure' | 'verbvault' | 'symmetrysafari' | 'mapskills' | 'fivesenseslab'
+  | 'communityhelpers'
   | 'dashboard';
 
 export default function Home() {
@@ -215,6 +229,17 @@ export default function Home() {
         {view === 'poetrypark' && <PoetryPark onBack={() => setView('home')} kidName={kidName} />}
         {view === 'earthexplorer' && <EarthExplorer onBack={() => setView('home')} kidName={kidName} />}
         {view === 'mattermixer' && <MatterMixer onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'graphgarden' && <GraphGarden onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'plusminus10and100' && <PlusMinus10And100 onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'adjectiveadventure' && <AdjectiveAdventure onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'verbvault' && <VerbVault onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'symmetrysafari' && <SymmetrySafari onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'mapskills' && <MapSkills onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'fivesenseslab' && <FiveSensesLab onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'communityhelpers' && <CommunityHelpers onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -331,6 +356,18 @@ const ACTIVITIES: Activity[] = [
   // Cross-curricular science + social studies (2026-08-29 back-to-school)
   { id: 'earthexplorer', icon: '🌍', name: 'Earth Explorer', desc: 'Continents, oceans, and landforms!', color: 'green', track: 'g2' },
   { id: 'mattermixer', icon: '🧪', name: 'Matter Mixer', desc: 'Solids, liquids, gases + state changes!', color: 'purple', track: 'g2' },
+  // 2nd Grade expansion — back-to-school 2026 (math + ELA + cross-curricular)
+  { id: 'wordproblemwoods', icon: '🌲', name: 'Word Problem Woods', desc: 'Solve real-life math stories!', color: 'green', track: 'g2' },
+  { id: 'measureme', icon: '📏', name: 'Measure Me', desc: 'Lengths in inches, cm, paper clips!', color: 'blue', track: 'g2' },
+  { id: 'placevaluepirates', icon: '🏴‍☠️', name: 'Place Value Pirates', desc: 'Hundreds, tens, ones — count to 1000!', color: 'purple', track: 'g2' },
+  { id: 'graphgarden', icon: '📊', name: 'Graph Garden', desc: 'Read & make bar graphs!', color: 'orange', track: 'g2' },
+  { id: 'plusminus10and100', icon: '🚀', name: 'Plus/Minus 10 and 100', desc: 'Mental math fluency!', color: 'purple', track: 'g2' },
+  { id: 'adjectiveadventure', icon: '✍️', name: 'Adjective Adventure', desc: 'Describing words for any noun!', color: 'orange', track: 'g2' },
+  { id: 'verbvault', icon: '🕰️', name: 'Verb Vault', desc: 'Past tense of irregular verbs!', color: 'purple', track: 'g2' },
+  { id: 'symmetrysafari', icon: '🦋', name: 'Symmetry Safari', desc: 'Lines of symmetry on shapes!', color: 'pink', track: 'g2' },
+  { id: 'mapskills', icon: '🗺️', name: 'Map Skills', desc: 'Compass rose and grid maps!', color: 'blue', track: 'g2' },
+  { id: 'fivesenseslab', icon: '👁️', name: 'Five Senses Lab', desc: 'Body science with senses!', color: 'green', track: 'g2' },
+  { id: 'communityhelpers', icon: '👮', name: 'Community Helpers', desc: 'Who to call for what!', color: 'blue', track: 'g2' },
 ];
 
 function TrackTabs({

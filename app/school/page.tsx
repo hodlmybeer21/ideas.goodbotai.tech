@@ -284,6 +284,17 @@ function ActivityBridge({ component, onDone }) {
     case 'poetrypark':    return <PoetryPark        onBack={onDone} />;
     case 'earthexplorer': return <EarthExplorer     onBack={onDone} />;
     case 'mattermixer':   return <MatterMixer       onBack={onDone} />;
+    case 'wordproblemwoods': return <WordProblemWoods onBack={onDone} />;
+    case 'measureme':     return <MeasureMe         onBack={onDone} />;
+    case 'placevaluepirates': return <PlaceValuePirates onBack={onDone} />;
+    case 'graphgarden':    return <GraphGarden       onBack={onDone} />;
+    case 'plusminus10and100': return <PlusMinus10And100 onBack={onDone} />;
+    case 'adjectiveadventure': return <AdjectiveAdventure onBack={onDone} />;
+    case 'verbvault':      return <VerbVault         onBack={onDone} />;
+    case 'symmetrysafari': return <SymmetrySafari    onBack={onDone} />;
+    case 'mapskills':      return <MapSkills         onBack={onDone} />;
+    case 'fivesenseslab':  return <FiveSensesLab     onBack={onDone} />;
+    case 'communityhelpers': return <CommunityHelpers onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':

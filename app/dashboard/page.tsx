@@ -74,6 +74,18 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   // Cross-curricular science + social studies (2026-08-29)
   'earth-explorer': { name: 'Earth Explorer', emoji: '🌍', color: 'var(--accent-green)', bestKey: 'earthexplorer_best_streak' },
   'matter-mixer': { name: 'Matter Mixer', emoji: '🧪', color: 'var(--accent-purple)', bestKey: 'mattermixer_best_streak' },
+  // 2nd Grade expansion — back-to-school 2026 batch
+  'word-problem-woods': { name: 'Word Problem Woods', emoji: '🌲', color: 'var(--accent-green)', bestKey: 'wordproblemwoods_best_streak' },
+  'measure-me': { name: 'Measure Me', emoji: '📏', color: 'var(--accent-blue)', bestKey: 'measureme_best_streak' },
+  'place-value-pirates': { name: 'Place Value Pirates', emoji: '🏴‍☠️', color: 'var(--accent-purple)', bestKey: 'placevaluepirates_best_streak' },
+  'graph-garden': { name: 'Graph Garden', emoji: '📊', color: 'var(--accent-orange)', bestKey: 'graphgarden_best_streak' },
+  'plus-minus-10-and-100': { name: 'Plus/Minus 10 and 100', emoji: '🚀', color: 'var(--accent-purple)', bestKey: 'plusminus10and100_best_streak' },
+  'adjective-adventure': { name: 'Adjective Adventure', emoji: '✍️', color: 'var(--accent-orange)', bestKey: 'adjectiveadventure_best_streak' },
+  'verb-vault': { name: 'Verb Vault', emoji: '🕰️', color: 'var(--accent-purple)', bestKey: 'verbvault_best_streak' },
+  'symmetry-safari': { name: 'Symmetry Safari', emoji: '🦋', color: 'var(--accent-pink)', bestKey: 'symmetrysafari_best_streak' },
+  'map-skills': { name: 'Map Skills', emoji: '🗺️', color: 'var(--accent-blue)', bestKey: 'mapskills_best_streak' },
+  'five-senses-lab': { name: 'Five Senses Lab', emoji: '👁️', color: 'var(--accent-green)', bestKey: 'fivesenseslab_best_streak' },
+  'community-helpers': { name: 'Community Helpers', emoji: '👮', color: 'var(--accent-blue)', bestKey: 'communityhelpers_best_streak' },
 };
 
 export default function Dashboard() {
