@@ -92,6 +92,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'threes': { name: 'Threes', emoji: '🎲', color: 'var(--accent-blue)', bestKey: 'threes_best_0' },
   'match-3': { name: 'Match-3', emoji: '🍬', color: 'var(--accent-pink)', bestKey: 'match3_best_0' },
   'stack-tower': { name: 'Stack Tower', emoji: '🏗️', color: 'var(--accent-orange)', bestKey: 'stacktower_best_0' },
+  'flappy-bird': { name: 'Flappy Bird', emoji: '🐦', color: 'var(--accent-blue)', bestKey: 'flappy_best_0' },
 };
 
 export default function Dashboard() {

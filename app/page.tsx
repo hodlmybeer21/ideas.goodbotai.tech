@@ -78,6 +78,7 @@ import Game2048 from './components/Game2048';
 import Threes from './components/Threes';
 import Match3 from './components/Match3';
 import StackTower from './components/StackTower';
+import FlappyBird from './components/FlappyBird';
 
 type Track = 'g1' | 'g2' | 'feelings' | 'games';
 type View =
@@ -100,6 +101,7 @@ type View =
   | 'threes'
   | 'match3'
   | 'stacktower'
+  | 'flappybird'
   | 'dashboard';
 
 export default function Home() {
@@ -244,6 +246,7 @@ export default function Home() {
         {view === 'threes' && <Threes onBack={() => setView('home')} kidName={kidName} />}
         {view === 'match3' && <Match3 onBack={() => setView('home')} kidName={kidName} />}
         {view === 'stacktower' && <StackTower onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'flappybird' && <FlappyBird onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -389,6 +392,7 @@ const ACTIVITIES: Activity[] = [
   { id: 'threes', icon: '🎲', name: 'Threes', desc: '1+1=2, 2+2=4, 3+3=6 — keep doubling!', color: 'blue', track: 'games' },
   { id: 'match3', icon: '🍬', name: 'Match-3', desc: 'Swap candies to make 3 in a row!', color: 'pink', track: 'games' },
   { id: 'stacktower', icon: '🏗️', name: 'Stack Tower', desc: 'Time your tap to stack blocks high!', color: 'orange', track: 'games' },
+  { id: 'flappybird', icon: '🐦', name: 'Flappy Bird', desc: 'Tap to flap, dodge the pipes!', color: 'blue', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
