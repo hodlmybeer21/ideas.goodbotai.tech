@@ -383,6 +383,7 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
 
       <div
         onClick={flap}
+        onTouchStart={(e) => { e.preventDefault(); flap(); }}
         style={{
           background: '#87CEEB',
           padding: 12,
@@ -392,6 +393,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
           position: 'relative',
           cursor: 'pointer',
           userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation',
           transition: 'background-color 0.1s',
           backgroundColor: flashRed ? '#FFB3B3' : '#87CEEB',
         }}
