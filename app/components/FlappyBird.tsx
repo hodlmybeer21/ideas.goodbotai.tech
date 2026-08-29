@@ -255,6 +255,7 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
           setPipes([{ x: STAGE_WIDTH, gapTop: randGapTop(difficulty), gapHeight: gap, scored: false }]);
           setGameOver(false);
           setStarted(false);
+            setRound(r => r + 1);
           stateRef.current.birdY = STAGE_HEIGHT / 2;
           stateRef.current.birdVel = 0;
           stateRef.current.pipes = [{ x: STAGE_WIDTH, gapTop: randGapTop(difficulty), gapHeight: gap, scored: false }];
