@@ -71,6 +71,9 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'comma-crew': { name: 'Comma Crew', emoji: '✉️', color: 'var(--accent-pink)', bestKey: 'commacrew_best_streak' },
   'conjunction-junction': { name: 'Conjunction Junction', emoji: '🚂', color: 'var(--accent-blue)', bestKey: 'conjunctionjunction_best_streak' },
   'poetry-park': { name: 'Poetry Park', emoji: '🎭', color: 'var(--accent-purple)', bestKey: 'poetrypark_best_streak' },
+  // Cross-curricular science + social studies (2026-08-29)
+  'earth-explorer': { name: 'Earth Explorer', emoji: '🌍', color: 'var(--accent-green)', bestKey: 'earthexplorer_best_streak' },
+  'matter-mixer': { name: 'Matter Mixer', emoji: '🧪', color: 'var(--accent-purple)', bestKey: 'mattermixer_best_streak' },
 };
 
 export default function Dashboard() {

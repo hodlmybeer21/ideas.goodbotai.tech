@@ -282,6 +282,8 @@ function ActivityBridge({ component, onDone }) {
     case 'commacrew':     return <CommaCrew         onBack={onDone} />;
     case 'conjunctionjunction': return <ConjunctionJunction onBack={onDone} />;
     case 'poetrypark':    return <PoetryPark        onBack={onDone} />;
+    case 'earthexplorer': return <EarthExplorer     onBack={onDone} />;
+    case 'mattermixer':   return <MatterMixer       onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':

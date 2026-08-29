@@ -60,6 +60,8 @@ import ContextClueCove from './components/ContextClueCove';
 import CommaCrew from './components/CommaCrew';
 import ConjunctionJunction from './components/ConjunctionJunction';
 import PoetryPark from './components/PoetryPark';
+import EarthExplorer from './components/EarthExplorer';
+import MatterMixer from './components/MatterMixer';
 
 type Track = 'g1' | 'g2' | 'feelings';
 type View =
@@ -73,7 +75,7 @@ type View =
   | 'feelingsmatch' | 'friendfixer' | 'moodwheel' | 'convstarters' | 'kindwordbingo'
   | 'shapesafari' | 'oddeven' | 'comparecastles' | 'timetravel' | 'tripledigit'
   | 'arrayarchitect' | 'hundreds' | 'prefixpals' | 'pluralpuzzlers' | 'contextcluecove'
-  | 'commacrew' | 'conjunctionjunction' | 'poetrypark'
+  | 'commacrew' | 'conjunctionjunction' | 'poetrypark' | 'earthexplorer' | 'mattermixer'
   | 'dashboard';
 
 export default function Home() {
@@ -211,6 +213,8 @@ export default function Home() {
         {view === 'commacrew' && <CommaCrew onBack={() => setView('home')} kidName={kidName} />}
         {view === 'conjunctionjunction' && <ConjunctionJunction onBack={() => setView('home')} kidName={kidName} />}
         {view === 'poetrypark' && <PoetryPark onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'earthexplorer' && <EarthExplorer onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'mattermixer' && <MatterMixer onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -324,6 +328,9 @@ const ACTIVITIES: Activity[] = [
   { id: 'commacrew', icon: '✉️', name: 'Comma Crew', desc: 'Mail letters with commas in the right spots!', color: 'pink', track: 'g2' },
   { id: 'conjunctionjunction', icon: '🚂', name: 'Conjunction Junction', desc: 'Couple sentences with and, but, or, so, because!', color: 'blue', track: 'g2' },
   { id: 'poetrypark', icon: '🎭', name: 'Poetry Park', desc: 'Rhymes, rhythm, and poem types!', color: 'purple', track: 'g2' },
+  // Cross-curricular science + social studies (2026-08-29 back-to-school)
+  { id: 'earthexplorer', icon: '🌍', name: 'Earth Explorer', desc: 'Continents, oceans, and landforms!', color: 'green', track: 'g2' },
+  { id: 'mattermixer', icon: '🧪', name: 'Matter Mixer', desc: 'Solids, liquids, gases + state changes!', color: 'purple', track: 'g2' },
 ];
 
 function TrackTabs({
