@@ -21,6 +21,8 @@ interface Question {
 }
 
 // Stylized 7-continent map. Each entry is a path id → continent name + rough color.
+// CONTINENT_COLORS is kept for legacy compatibility (some menu hints) but the
+// map itself is now rendered from the Wikimedia Continents.svg asset.
 const CONTINENT_COLORS: Record<string, string> = {
   asia: '#FF6B9D',
   africa: '#FFD93D',
@@ -62,6 +64,29 @@ const LANDFORM_NAMES: Record<string, string> = {
   waterfall: 'Waterfall',
 };
 
+// Bounding boxes for each continent, expressed as percentages of the
+// Wikimedia Continents.svg viewBox (468 × 239). Coordinates were measured
+// from the public-domain SVG (PD-USGov-CIA-WF). Antarctica is added on top
+// of the asset since the Wikimedia file doesn't include it.
+const CONTINENT_BOXES: Record<string, { x: number; y: number; w: number; h: number }> = {
+  north_america: { x:  5.6, y: 12.1, w: 32.9, h: 42.3 },
+  south_america: { x: 28.6, y: 54.0, w: 18.8, h: 37.7 },
+  europe:        { x: 47.9, y: 12.1, w: 15.4, h: 29.7 },
+  africa:        { x: 48.7, y: 41.8, w: 16.0, h: 42.3 },
+  asia:          { x: 61.5, y: 12.1, w: 30.8, h: 41.4 },
+  australia:     { x: 76.1, y: 61.5, w: 16.0, h: 22.6 },
+  antarctica:    { x: 12.0, y: 89.5, w: 78.0, h:  8.8 },
+};
+
+// Ocean bounding boxes (used to highlight when the question is about an ocean).
+const OCEAN_BOXES: Record<string, { x: number; y: number; w: number; h: number }> = {
+  pacific:  { x:  0.0, y: 25.0, w: 15.0, h: 50.0 },
+  atlantic: { x: 44.0, y: 25.0, w: 12.0, h: 55.0 },
+  indian:   { x: 60.0, y: 50.0, w: 18.0, h: 35.0 },
+  arctic:   { x: 12.0, y:  0.0, w: 78.0, h: 12.0 },
+  southern: { x: 12.0, y: 78.0, w: 78.0, h: 12.0 },
+};
+
 function randInt(lo: number, hi: number) {
   return Math.floor(Math.random() * (hi - lo + 1) + lo);
 }
@@ -77,39 +102,75 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-// ─── Stylized world map SVG ──────────────────────────────────────────────────
-// 700×420 viewBox. Continent shapes are intentionally simple — kids recognize
-// the rough shape + name, not perfect cartography.
-function WorldMap({ highlighted }: { highlighted: string | null }) {
-  const fillFor = (key: string) =>
-    highlighted === key ? '#FFD93D' : CONTINENT_COLORS[key] || '#E5E0D8';
-  const strokeFor = (key: string) => highlighted === key ? '#2D1B00' : '#2D1B00';
+// ─── World map renderer ──────────────────────────────────────────────────────
+// Uses the real Wikimedia Continents.svg (public-domain, PD-USGov-CIA-WF) as
+// the base image. Overlays a pulsing colored rectangle on the highlighted
+// continent (or ocean) so kids can see exactly which one they're being asked
+// about. Antarctica is drawn as an overlay since the Wikimedia file omits it.
+function WorldMap({ highlighted, kind }: { highlighted: string | null; kind: 'continent' | 'ocean' }) {
+  const boxes = kind === 'continent' ? CONTINENT_BOXES : OCEAN_BOXES;
+  const box = highlighted ? boxes[highlighted] : null;
+  // For Antarctica, draw a stylized polar overlay since the asset omits it.
+  const drawAntarcticaOverlay = kind === 'continent' && highlighted === 'antarctica';
   return (
-    <svg width="100%" viewBox="0 0 700 420" style={{ maxWidth: 520, background: '#BDE0FE', borderRadius: 12 }}>
-      {/* Ocean */}
-      <rect x="0" y="0" width="700" height="420" fill="#BDE0FE" />
-      {/* Asia — upper right large blob */}
-      <path data-id="asia" d="M380,90 Q420,60 480,80 L560,110 Q610,140 600,200 L540,260 Q500,280 450,260 L420,210 Q380,170 380,90 Z"
-        fill={fillFor('asia')} stroke={strokeFor('asia')} strokeWidth={2} />
-      {/* Africa — center, vertical */}
-      <path data-id="africa" d="M310,180 Q340,170 360,200 L370,260 Q360,310 330,340 L290,350 Q280,320 280,280 L290,210 Z"
-        fill={fillFor('africa')} stroke={strokeFor('africa')} strokeWidth={2} />
-      {/* Europe — upper center small */}
-      <path data-id="europe" d="M280,90 Q310,70 350,80 L390,100 Q400,130 370,150 L320,160 Q280,140 280,90 Z"
-        fill={fillFor('europe')} stroke={strokeFor('europe')} strokeWidth={2} />
-      {/* North America — upper left */}
-      <path data-id="north_america" d="M50,80 Q100,60 170,80 L220,140 Q230,200 200,230 L140,250 Q80,240 60,200 L40,140 Z"
-        fill={fillFor('north_america')} stroke={strokeFor('north_america')} strokeWidth={2} />
-      {/* South America — lower left */}
-      <path data-id="south_america" d="M170,260 Q200,250 220,280 L230,330 Q220,370 190,380 L160,370 Q150,330 160,290 Z"
-        fill={fillFor('south_america')} stroke={strokeFor('south_america')} strokeWidth={2} />
-      {/* Australia — lower right */}
-      <path data-id="australia" d="M540,300 Q580,290 610,310 L620,350 Q600,370 560,370 L530,360 Q520,330 540,300 Z"
-        fill={fillFor('australia')} stroke={strokeFor('australia')} strokeWidth={2} />
-      {/* Antarctica — bottom */}
-      <path data-id="antarctica" d="M120,390 Q200,380 320,390 L450,395 L580,390 Q600,400 580,415 L100,415 Q80,400 120,390 Z"
-        fill={fillFor('antarctica')} stroke={strokeFor('antarctica')} strokeWidth={2} />
-    </svg>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        maxWidth: 520,
+        margin: '0 auto',
+        background: '#BDE0FE',
+        borderRadius: 12,
+        overflow: 'hidden',
+      }}
+    >
+      <img
+        src="/games/earthexplorer/continents.svg"
+        alt="World map showing the seven continents"
+        style={{ width: '100%', display: 'block' }}
+      />
+      {/* Antarctica overlay (drawn on top of the asset's empty bottom strip) */}
+      {drawAntarcticaOverlay && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '12%',
+            top: '89.5%',
+            width: '78%',
+            height: '8.8%',
+            background: 'rgba(255, 255, 255, 0.95)',
+            borderTop: '4px solid #C5E0F5',
+            borderRadius: 4,
+          }}
+        />
+      )}
+      {/* Highlight rectangle */}
+      {box && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: `${box.x}%`,
+            top: `${box.y}%`,
+            width: `${box.w}%`,
+            height: `${box.h}%`,
+            background: 'rgba(255, 217, 61, 0.45)',
+            border: '4px solid #2D1B00',
+            borderRadius: 8,
+            boxShadow: '0 0 0 4px rgba(255, 217, 61, 0.4), 0 6px 0 rgba(0,0,0,0.15)',
+            animation: 'pulse 1.2s ease-in-out infinite',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(255,217,61,0.4), 0 6px 0 rgba(0,0,0,0.15); }
+          50%      { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(255,217,61,0.15), 0 6px 0 rgba(0,0,0,0.15); }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -437,7 +498,7 @@ export default function EarthExplorer({ onBack, kidName }: { onBack: () => void;
 
         {(question.category === 'continent' || question.category === 'ocean') && (
           <div style={{ marginTop: 14 }}>
-            <WorldMap highlighted={mapHighlight} />
+            <WorldMap highlighted={mapHighlight} kind={question.category} />
           </div>
         )}
       </div>
