@@ -46,6 +46,11 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'two-digit-sprint': { name: 'Two-Digit Sprint', emoji: '🏃', color: 'var(--accent-pink)', bestKey: 'twodigit_best_streak' },
   'borrow-bay': { name: 'Borrow Bay', emoji: '🏴‍☠️', color: 'var(--accent-orange)', bestKey: 'borrowbay_best_streak' },
   'time-to-five': { name: 'Time to 5', emoji: '⏰', color: 'var(--accent-blue)', bestKey: 'timeto5_best_streak' },
+  'equal-groups': { name: 'Equal Groups', emoji: '🍪', color: 'var(--accent-pink)', bestKey: 'equalgroups_best_streak' },
+  'contraction-coop': { name: 'Contraction Co-op', emoji: '🤝', color: 'var(--accent-purple)', bestKey: 'contraction_best_streak' },
+  'compound-forge': { name: 'Compound Word Forge', emoji: '⚒️', color: 'var(--accent-orange)', bestKey: 'compound_best_streak' },
+  'skip-counter': { name: 'Skip Counter', emoji: '🏃', color: 'var(--accent-blue)', bestKey: 'skipcount_best_streak' },
+  'suffix-sorter': { name: 'Suffix Sorter', emoji: '✏️', color: 'var(--accent-purple)', bestKey: 'suffixsort_best_streak' },
 };
 
 export default function Dashboard() {

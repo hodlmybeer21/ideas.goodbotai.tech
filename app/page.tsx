@@ -37,6 +37,11 @@ import DotsAndBoxes from './components/DotsAndBoxes';
 import TwoDigitSprint from './components/TwoDigitSprint';
 import BorrowBay from './components/BorrowBay';
 import TimeToFive from './components/TimeToFive';
+import EqualGroups from './components/EqualGroups';
+import ContractionCoop from './components/ContractionCoop';
+import CompoundForge from './components/CompoundForge';
+import SkipCounter from './components/SkipCounter';
+import SuffixSorter from './components/SuffixSorter';
 
 type Grade = 1 | 2;
 type View =
@@ -45,7 +50,9 @@ type View =
   | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix'
   | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'bunnyhop'
   | 'photoframe' | 'mirrordraw' | 'numberbingo' | 'beatcomposer' | 'dotsandboxes'
-  | 'twodigit' | 'borrowbay' | 'timeto5' | 'dashboard';
+  | 'twodigit' | 'borrowbay' | 'timeto5'
+  | 'equalgroups' | 'contraction' | 'compound' | 'skipcount' | 'suffixsort'
+  | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
@@ -150,6 +157,11 @@ export default function Home() {
         {view === 'twodigit' && <TwoDigitSprint onBack={() => setView('home')} kidName={kidName} />}
         {view === 'borrowbay' && <BorrowBay onBack={() => setView('home')} kidName={kidName} />}
         {view === 'timeto5' && <TimeToFive onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'equalgroups' && <EqualGroups onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'contraction' && <ContractionCoop onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'compound' && <CompoundForge onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'skipcount' && <SkipCounter onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'suffixsort' && <SuffixSorter onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -237,6 +249,11 @@ const ACTIVITIES: Activity[] = [
   { id: 'twodigit', icon: '🏃', name: 'Two-Digit Sprint', desc: 'Add big numbers with carrying!', color: 'pink', grade: 2 },
   { id: 'borrowbay', icon: '🏴‍☠️', name: 'Borrow Bay', desc: 'Subtract and borrow pirate gold!', color: 'orange', grade: 2 },
   { id: 'timeto5', icon: '⏰', name: 'Time to 5', desc: 'Read clocks to the nearest 5 minutes!', color: 'blue', grade: 2 },
+  { id: 'equalgroups', icon: '🍪', name: 'Equal Groups', desc: 'Count cookie trays and find missing factors!', color: 'pink', grade: 2 },
+  { id: 'contraction', icon: '🤝', name: 'Contraction Co-op', desc: 'Pair up words with an apostrophe!', color: 'purple', grade: 2 },
+  { id: 'compound', icon: '⚒️', name: 'Compound Forge', desc: 'Hammer two words into a compound!', color: 'orange', grade: 2 },
+  { id: 'skipcount', icon: '🔢', name: 'Skip Counter', desc: 'Count by 5s, 10s, and 25s!', color: 'blue', grade: 2 },
+  { id: 'suffixsort', icon: '✏️', name: 'Suffix Sorter', desc: 'Match the right suffix to the sentence!', color: 'purple', grade: 2 },
 ];
 
 function GradeTabs({
