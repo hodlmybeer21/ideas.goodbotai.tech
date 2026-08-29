@@ -46,6 +46,7 @@ import TicTacToe from '../components/TicTacToe';
 import Game2048 from '../components/Game2048';
 import Threes from '../components/Threes';
 import Match3 from '../components/Match3';
+import StackTower from '../components/StackTower';
 
 const PLAYER_COLORS = [
   { color: '#FF6B9D', label: 'Pink', emoji: '🩷' },
@@ -303,6 +304,7 @@ function ActivityBridge({ component, onDone }) {
     case 'game2048':       return <Game2048          onBack={onDone} />;
     case 'threes':          return <Threes             onBack={onDone} />;
     case 'match3':          return <Match3             onBack={onDone} />;
+    case 'stacktower':      return <StackTower         onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':
