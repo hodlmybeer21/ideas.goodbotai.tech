@@ -44,6 +44,7 @@ import PixelCanvas from '../components/PixelCanvas';
 import TensOnesExplorer from '../components/TensOnesExplorer';
 import TicTacToe from '../components/TicTacToe';
 import Game2048 from '../components/Game2048';
+import Threes from '../components/Threes';
 
 const PLAYER_COLORS = [
   { color: '#FF6B9D', label: 'Pink', emoji: '🩷' },
@@ -299,6 +300,7 @@ function ActivityBridge({ component, onDone }) {
     case 'communityhelpers': return <CommunityHelpers onBack={onDone} />;
     case 'tictactoe':      return <TicTacToe         onBack={onDone} />;
     case 'game2048':       return <Game2048          onBack={onDone} />;
+    case 'threes':          return <Threes             onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':
