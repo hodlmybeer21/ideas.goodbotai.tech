@@ -42,6 +42,10 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'mirror-draw': { name: 'Mirror Draw', emoji: '🪞', color: 'var(--accent-blue)', bestKey: 'mirrordraw_best_score' },
   'number-bingo': { name: 'Number Bingo', emoji: '🎯', color: 'var(--accent-green)', bestKey: 'numberbingo_best' },
   'beat-composer': { name: 'Beat Composer', emoji: '🎵', color: 'var(--accent-orange)', bestKey: 'beatcomposer_count' },
+  // 2nd Grade additions — 2026-08-29 back-to-school batch
+  'two-digit-sprint': { name: 'Two-Digit Sprint', emoji: '🏃', color: 'var(--accent-pink)', bestKey: 'twodigit_best_streak' },
+  'borrow-bay': { name: 'Borrow Bay', emoji: '🏴‍☠️', color: 'var(--accent-orange)', bestKey: 'borrowbay_best_streak' },
+  'time-to-five': { name: 'Time to 5', emoji: '⏰', color: 'var(--accent-blue)', bestKey: 'timeto5_best_streak' },
 };
 
 export default function Dashboard() {

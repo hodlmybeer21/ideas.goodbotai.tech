@@ -34,26 +34,41 @@ import MirrorDraw from './components/MirrorDraw';
 import NumberBingo from './components/NumberBingo';
 import BeatComposer from './components/BeatComposer';
 import DotsAndBoxes from './components/DotsAndBoxes';
+import TwoDigitSprint from './components/TwoDigitSprint';
+import BorrowBay from './components/BorrowBay';
+import TimeToFive from './components/TimeToFive';
 
-
-type View = 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time' | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder' | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix' | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'bunnyhop' | 'photoframe' | 'mirrordraw' | 'numberbingo' | 'beatcomposer' | 'dotsandboxes' | 'dashboard';
+type Grade = 1 | 2;
+type View =
+  | 'home' | 'draw' | 'story' | 'match' | 'sound' | 'math' | 'madlib' | 'readalong' | 'time'
+  | 'robot' | 'truefalse' | 'sentence' | 'equal' | 'syllable' | 'codebots' | 'statefinder'
+  | 'pixelstudio' | 'colorlab' | 'tensones' | 'bossyr' | 'coin' | 'storyqa' | 'sentfix'
+  | 'plantcycle' | 'pluralbuilder' | 'basewordsorter' | 'bugcatcher' | 'bunnyhop'
+  | 'photoframe' | 'mirrordraw' | 'numberbingo' | 'beatcomposer' | 'dotsandboxes'
+  | 'twodigit' | 'borrowbay' | 'timeto5' | 'dashboard';
 
 export default function Home() {
   const [view, setView] = useState<View>('home');
   const [kidName, setKidName] = useState('');
   const [isWelcomed, setIsWelcomed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  // Default to Grade 1 so existing users / younger siblings keep their games visible on first load.
+  const [activeGrade, setActiveGrade] = useState<Grade>(1);
 
   useEffect(() => {
-    const saved = localStorage.getItem('goodbotkids_name');
-    if (saved) {
-      setKidName(saved);
-      setIsWelcomed(true);
-    }
+    try {
+      const saved = localStorage.getItem('goodbotkids_name');
+      if (saved) {
+        setKidName(saved);
+        setIsWelcomed(true);
+      }
+      const savedGrade = localStorage.getItem('goodbotkids_grade');
+      if (savedGrade === '2') setActiveGrade(2);
+    } catch {}
   }, []);
 
   const handleWelcome = (name: string) => {
-    localStorage.setItem('goodbotkids_name', name);
+    try { localStorage.setItem('goodbotkids_name', name); } catch {}
     setKidName(name);
     setIsWelcomed(true);
     setShowConfetti(true);
@@ -61,17 +76,15 @@ export default function Home() {
   };
 
   const handleNameReset = () => {
-    localStorage.removeItem('goodbotkids_name');
+    try { localStorage.removeItem('goodbotkids_name'); } catch {}
     setKidName('');
     setIsWelcomed(false);
   };
 
-  // Welcome screen
   if (!isWelcomed) {
     return <WelcomeScreen onEnter={handleWelcome} />;
   }
 
-  // Show confetti
   if (showConfetti) {
     <Confetti />;
   }
@@ -94,7 +107,14 @@ export default function Home() {
       </header>
 
       <main className="app-main">
-        {view === 'home' && <HomeScreen setView={setView} kidName={kidName} />}
+        {view === 'home' && (
+          <HomeScreen
+            setView={setView}
+            kidName={kidName}
+            activeGrade={activeGrade}
+            onGradeChange={setActiveGrade}
+          />
+        )}
         {view === 'draw' && <DrawingCanvas onBack={() => setView('home')} kidName={kidName} />}
         {view === 'story' && <StoryMachine kidName={kidName} onBack={() => setView('home')} />}
         {view === 'match' && <AnimalMatch onBack={() => setView('home')} kidName={kidName} />}
@@ -110,7 +130,7 @@ export default function Home() {
         {view === 'syllable' && <SyllableScooper />}
         {view === 'codebots' && <CodeBots onBack={() => setView('home')} kidName={kidName} />}
         {view === 'statefinder' && <StateFinder onBack={() => setView('home')} kidName={kidName} />}
-        {view === 'pixelstudio' && <PixelCanvas onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'pixelstudio' && <PixelCanvas onBack={() => setView('home')} />}
         {view === 'colorlab' && <ColorLab onBack={() => setView('home')} />}
         {view === 'tensones' && <TensOnesExplorer onBack={() => setView('home')} />}
         {view === 'bossyr' && <BossyRRacer onBack={() => setView('home')} />}
@@ -127,7 +147,9 @@ export default function Home() {
         {view === 'numberbingo' && <NumberBingo onBack={() => setView('home')} kidName={kidName} />}
         {view === 'beatcomposer' && <BeatComposer onBack={() => setView('home')} kidName={kidName} />}
         {view === 'dotsandboxes' && <DotsAndBoxes onBack={() => setView('home')} kidName={kidName} />}
-
+        {view === 'twodigit' && <TwoDigitSprint onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'borrowbay' && <BorrowBay onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'timeto5' && <TimeToFive onBack={() => setView('home')} kidName={kidName} />}
       </main>
     </>
   );
@@ -169,68 +191,194 @@ function WelcomeScreen({ onEnter }: { onEnter: (name: string) => void }) {
   );
 }
 
-function HomeScreen({ setView, kidName }: { setView: (v: View) => void; kidName: string }) {
+interface Activity {
+  id: View;
+  icon: string;
+  name: string;
+  desc: string;
+  color: 'pink' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'indigo';
+  grade: Grade;
+}
+
+const ACTIVITIES: Activity[] = [
+  { id: 'draw', icon: '🎨', name: 'Magic Canvas', desc: 'Draw anything you imagine!', color: 'pink', grade: 1 },
+  { id: 'story', icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple', grade: 1 },
+  { id: 'match', icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow', grade: 1 },
+  { id: 'sound', icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange', grade: 1 },
+  { id: 'math', icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink', grade: 1 },
+  { id: 'madlib', icon: '📝', name: 'Mad Libs', desc: 'Fill in the blanks for silly stories!', color: 'yellow', grade: 1 },
+  { id: 'readalong', icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple', grade: 1 },
+  { id: 'time', icon: '🕐', name: 'Tell Time', desc: 'Learn to read the clock!', color: 'blue', grade: 1 },
+  { id: 'robot', icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple', grade: 1 },
+  { id: 'truefalse', icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green', grade: 1 },
+  { id: 'sentence', icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow', grade: 1 },
+  { id: 'equal', icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple', grade: 1 },
+  { id: 'syllable', icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo', grade: 1 },
+  { id: 'codebots', icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue', grade: 1 },
+  { id: 'statefinder', icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green', grade: 1 },
+  { id: 'pixelstudio', icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink', grade: 1 },
+  { id: 'colorlab', icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue', grade: 1 },
+  { id: 'tensones', icon: '🔢', name: 'Tens & Ones', desc: 'Explore place value with base-10 blocks!', color: 'pink', grade: 1 },
+  { id: 'bossyr', icon: '🏎️', name: 'Bossy R Racer', desc: 'Master bossy R words with a race!', color: 'orange', grade: 1 },
+  { id: 'coin', icon: '💰', name: 'Coin Challenge', desc: 'Count coins and make change!', color: 'yellow', grade: 1 },
+  { id: 'storyqa', icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple', grade: 1 },
+  { id: 'sentfix', icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green', grade: 1 },
+  { id: 'plantcycle', icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green', grade: 1 },
+  { id: 'pluralbuilder', icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo', grade: 1 },
+  { id: 'basewordsorter', icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue', grade: 1 },
+  { id: 'bugcatcher', icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue', grade: 1 },
+  { id: 'bunnyhop', icon: '🐰', name: 'Bunny Hop Counting', desc: 'Hop the bunny to the target number!', color: 'orange', grade: 1 },
+  { id: 'photoframe', icon: '🖼️', name: 'Photo Frame Maker', desc: 'Draw, name, and frame your art!', color: 'purple', grade: 1 },
+  { id: 'mirrordraw', icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue', grade: 1 },
+  { id: 'numberbingo', icon: '🎯', name: 'Number Bingo', desc: 'Listen, match, and call BINGO!', color: 'green', grade: 1 },
+  { id: 'beatcomposer', icon: '🎵', name: 'Beat Composer', desc: 'Build your own beats and songs!', color: 'orange', grade: 1 },
+  { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', grade: 1 },
+  // 2nd Grade — added for back-to-school 2026
+  { id: 'twodigit', icon: '🏃', name: 'Two-Digit Sprint', desc: 'Add big numbers with carrying!', color: 'pink', grade: 2 },
+  { id: 'borrowbay', icon: '🏴‍☠️', name: 'Borrow Bay', desc: 'Subtract and borrow pirate gold!', color: 'orange', grade: 2 },
+  { id: 'timeto5', icon: '⏰', name: 'Time to 5', desc: 'Read clocks to the nearest 5 minutes!', color: 'blue', grade: 2 },
+];
+
+function GradeTabs({
+  active, onChange, g1Count, g2Count,
+}: {
+  active: Grade; onChange: (g: Grade) => void; g1Count: number; g2Count: number;
+}) {
+  const tabBase: React.CSSProperties = {
+    flex: 1,
+    fontSize: 15,
+    padding: '12px 14px',
+    border: 'none',
+    borderRadius: 14,
+    cursor: 'pointer',
+    fontFamily: 'Fredoka, sans-serif',
+    fontWeight: 600,
+    transition: 'transform 0.1s, background 0.2s, color 0.2s',
+  };
+  return (
+    <div
+      role="tablist"
+      aria-label="Grade level"
+      style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 18,
+        background: 'white',
+        padding: 6,
+        borderRadius: 18,
+        boxShadow: 'var(--shadow)',
+        border: '3px solid #E5E0D8',
+      }}
+    >
+      <button
+        role="tab"
+        aria-selected={active === 1}
+        onClick={() => {
+          onChange(1);
+          try { localStorage.setItem('goodbotkids_grade', '1'); } catch {}
+        }}
+        className={`activity-card ${active === 1 ? 'green' : ''}`}
+        style={{
+          ...tabBase,
+          background: active === 1 ? 'var(--accent-green)' : 'transparent',
+          color: active === 1 ? 'white' : 'var(--text-medium)',
+          boxShadow: active === 1 ? '0 4px 0 #3D8B47' : 'none',
+          opacity: active === 1 ? 1 : 0.85,
+        }}
+      >
+        🟢 1st Grade <span style={{ fontSize: 12, opacity: 0.85 }}>({g1Count})</span>
+      </button>
+      <button
+        role="tab"
+        aria-selected={active === 2}
+        onClick={() => {
+          onChange(2);
+          try { localStorage.setItem('goodbotkids_grade', '2'); } catch {}
+        }}
+        className={`activity-card ${active === 2 ? 'blue' : ''}`}
+        style={{
+          ...tabBase,
+          background: active === 2 ? 'var(--accent-blue)' : 'transparent',
+          color: active === 2 ? 'white' : 'var(--text-medium)',
+          boxShadow: active === 2 ? '0 4px 0 #2299CC' : 'none',
+          opacity: active === 2 ? 1 : 0.85,
+        }}
+      >
+        🔵 2nd Grade <span style={{ fontSize: 12, opacity: 0.85 }}>({g2Count})</span>
+      </button>
+    </div>
+  );
+}
+
+function HomeScreen({
+  setView, kidName, activeGrade, onGradeChange,
+}: {
+  setView: (v: View) => void;
+  kidName: string;
+  activeGrade: Grade;
+  onGradeChange: (g: Grade) => void;
+}) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const activities = [
-    { id: 'draw' as View, icon: '🎨', name: 'Magic Canvas', desc: 'Draw anything you imagine!', color: 'pink' },
-    { id: 'story' as View, icon: '📖', name: 'Story Machine', desc: 'Your very own bedtime story', color: 'purple' },
-    { id: 'match' as View, icon: '🧩', name: 'Animal Match', desc: 'Find the matching pairs!', color: 'yellow' },
-    { id: 'sound' as View, icon: '🎵', name: 'Sound Lab', desc: 'Play instruments and make music!', color: 'orange' },
-    { id: 'math' as View, icon: '🧮', name: 'Math Lab', desc: 'Learn math with fun games!', color: 'pink' },
-    { id: 'madlib' as View, icon: '📝', name: 'Mad Libs', desc: 'Fill in the blanks for silly stories!', color: 'yellow' },
-    { id: 'readalong' as View, icon: '📖', name: 'Read Along', desc: 'Slide across words to read!', color: 'purple' },
-    { id: 'time' as View, icon: '🕐', name: 'Tell Time', desc: 'Learn to read the clock!', color: 'blue' },
-    { id: 'robot' as View, icon: '🤖', name: 'Is the Robot Right?', desc: 'Is the robot correct or silly?', color: 'purple' },
-    { id: 'truefalse' as View, icon: '✅❌', name: 'True or False?', desc: 'Is the statement true or false?', color: 'green' },
-    { id: 'sentence' as View, icon: '📝', name: 'Sentence Builder', desc: 'Fill in the missing word!', color: 'yellow' },
-    { id: 'equal' as View, icon: '🔴', name: 'Equal Parts', desc: 'Learn about halves and quarters!', color: 'purple' },
-    { id: 'syllable' as View, icon: '🔤', name: 'Syllable Scooper', desc: 'Practice breaking words into syllables!', color: 'indigo' },
-    { id: 'codebots' as View, icon: '🤖', name: 'CodeBots', desc: 'Program your robot to reach the star!', color: 'blue' },
-    { id: 'statefinder' as View, icon: '🗺️', name: 'State Finder', desc: 'Learn the US map one region at a time!', color: 'green' },
-    { id: 'pixelstudio' as View, icon: '🎨', name: 'Pixel Studio', desc: 'Color pixel art templates and make masterpieces!', color: 'pink' },
-    { id: 'colorlab' as View, icon: '🧪', name: 'Color Lab', desc: 'Mix primary colors and discover new ones!', color: 'blue' },
-    { id: 'tensones' as View, icon: '🔢', name: 'Tens & Ones', desc: 'Explore place value with base-10 blocks!', color: 'pink' },
-    { id: 'bossyr' as View, icon: '🏎️', name: 'Bossy R Racer', desc: 'Master bossy R words with a race!', color: 'orange' },
-    { id: 'coin' as View, icon: '💰', name: 'Coin Challenge', desc: 'Count coins and make change!', color: 'yellow' },
-    { id: 'storyqa' as View, icon: '📚', name: 'Story Q&A', desc: 'Read stories and answer questions!', color: 'purple' },
-    { id: 'sentfix' as View, icon: '🔧', name: 'Sentence Fixer', desc: 'Find and fix mistakes in sentences!', color: 'green' },
-    { id: 'plantcycle' as View, icon: '🌱', name: 'Plant Life Cycle', desc: 'Watch a seed grow into a plant!', color: 'green' },
-    { id: 'pluralbuilder' as View, icon: '📝', name: 'Plural Builder', desc: 'Pick the right suffix -s or -es!', color: 'indigo' },
-    { id: 'basewordsorter' as View, icon: '🗂️', name: 'Baseword Sorter', desc: 'Sort words into the right bucket!', color: 'blue' },
-    { id: 'bugcatcher' as View, icon: '🐛', name: 'Bug Catcher', desc: 'Catch the right sight-word firefly!', color: 'blue' },
-    { id: 'bunnyhop' as View, icon: '🐰', name: 'Bunny Hop Counting', desc: 'Hop the bunny to the target number!', color: 'orange' },
-    { id: 'photoframe' as View, icon: '🖼️', name: 'Photo Frame Maker', desc: 'Draw, name, and frame your art!', color: 'purple' },
-    { id: 'mirrordraw' as View, icon: '🪞', name: 'Mirror Draw', desc: 'Trace shapes by mirroring your strokes!', color: 'blue' },
-    { id: 'numberbingo' as View, icon: '🎯', name: 'Number Bingo', desc: 'Listen, match, and call BINGO!', color: 'green' },
-    { id: 'beatcomposer' as View, icon: '🎵', name: 'Beat Composer', desc: 'Build your own beats and songs!', color: 'orange' },
-    { id: 'dotsandboxes' as View, icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue' },
 
-  ];
+  const g1Count = ACTIVITIES.filter(a => a.grade === 1).length;
+  const g2Count = ACTIVITIES.filter(a => a.grade === 2).length;
+  const visible = ACTIVITIES.filter(a => a.grade === activeGrade);
 
   return (
     <div className="slide-up">
       <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-pink)' }}>
         {greeting}, {kidName}! 👋
       </h2>
-      <p style={{ fontSize: 16, color: 'var(--text-medium)', marginTop: 4, marginBottom: 8 }}>
+      <p style={{ fontSize: 16, color: 'var(--text-medium)', marginTop: 4, marginBottom: 12 }}>
         What would you like to do today?
       </p>
 
+      <GradeTabs active={activeGrade} onChange={onGradeChange} g1Count={g1Count} g2Count={g2Count} />
+
       <div className="activity-grid">
-        {activities.map(a => (
+        {visible.map(a => (
           <button
             key={a.id}
             className={`activity-card ${a.color}`}
             onClick={() => setView(a.id)}
+            data-grade={a.grade}
           >
             <span className="activity-icon">{a.icon}</span>
             <span className="activity-name">{a.name}</span>
             <span className="activity-desc">{a.desc}</span>
+            {a.grade === 2 && (
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                background: 'var(--accent-blue)', color: 'white',
+                padding: '3px 10px', borderRadius: 999, marginTop: 4,
+              }}>NEW · 2nd</span>
+            )}
           </button>
         ))}
       </div>
 
+      {activeGrade === 1 && g2Count > 0 && (
+        <div style={{
+          textAlign: 'center', marginTop: 28,
+          padding: 16, background: 'white',
+          borderRadius: 16, border: '2px dashed var(--accent-blue)',
+        }}>
+          <p style={{ fontSize: 14, color: 'var(--text-medium)', margin: 0 }}>
+            🆕 Ready for a challenge? Try{' '}
+            <button
+              onClick={() => onGradeChange(2)}
+              style={{
+                background: 'none', border: 'none',
+                color: 'var(--accent-blue)', fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit',
+              }}
+            >
+              2nd Grade games
+            </button>!
+          </p>
+        </div>
+      )}
     </div>
   );
 }
