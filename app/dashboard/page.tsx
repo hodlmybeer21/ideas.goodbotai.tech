@@ -88,6 +88,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'community-helpers': { name: 'Community Helpers', emoji: '👮', color: 'var(--accent-blue)', bestKey: 'communityhelpers_best_streak' },
   // Games (cross-grade, pure games)
   'tic-tac-toe': { name: 'Tic Tac Toe', emoji: '⭕', color: 'var(--accent-orange)', bestKey: 'tictactoe_best_streak' },
+  '2048': { name: '2048', emoji: '🔢', color: 'var(--accent-orange)', bestKey: 'game2048_best_0' },
 };
 
 export default function Dashboard() {

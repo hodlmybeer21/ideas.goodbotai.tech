@@ -74,6 +74,7 @@ import MapSkills from './components/MapSkills';
 import FiveSensesLab from './components/FiveSensesLab';
 import CommunityHelpers from './components/CommunityHelpers';
 import TicTacToe from './components/TicTacToe';
+import Game2048 from './components/Game2048';
 
 type Track = 'g1' | 'g2' | 'feelings' | 'games';
 type View =
@@ -92,6 +93,7 @@ type View =
   | 'adjectiveadventure' | 'verbvault' | 'symmetrysafari' | 'mapskills' | 'fivesenseslab'
   | 'communityhelpers'
   | 'tictactoe'
+  | 'game2048'
   | 'dashboard';
 
 export default function Home() {
@@ -232,6 +234,7 @@ export default function Home() {
         {view === 'earthexplorer' && <EarthExplorer onBack={() => setView('home')} kidName={kidName} />}
         {view === 'mattermixer' && <MatterMixer onBack={() => setView('home')} kidName={kidName} />}
         {view === 'tictactoe' && <TicTacToe onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'game2048' && <Game2048 onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -373,6 +376,7 @@ const ACTIVITIES: Activity[] = [
   // Games (pure games, cross-grade)
   { id: 'dotsandboxes', icon: '📦', name: 'Dots & Boxes', desc: 'Draw lines, claim boxes, win!', color: 'blue', track: 'games' },
   { id: 'tictactoe', icon: '⭕', name: 'Tic Tac Toe', desc: 'X vs O — three in a row wins!', color: 'orange', track: 'games' },
+  { id: 'game2048', icon: '🔢', name: '2048', desc: 'Swipe to combine matching tiles!', color: 'orange', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
