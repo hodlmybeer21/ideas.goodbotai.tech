@@ -75,6 +75,9 @@ import FiveSensesLab from './components/FiveSensesLab';
 import CommunityHelpers from './components/CommunityHelpers';
 import Tetris from './components/Tetris';
 import Wordle from './components/Wordle';
+import Penguins from './components/Penguins';
+import LunarLander from './components/LunarLander';
+import Avalanche from './components/Avalanche';
 import TicTacToe from './components/TicTacToe';
 import Game2048 from './components/Game2048';
 import Threes from './components/Threes';
@@ -106,6 +109,9 @@ type View =
   | 'flappybird'
   | 'tetris'
   | 'wordle'
+  | 'penguins'
+  | 'lunarlander'
+  | 'avalanche'
   | 'dashboard';
 
 export default function Home() {
@@ -253,6 +259,9 @@ export default function Home() {
         {view === 'flappybird' && <FlappyBird onBack={() => setView('home')} kidName={kidName} />}
         {view === 'tetris' && <Tetris onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordle' && <Wordle onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'penguins' && <Penguins onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'lunarlander' && <LunarLander onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'avalanche' && <Avalanche onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -401,6 +410,10 @@ const ACTIVITIES: Activity[] = [
   { id: 'flappybird', icon: '🐦', name: 'Flappy Bird', desc: 'Tap to flap, dodge the pipes!', color: 'blue', track: 'games' },
   { id: 'tetris', icon: '🧱', name: 'Tetris', desc: 'Stack blocks, clear lines!', color: 'blue', track: 'games' },
   { id: 'wordle', icon: '🟩', name: 'Wordle', desc: 'Guess the 4-letter word!', color: 'green', track: 'games' },
+  // Classic calculator games (retro section)
+  { id: 'penguins', icon: '🐧', name: 'Penguins', desc: 'Push ice to fill the holes!', color: 'blue', track: 'games' },
+  { id: 'lunarlander', icon: '🌙', name: 'Lunar Lander', desc: 'Land softly on the pad!', color: 'purple', track: 'games' },
+  { id: 'avalanche', icon: '🪨', name: 'Avalanche', desc: 'Dodge the falling boulders!', color: 'green', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
@@ -619,8 +632,10 @@ function HomeScreen({
 
   // Subject filter for the grade-tab sub-tabs. null = show every subject.
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [gamesKind, setGamesKind] = useState<'all' | 'modern' | 'classic'>('all');
   useEffect(() => {
     if (activeTrack !== 'g2' && activeTrack !== 'g1') setActiveSubject(null);
+    if (activeTrack !== 'games') setGamesKind('all');
   }, [activeTrack]);
 
   // Counts for the active track's subjects.
@@ -660,6 +675,12 @@ function HomeScreen({
     ? ACTIVITIES.filter(a => a.track === 'g1' && G1_SUBJECT_MAP[a.id] === activeSubject)
     : activeTrack === 'g2' && activeSubject
     ? ACTIVITIES.filter(a => a.track === 'g2' && G2_SUBJECT_MAP[a.id] === activeSubject)
+    : activeTrack === 'games' && gamesKind !== 'all'
+    ? ACTIVITIES.filter(a => a.track === 'games' && (
+        gamesKind === 'modern'
+          ? !['penguins','lunarlander','avalanche'].includes(a.id)
+          : ['penguins','lunarlander','avalanche'].includes(a.id)
+      ))
     : ACTIVITIES.filter(a => a.track === activeTrack);
 
   return (
@@ -679,6 +700,53 @@ function HomeScreen({
           active={activeSubject}
           onChange={setActiveSubject}
         />
+      )}
+
+      {activeTrack === 'games' && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, background: 'white', padding: 5, borderRadius: 16, boxShadow: 'var(--shadow)', border: '3px solid #E5E0D8' }}>
+          <button
+            onClick={() => setGamesKind('all')}
+            className="activity-card"
+            style={{
+              flex: 1, fontSize: 13, padding: '9px 6px',
+              fontFamily: 'Fredoka, sans-serif', fontWeight: 600,
+              border: 'none', borderRadius: 12, cursor: 'pointer',
+              background: gamesKind === 'all' ? 'var(--accent-orange)' : 'transparent',
+              color: gamesKind === 'all' ? 'white' : 'var(--text-medium)',
+              boxShadow: gamesKind === 'all' ? '0 4px 0 #CC7700' : 'none',
+            }}
+          >
+            🎯 All
+          </button>
+          <button
+            onClick={() => setGamesKind('modern')}
+            className="activity-card"
+            style={{
+              flex: 1, fontSize: 13, padding: '9px 6px',
+              fontFamily: 'Fredoka, sans-serif', fontWeight: 600,
+              border: 'none', borderRadius: 12, cursor: 'pointer',
+              background: gamesKind === 'modern' ? 'var(--accent-blue)' : 'transparent',
+              color: gamesKind === 'modern' ? 'white' : 'var(--text-medium)',
+              boxShadow: gamesKind === 'modern' ? '0 4px 0 #2299CC' : 'none',
+            }}
+          >
+            ⚡ Modern
+          </button>
+          <button
+            onClick={() => setGamesKind('classic')}
+            className="activity-card"
+            style={{
+              flex: 1, fontSize: 13, padding: '9px 6px',
+              fontFamily: 'Fredoka, sans-serif', fontWeight: 600,
+              border: 'none', borderRadius: 12, cursor: 'pointer',
+              background: gamesKind === 'classic' ? 'var(--accent-green)' : 'transparent',
+              color: gamesKind === 'classic' ? 'white' : 'var(--text-medium)',
+              boxShadow: gamesKind === 'classic' ? '0 4px 0 #3D8B47' : 'none',
+            }}
+          >
+            📟 Classic
+          </button>
+        </div>
       )}
 
       <div className="activity-grid">

@@ -95,6 +95,9 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'flappy-bird': { name: 'Flappy Bird', emoji: '🐦', color: 'var(--accent-blue)', bestKey: 'flappy_best_0' },
   'tetris': { name: 'Tetris', emoji: '🧱', color: 'var(--accent-blue)', bestKey: 'tetris_best_0' },
   'wordle': { name: 'Wordle', emoji: '🟩', color: 'var(--accent-green)', bestKey: 'wordle_best_0' },
+  'penguins': { name: 'Penguins', emoji: '🐧', color: 'var(--accent-blue)', bestKey: 'penguins_best_0' },
+  'lunar-lander': { name: 'Lunar Lander', emoji: '🌙', color: 'var(--accent-purple)', bestKey: 'lunar_best_0' },
+  'avalanche': { name: 'Avalanche', emoji: '🪨', color: 'var(--accent-green)', bestKey: 'avalanche_best_0' },
 };
 
 export default function Dashboard() {
