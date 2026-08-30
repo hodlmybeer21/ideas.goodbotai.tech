@@ -73,6 +73,7 @@ import SymmetrySafari from './components/SymmetrySafari';
 import MapSkills from './components/MapSkills';
 import FiveSensesLab from './components/FiveSensesLab';
 import CommunityHelpers from './components/CommunityHelpers';
+import Tetris from './components/Tetris';
 import TicTacToe from './components/TicTacToe';
 import Game2048 from './components/Game2048';
 import Threes from './components/Threes';
@@ -102,6 +103,7 @@ type View =
   | 'match3'
   | 'stacktower'
   | 'flappybird'
+  | 'tetris'
   | 'dashboard';
 
 export default function Home() {
@@ -247,6 +249,7 @@ export default function Home() {
         {view === 'match3' && <Match3 onBack={() => setView('home')} kidName={kidName} />}
         {view === 'stacktower' && <StackTower onBack={() => setView('home')} kidName={kidName} />}
         {view === 'flappybird' && <FlappyBird onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'tetris' && <Tetris onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -393,6 +396,7 @@ const ACTIVITIES: Activity[] = [
   { id: 'match3', icon: '🍬', name: 'Match-3', desc: 'Swap candies to make 3 in a row!', color: 'pink', track: 'games' },
   { id: 'stacktower', icon: '🏗️', name: 'Stack Tower', desc: 'Time your tap to stack blocks high!', color: 'orange', track: 'games' },
   { id: 'flappybird', icon: '🐦', name: 'Flappy Bird', desc: 'Tap to flap, dodge the pipes!', color: 'blue', track: 'games' },
+  { id: 'tetris', icon: '🧱', name: 'Tetris', desc: 'Stack blocks, clear lines!', color: 'blue', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
