@@ -49,6 +49,7 @@ import Match3 from '../components/Match3';
 import StackTower from '../components/StackTower';
 import FlappyBird from '../components/FlappyBird';
 import Tetris from '../components/Tetris';
+import Wordle from '../components/Wordle';
 
 const PLAYER_COLORS = [
   { color: '#FF6B9D', label: 'Pink', emoji: '🩷' },
@@ -309,6 +310,7 @@ function ActivityBridge({ component, onDone }) {
     case 'stacktower':      return <StackTower         onBack={onDone} />;
     case 'flappybird':      return <FlappyBird         onBack={onDone} />;
     case 'tetris':          return <Tetris             onBack={onDone} />;
+    case 'wordle':           return <Wordle              onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':

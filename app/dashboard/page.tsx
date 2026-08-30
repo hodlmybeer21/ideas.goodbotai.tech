@@ -94,6 +94,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'stack-tower': { name: 'Stack Tower', emoji: '🏗️', color: 'var(--accent-orange)', bestKey: 'stacktower_best_0' },
   'flappy-bird': { name: 'Flappy Bird', emoji: '🐦', color: 'var(--accent-blue)', bestKey: 'flappy_best_0' },
   'tetris': { name: 'Tetris', emoji: '🧱', color: 'var(--accent-blue)', bestKey: 'tetris_best_0' },
+  'wordle': { name: 'Wordle', emoji: '🟩', color: 'var(--accent-green)', bestKey: 'wordle_best_0' },
 };
 
 export default function Dashboard() {
