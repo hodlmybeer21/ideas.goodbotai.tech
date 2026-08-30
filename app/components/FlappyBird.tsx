@@ -24,10 +24,12 @@ const PIPE_SPACING = 200;
 const GROUND_HEIGHT = 40;
 const BIRD_EMOJI = '🐦';
 
-const GRAVITY: Record<Difficulty, number> = { 0: 0.35, 1: 0.45, 2: 0.55 };
-const JUMP_V: Record<Difficulty, number> = { 0: -7.5, 1: -8, 2: -8.5 };
-const PIPE_SPEED: Record<Difficulty, number> = { 0: 2.2, 1: 3, 2: 3.6 };
-const GAP_HEIGHT: Record<Difficulty, number> = { 0: 180, 1: 150, 2: 125 };
+// Easier physics for more fun: more floaty gravity, bigger flaps, wider
+// gaps on Easy, slower pipes. Hard mode still ramps up quickly.
+const GRAVITY: Record<Difficulty, number> = { 0: 0.28, 1: 0.40, 2: 0.58 };
+const JUMP_V: Record<Difficulty, number> = { 0: -8.5, 1: -8.2, 2: -8 };
+const PIPE_SPEED: Record<Difficulty, number> = { 0: 1.6, 1: 2.5, 2: 3.4 };
+const GAP_HEIGHT: Record<Difficulty, number> = { 0: 220, 1: 170, 2: 135 };
 
 const TOTAL_LIVES = 3;
 
@@ -52,6 +54,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
   const [bestScore, setBestScore] = useState(0);
   const [flashRed, setFlashRed] = useState(false);
   const [started, setStarted] = useState(false);
+  const [comboMsg, setComboMsg] = useState<string | null>(null);
+  const [birdTrail, setBirdTrail] = useState<{ x: number; y: number }[]>([]);
 
   const animRef = useRef<number | null>(null);
   const stateRef = useRef({
@@ -62,6 +66,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
     lives: TOTAL_LIVES,
     gameOver: false,
     lastSpawn: 0,
+    lastMilestone: 0,
+    trail: [] as { x: number; y: number }[],
   });
 
   useEffect(() => {
@@ -83,6 +89,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
     setRound(0);
     setFlashRed(false);
     setStarted(false);
+    setComboMsg(null);
+    setBirdTrail([]);
     stateRef.current = {
       birdY: STAGE_HEIGHT / 2,
       birdVel: 0,
@@ -91,6 +99,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
       lives: TOTAL_LIVES,
       gameOver: false,
       lastSpawn: 0,
+      lastMilestone: 0,
+      trail: [],
     };
     setScreen('play');
   }, []);
@@ -163,6 +173,27 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
         }
       }
       s.score += scoreGained;
+
+      // Bird trail — track recent positions for a fading streak
+      s.trail.push({ x: BIRD_X, y: s.birdY });
+      if (s.trail.length > 8) s.trail.shift();
+
+      // Milestone celebrations (fun, kid-friendly praise)
+      const milestones: [number, string][] = [
+        [3,  'Nice! 🎉'],
+        [5,  'On fire! 💪'],
+        [10, 'Amazing! ⭐'],
+        [15, 'Soaring! 🚀'],
+        [20, 'Flappy Master! 👑'],
+      ];
+      for (const [m, msg] of milestones) {
+        if (s.score >= m && s.lastMilestone < m) {
+          s.lastMilestone = m;
+          setComboMsg(msg);
+          setTimeout(() => setComboMsg(null), 1500);
+          break;
+        }
+      }
 
       // Spawn new pipe
       frameCount++;
@@ -244,6 +275,8 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
               lives: newLives,
               gameOver: false,
               lastSpawn: 0,
+              lastMilestone: 0,
+              trail: [],
             };
           }
         }, 800);
@@ -459,6 +492,21 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
                 />
               </g>
             ))}
+            {/* Bird trail — fading dots behind the bird */}
+            {birdTrail.slice(0, -1).map((t, i) => {
+              const opacity = (i + 1) / (birdTrail.length + 1) * 0.5;
+              const r = BIRD_SIZE / 2 - i * 1.5;
+              return (
+                <circle
+                  key={`trail-${i}`}
+                  cx={t.x}
+                  cy={t.y}
+                  r={Math.max(4, r)}
+                  fill="#FFD93D"
+                  opacity={opacity}
+                />
+              );
+            })}
             {/* Bird */}
             <g transform={`translate(${BIRD_X}, ${birdY}) rotate(${birdRot})`} style={{ transition: 'transform 0.05s linear' }}>
               <circle cx={0} cy={0} r={BIRD_SIZE / 2} fill="#FFD93D" stroke="#E5B85A" strokeWidth={2} />
@@ -503,12 +551,25 @@ export default function FlappyBird({ onBack, kidName }: { onBack: () => void; ki
           {gameOver && (
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 36, fontWeight: 700, color: '#fff',
-              textShadow: '0 2px 0 #2D1B00',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
               pointerEvents: 'none',
             }}>
-              💥 Oof!
+              <div style={{ fontSize: 36, fontWeight: 700, color: '#fff', textShadow: '0 2px 0 #2D1B00' }}>💥 Oof!</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', textShadow: '0 1px 0 #2D1B00' }}>
+                {score >= 15 ? '⭐ Flappy Master!' : score >= 8 ? '💪 Nice flying!' : score >= 3 ? '👍 Good start!' : '🌱 Keep trying!'}
+              </div>
+              <div style={{ fontSize: 12, color: '#fff', textShadow: '0 1px 0 #2D1B00', opacity: 0.85, marginTop: 4 }}>tap to play again</div>
+            </div>
+          )}
+          {/* Combo / milestone celebration */}
+          {comboMsg && !gameOver && (
+            <div style={{
+              position: 'absolute', top: '30%', left: 0, right: 0,
+              textAlign: 'center', fontSize: 32, fontWeight: 700,
+              color: '#FFD93D', textShadow: '0 3px 0 #2D1B00, 0 0 16px rgba(255,217,61,0.5)',
+              pointerEvents: 'none', animation: 'pop 0.3s ease',
+            }}>
+              {comboMsg}
             </div>
           )}
         </div>
