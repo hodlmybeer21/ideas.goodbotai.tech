@@ -79,6 +79,7 @@ import Penguins from './components/Penguins';
 import LunarLander from './components/LunarLander';
 import Avalanche from './components/Avalanche';
 import GalaxyDefenders from './components/GalaxyDefenders';
+import Indestructotank from './components/Indestructotank';
 import TicTacToe from './components/TicTacToe';
 import Game2048 from './components/Game2048';
 import Threes from './components/Threes';
@@ -114,6 +115,7 @@ type View =
   | 'lunarlander'
   | 'avalanche'
   | 'galaxy'
+  | 'tank'
   | 'dashboard';
 
 export default function Home() {
@@ -265,6 +267,7 @@ export default function Home() {
         {view === 'lunarlander' && <LunarLander onBack={() => setView('home')} kidName={kidName} />}
         {view === 'avalanche' && <Avalanche onBack={() => setView('home')} kidName={kidName} />}
         {view === 'galaxy' && <GalaxyDefenders onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'tank' && <Indestructotank onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -418,6 +421,7 @@ const ACTIVITIES: Activity[] = [
   { id: 'lunarlander', icon: '🌙', name: 'Lunar Lander', desc: 'Land softly on the pad!', color: 'purple', track: 'games' },
   { id: 'avalanche', icon: '🪨', name: 'Avalanche', desc: 'Dodge the falling boulders!', color: 'green', track: 'games' },
   { id: 'galaxy', icon: '👾', name: 'Galaxy Defenders', desc: 'Shoot the aliens before they get you!', color: 'purple', track: 'games' },
+  { id: 'tank', icon: '🚜', name: 'Indestructotank', desc: 'Blast the enemy tanks before they get you!', color: 'orange', track: 'games' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
@@ -682,8 +686,8 @@ function HomeScreen({
     : activeTrack === 'games' && gamesKind !== 'all'
     ? ACTIVITIES.filter(a => a.track === 'games' && (
         gamesKind === 'modern'
-          ? !['penguins','lunarlander','avalanche','galaxy'].includes(a.id)
-          : ['penguins','lunarlander','avalanche','galaxy'].includes(a.id)
+          ? !['penguins','lunarlander','avalanche','galaxy','tank'].includes(a.id)
+          : ['penguins','lunarlander','avalanche','galaxy','tank'].includes(a.id)
       ))
     : ACTIVITIES.filter(a => a.track === activeTrack);
 
