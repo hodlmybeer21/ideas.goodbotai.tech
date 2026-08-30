@@ -2,287 +2,268 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import RatingModal from './RatingModal';
 
-// Penguins (kid edition) — classic sliding-ice puzzle. Push ice blocks
-// to fill all the holes. You can only push (never pull) and blocks slide
-// until they hit a wall, another block, or another penguin.
-//   🌱 Easy   · 5×4 grid, 2 holes, 12 moves
-//   🌿 Medium · 6×5 grid, 3 holes, 18 moves
-//   🌳 Hard   · 7×5 grid, 4 holes, 22 moves
-// Controls: click a penguin or block to select it, then click an
-// adjacent empty cell to push it. Or use arrow keys to push from that
-// direction.
+// Penguins (kid edition) — classic sliding-ice puzzle.
+// Push ice blocks (light blue) into the holes (dark blue). Penguin can
+// walk into empty cells (and over holes). Pushing into an ice block
+// slides the ice until it hits the wall, another ice, or a hole. Ice
+// filling a hole makes both disappear. Win when no holes remain.
+//
+//   🌱 Easy   · 5×6, 2 holes, 15 moves
+//   🌿 Medium · 5×7, 3 holes, 20 moves
+//   🌳 Hard   · 6×8, 4 holes, 28 moves
+//
+// Controls: arrow keys (↑↓←→ or WASD) or tap the on-screen direction buttons.
 
 type Difficulty = 0 | 1 | 2;
-type CellType = 0 | 1 | 2 | 3; // 0=empty, 1=ice, 2=hole, 3=wall
-type Grid = CellType[][];
+type CellType = 0 | 1 | 2; // 0=empty, 1=ice, 2=hole (penguin tracked separately)
 type Pos = { r: number; c: number };
 
 const DIFFICULTY_CONFIG: Record<Difficulty, { rows: number; cols: number; holes: number; moves: number; name: string }> = {
-  0: { rows: 4, cols: 5, holes: 2, moves: 12, name: 'Baby Steps' },
-  1: { rows: 5, cols: 6, holes: 3, moves: 18, name: 'Slippery' },
-  2: { rows: 5, cols: 7, holes: 4, moves: 22, name: 'Deep Freeze' },
+  0: { rows: 5, cols: 6, holes: 2, moves: 15, name: 'Baby Steps' },
+  1: { rows: 5, cols: 7, holes: 3, moves: 20, name: 'Slippery' },
+  2: { rows: 6, cols: 8, holes: 4, moves: 28, name: 'Deep Freeze' },
 };
 
 const TOTAL_ROUNDS = 3;
 
-function emptyGrid(rows: number, cols: number): Grid {
-  return Array.from({ length: rows }, () => Array(cols).fill(0));
+function makeGrid(rows: number, cols: number): CellType[][] {
+  return Array.from({ length: rows }, () => Array(cols).fill(0 as CellType));
 }
 
-function generateLevel(difficulty: Difficulty): { grid: Grid; penguinStart: Pos; iceBlocks: Pos[]; moves: number } {
-  const cfg = DIFFICULTY_CONFIG[difficulty];
-  const { rows, cols, holes, moves } = cfg;
-  const grid = emptyGrid(rows, cols);
-  // Place walls around the border
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) grid[r][c] = 3;
-    }
-  }
-  // Place penguin
-  const penguinStart: Pos = { r: Math.floor(rows / 2), c: Math.floor(cols / 2) };
-  grid[penguinStart.r][penguinStart.c] = 0; // penguin on empty (we'll track separately)
-  // Place ice blocks
-  const iceBlocks: Pos[] = [];
-  for (let i = 0; i < holes; i++) {
-    let placed = false;
-    let attempts = 0;
-    while (!placed && attempts < 100) {
-      const r = 1 + Math.floor(Math.random() * (rows - 2));
-      const c = 1 + Math.floor(Math.random() * (cols - 2));
-      // Check it's not on the penguin or existing blocks
-      if ((r === penguinStart.r && c === penguinStart.c) || grid[r][c] !== 0) { attempts++; continue; }
-      // Place an ice block adjacent to a hole (so it can be pushed into the hole)
-      // For simplicity, just place it anywhere empty
-      grid[r][c] = 1; // ice
-      iceBlocks.push({ r, c });
-      placed = true;
-    }
-  }
-  // Place holes somewhere not occupied
-  for (let i = 0; i < holes; i++) {
-    let placed = false;
-    let attempts = 0;
-    while (!placed && attempts < 100) {
-      const r = 1 + Math.floor(Math.random() * (rows - 2));
-      const c = 1 + Math.floor(Math.random() * (cols - 2));
-      if (grid[r][c] === 0) {
-        grid[r][c] = 2;
-        placed = true;
-      }
-      attempts++;
-    }
-  }
-  return { grid, penguinStart, iceBlocks, moves };
+function countHoles(grid: CellType[][]): number {
+  let n = 0;
+  for (const row of grid) for (const cell of row) if (cell === 2) n++;
+  return n;
 }
 
-function isSolved(grid: Grid, holes: Pos[]): boolean {
-  for (const h of holes) {
-    if (grid[h.r][h.c] !== 1) return false; // hole not covered by ice
+// Slide a block from (startR, startC) in direction (dr, dc).
+// Ice slides until it hits the wall, another ice, or a hole.
+// - Stops in empty: ice lands in last empty cell
+// - Stops in hole: both ice and hole disappear
+function slideBlock(
+  grid: CellType[][],
+  startR: number,
+  startC: number,
+  dr: number,
+  dc: number
+): { grid: CellType[][]; moved: boolean } {
+  const rows = grid.length;
+  const cols = grid[0].length;
+  let r = startR;
+  let c = startC;
+  while (true) {
+    const nr = r + dr;
+    const nc = c + dc;
+    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) break; // wall
+    if (grid[nr][nc] === 1) break; // another ice
+    r = nr;
+    c = nc;
+    if (grid[r][c] === 2) break; // hole — stop here
   }
-  return true;
-}
-
-function cloneGrid(g: Grid): Grid {
-  return g.map(row => row.slice());
-}
-
-function equalGrids(a: Grid, b: Grid): boolean {
-  for (let r = 0; r < a.length; r++) {
-    for (let c = 0; c < a[r].length; c++) {
-      if (a[r][c] !== b[r][c]) return false;
-    }
+  if (r === startR && c === startC) {
+    return { grid, moved: false };
   }
-  return true;
+  const newGrid = grid.map(row => row.slice());
+  newGrid[startR][startC] = 0;
+  newGrid[r][c] = (grid[r][c] === 2) ? 0 : 1; // fill hole (empty) or place ice
+  return { grid: newGrid, moved: true };
 }
 
-function tryPush(grid: Grid, penguin: Pos, dr: number, dc: number): { grid: Grid; penguin: Pos; moved: boolean } {
-  const { rows, cols } = { rows: grid.length, cols: grid[0].length };
+function tryMove(
+  grid: CellType[][],
+  penguin: Pos,
+  dr: number,
+  dc: number
+): { grid: CellType[][]; penguin: Pos; moved: boolean } {
   const nr = penguin.r + dr;
   const nc = penguin.c + dc;
-  if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return { grid, penguin, moved: false };
+  if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length) {
+    return { grid, penguin, moved: false };
+  }
   const target = grid[nr][nc];
-  if (target === 3) return { grid, penguin, moved: false }; // wall
-  if (target === 0) {
-    // Empty cell - just move
+  if (target === 0 || target === 2) {
+    // empty or hole — penguin walks there (holes are passable)
     return { grid, penguin: { r: nr, c: nc }, moved: true };
   }
-  if (target === 1 || target === 2) {
-    // Ice or hole - need to push. Find the next cell.
-    let pr = nr;
-    let pc = nc;
-    while (true) {
-      pr += dr;
-      pc += dc;
-      if (pr < 0 || pr >= rows || pc < 0 || pc >= cols) return { grid, penguin, moved: false };
-      const t = grid[pr][pc];
-      if (t === 3 || t === 1 || t === 2) return { grid, penguin, moved: false }; // blocked
-      // Empty cell - push the block here
-      const newGrid = cloneGrid(grid);
-      newGrid[pr][pc] = target; // move the block
-      newGrid[nr][nc] = 0; // clear the cell where block was
-      return { grid: newGrid, penguin: { r: nr, c: nc }, moved: true };
-    }
+  if (target === 1) {
+    // ice — push it
+    const result = slideBlock(grid, nr, nc, dr, dc);
+    if (!result.moved) return { grid, penguin, moved: false };
+    return { grid: result.grid, penguin: { r: nr, c: nc }, moved: true };
   }
   return { grid, penguin, moved: false };
 }
 
-const TOTAL_MOVES_BY_DIFF: Record<Difficulty, number> = { 0: 12, 1: 18, 2: 22 };
+const DIRS: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
-const CELL_COLORS: Record<CellType, string> = {
-  0: '#E8F4F8', // empty (ice floor)
-  1: '#B3D9E8', // ice block
-  2: '#1B4F6B', // hole (dark water)
-  3: '#6B8B95', // wall
-};
-const PENGUIN_COLOR = '#2D2D2D';
-const PENGUIN_BELLY = '#FFFFFF';
+function generateLevel(d: Difficulty): { grid: CellType[][]; penguin: Pos } {
+  const cfg = DIFFICULTY_CONFIG[d];
+  const grid = makeGrid(cfg.rows, cfg.cols);
+
+  // Place holes (interior cells, not adjacent to each other for cleaner puzzles)
+  const placedHoles: Pos[] = [];
+  let tries = 0;
+  while (placedHoles.length < cfg.holes && tries < 500) {
+    tries++;
+    const r = 1 + Math.floor(Math.random() * (cfg.rows - 2));
+    const c = 1 + Math.floor(Math.random() * (cfg.cols - 2));
+    if (grid[r][c] !== 0) continue;
+    const tooClose = placedHoles.some(h => Math.abs(h.r - r) + Math.abs(h.c - c) <= 1);
+    if (tooClose) continue;
+    grid[r][c] = 2;
+    placedHoles.push({ r, c });
+  }
+
+  // Place one ice block adjacent to each hole
+  for (const hole of placedHoles) {
+    const shuffled = [...DIRS].sort(() => Math.random() - 0.5);
+    let placed = false;
+    for (const [dr, dc] of shuffled) {
+      const br = hole.r + dr;
+      const bc = hole.c + dc;
+      if (br >= 1 && br < cfg.rows - 1 && bc >= 1 && bc < cfg.cols - 1 && grid[br][bc] === 0) {
+        grid[br][bc] = 1;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      for (let r = 1; r < cfg.rows - 1 && !placed; r++) {
+        for (let c = 1; c < cfg.cols - 1 && !placed; c++) {
+          if (grid[r][c] === 0) { grid[r][c] = 1; placed = true; }
+        }
+      }
+    }
+  }
+
+  // Place penguin on a random empty cell
+  const emptyCells: Pos[] = [];
+  for (let r = 1; r < cfg.rows - 1; r++) {
+    for (let c = 1; c < cfg.cols - 1; c++) {
+      if (grid[r][c] === 0) emptyCells.push({ r, c });
+    }
+  }
+  const penguin: Pos = emptyCells.length > 0
+    ? emptyCells[Math.floor(Math.random() * emptyCells.length)]
+    : { r: 1, c: 1 };
+  return { grid, penguin };
+}
 
 export default function Penguins({ onBack, kidName }: { onBack: () => void; kidName?: string }) {
   const [screen, setScreen] = useState<'menu' | 'play' | 'results'>('menu');
   const [difficulty, setDifficulty] = useState<Difficulty>(0);
-  const [grid, setGrid] = useState<Grid>(emptyGrid(4, 5));
+  const [grid, setGrid] = useState<CellType[][]>(makeGrid(5, 6));
   const [penguin, setPenguin] = useState<Pos>({ r: 0, c: 0 });
-  const [holes, setHoles] = useState<Pos[]>([]);
-  const [movesLeft, setMovesLeft] = useState(0);
+  const [movesLeft, setMovesLeft] = useState(15);
   const [round, setRound] = useState(0);
-  const [solved, setSolved] = useState(0);
   const [bestSolved, setBestSolved] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [rated, setRated] = useState(false);
-  const [selected, setSelected] = useState<Pos | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
 
+  // Refs for stale-closure-free handlers
+  const gridRef = useRef(grid);
+  const penguinRef = useRef(penguin);
+  const movesLeftRef = useRef(movesLeft);
+  const screenRef = useRef(screen);
+  const gameOverRef = useRef(gameOver);
+  const difficultyRef = useRef(difficulty);
+  const bestSolvedRef = useRef(bestSolved);
+  const roundRef = useRef(round);
+
+  useEffect(() => { gridRef.current = grid; }, [grid]);
+  useEffect(() => { penguinRef.current = penguin; }, [penguin]);
+  useEffect(() => { movesLeftRef.current = movesLeft; }, [movesLeft]);
+  useEffect(() => { screenRef.current = screen; }, [screen]);
+  useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
+  useEffect(() => { difficultyRef.current = difficulty; }, [difficulty]);
+  useEffect(() => { bestSolvedRef.current = bestSolved; }, [bestSolved]);
+  useEffect(() => { roundRef.current = round; }, [round]);
+
+  // Load best on difficulty change
   useEffect(() => {
     try {
       const s = localStorage.getItem(`penguins_best_${difficulty}`);
-      if (s) setBestSolved(parseInt(s, 10) || 0);
+      setBestSolved(s ? parseInt(s, 10) || 0 : 0);
     } catch {}
   }, [difficulty]);
 
   const startLevel = useCallback((d: Difficulty) => {
-    setDifficulty(d);
     const level = generateLevel(d);
     setGrid(level.grid);
-    setPenguin(level.penguinStart);
-    setHoles(level.iceBlocks.map(b => {
-      // Find a nearby empty cell for the hole
-      // For simplicity, place hole right next to the block
-      const neighbors: Pos[] = [
-        { r: b.r + 1, c: b.c }, { r: b.r - 1, c: b.c },
-        { r: b.r, c: b.c + 1 }, { r: b.r, c: b.c - 1 },
-      ];
-      for (const n of neighbors) {
-        if (n.r > 0 && n.r < level.grid.length - 1 && n.c > 0 && n.c < level.grid[0].length - 1 && level.grid[n.r][n.c] === 0) {
-          return n;
-        }
-      }
-      return b; // fallback
-    }));
-    setMovesLeft(level.moves);
-    setSolved(0);
-    setGameOver(false);
-    setSelected(null);
-    setMsg(null);
+    setPenguin(level.penguin);
+    setMovesLeft(DIFFICULTY_CONFIG[d].moves);
     setRound(0);
+    setGameOver(false);
+    setMsg(null);
     setScreen('play');
   }, []);
 
-  // Reset moves for a new puzzle within the same match
-  useEffect(() => {
-    if (screen === 'play' && movesLeft === 0 && solved < TOTAL_ROUNDS) {
-      // Auto-start next puzzle
-      const level = generateLevel(difficulty);
-      setGrid(level.grid);
-      setPenguin(level.penguinStart);
-      setHoles(level.iceBlocks.map(b => {
-        const neighbors: Pos[] = [
-          { r: b.r + 1, c: b.c }, { r: b.r - 1, c: b.c },
-          { r: b.r, c: b.c + 1 }, { r: b.r, c: b.c - 1 },
-        ];
-        for (const n of neighbors) {
-          if (n.r > 0 && n.r < level.grid.length - 1 && n.c > 0 && n.c < level.grid[0].length - 1 && level.grid[n.r][n.c] === 0) {
-            return n;
-          }
-        }
-        return b;
-      }));
-      setMovesLeft(level.moves);
-      setMsg('New puzzle!');
-      setTimeout(() => setMsg(null), 1000);
-    }
-  }, [movesLeft, solved, screen, difficulty]);
+  const startGame = (d: Difficulty) => {
+    setDifficulty(d);
+    startLevel(d);
+  };
 
-  const doMove = (dr: number, dc: number) => {
-    if (gameOver || movesLeft <= 0) return;
-    const result = tryPush(grid, penguin, dr, dc);
+  const nextPuzzle = useCallback(() => {
+    const d = difficultyRef.current;
+    const level = generateLevel(d);
+    setGrid(level.grid);
+    setPenguin(level.penguin);
+    setMovesLeft(DIFFICULTY_CONFIG[d].moves);
+    setMsg(null);
+  }, []);
+
+  const doMove = useCallback((dr: number, dc: number) => {
+    if (screenRef.current !== 'play' || gameOverRef.current) return;
+    if (movesLeftRef.current <= 0) return;
+    const result = tryMove(gridRef.current, penguinRef.current, dr, dc);
     if (!result.moved) return;
-    if (equalGrids(result.grid, grid)) return; // no actual change
     setGrid(result.grid);
     setPenguin(result.penguin);
-    const newMoves = movesLeft - 1;
+    const newMoves = movesLeftRef.current - 1;
     setMovesLeft(newMoves);
-    if (isSolved(result.grid, holes)) {
-      setSolved(s => {
-        const newSolved = s + 1;
-        if (newSolved > bestSolved) {
-          try { localStorage.setItem(`penguins_best_${difficulty}`, String(newSolved)); setBestSolved(newSolved); } catch {}
+
+    const holesLeft = countHoles(result.grid);
+    if (holesLeft === 0) {
+      setRound(r => {
+        const nr = r + 1;
+        const newBest = Math.max(bestSolvedRef.current, nr);
+        try { localStorage.setItem(`penguins_best_${difficultyRef.current}`, String(newBest)); } catch {}
+        setBestSolved(newBest);
+        if (nr >= TOTAL_ROUNDS) {
+          setMsg('🎉 All puzzles solved!');
+          setTimeout(() => setScreen('results'), 1200);
+        } else {
+          setMsg(`🎉 Puzzle ${nr}!`);
+          setTimeout(() => nextPuzzle(), 1000);
         }
-        return newSolved;
+        return nr;
       });
-      setMsg('🎉 All holes filled!');
-      const newSolvedCount = solved + 1;
-      setTimeout(() => {
-        if (newSolvedCount >= TOTAL_ROUNDS) {
-          setScreen('results');
-        }
-      }, 1500);
     } else if (newMoves <= 0) {
       setGameOver(true);
-      setTimeout(() => setScreen('results'), 1200);
+      setMsg('😢 Out of moves!');
+      setTimeout(() => setScreen('results'), 1500);
     }
-  };
+  }, [nextPuzzle]);
 
-  const handleClick = (r: number, c: number) => {
-    if (gameOver) return;
-    // Check if clicked on penguin or adjacent
-    if (r === penguin.r && c === penguin.c) {
-      setSelected({ r, c });
-      return;
-    }
-    if (selected && (Math.abs(r - selected.r) + Math.abs(c - selected.c) === 1)) {
-      const dr = r - selected.r;
-      const dc = c - selected.c;
-      doMove(dr, dc);
-      setSelected(null);
-    } else {
-      setSelected({ r, c });
-    }
-  };
-
-  // Keyboard handler
+  // Keyboard handler — added once, reads from refs
   useEffect(() => {
-    if (screen !== 'play') return;
     const handler = (e: KeyboardEvent) => {
-      if (gameOver) return;
+      let dr = 0, dc = 0;
       switch (e.key) {
-        case 'ArrowUp':    e.preventDefault(); doMove(-1, 0); break;
-        case 'ArrowDown':  e.preventDefault(); doMove(1, 0); break;
-        case 'ArrowLeft':  e.preventDefault(); doMove(0, -1); break;
-        case 'ArrowRight': e.preventDefault(); doMove(0, 1); break;
+        case 'ArrowUp':    case 'w': case 'W': dr = -1; dc = 0; break;
+        case 'ArrowDown':  case 's': case 'S': dr = 1;  dc = 0; break;
+        case 'ArrowLeft':  case 'a': case 'A': dr = 0;  dc = -1; break;
+        case 'ArrowRight': case 'd': case 'D': dr = 0;  dc = 1; break;
+        default: return;
       }
+      e.preventDefault();
+      doMove(dr, dc);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  });
-
-  const startGame = (d: Difficulty) => {
-    setSolved(0);
-    setBestSolved(0);
-    setRound(0);
-    startLevel(d);
-  };
+  }, [doMove]);
 
   // ─── MENU ───
   if (screen === 'menu') {
@@ -291,42 +272,31 @@ export default function Penguins({ onBack, kidName }: { onBack: () => void; kidN
         <button className="back-btn" onClick={onBack} style={{ marginRight: 'auto' }}>← Back</button>
         <div style={{ fontSize: 80, marginTop: 12 }}>🐧</div>
         <h1 className="page-title" style={{ justifyContent: 'center', marginBottom: 8 }}>Penguins</h1>
-        <p style={{ fontSize: 16, color: 'var(--text-medium)', maxWidth: 460, margin: '0 auto 24px' }}>
+        <p style={{ fontSize: 16, color: 'var(--text-medium)', maxWidth: 460, margin: '0 auto 20px' }}>
           Push the <strong>ice blocks</strong> (light blue) to fill all the
-          <strong> holes</strong> (dark blue). You can only push — blocks
-          slide until they hit a wall. Use arrow keys or tap to move.
+          <strong> holes</strong> (dark blue). Arrow keys or tap to move. Plan your pushes — ice slides until it hits something!
         </p>
 
         <div style={{ display: 'grid', gap: 14, maxWidth: 460, margin: '0 auto', textAlign: 'left' }}>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-medium)', textAlign: 'center' }}>Pick a puzzle:</p>
-          <button className="btn btn-green" onClick={() => startGame(0)} style={{ fontSize: 17, padding: '14px 18px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>🌱 Easy · 5×4, 2 holes</span>
-              <span style={{ fontSize: 13, opacity: 0.85 }}>★</span>
-            </div>
+          <button className="btn btn-green" onClick={() => startGame(0)} style={{ fontSize: 17, padding: '14px 18px' }}>
+            🌱 Easy · 5×6, 2 holes
           </button>
-          <button className="btn btn-blue" onClick={() => startGame(1)} style={{ fontSize: 17, padding: '14px 18px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>🌿 Medium · 6×5, 3 holes</span>
-              <span style={{ fontSize: 13, opacity: 0.85 }}>★★</span>
-            </div>
+          <button className="btn btn-blue" onClick={() => startGame(1)} style={{ fontSize: 17, padding: '14px 18px' }}>
+            🌿 Medium · 5×7, 3 holes
           </button>
-          <button className="btn btn-purple" onClick={() => startGame(2)} style={{ fontSize: 17, padding: '14px 18px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>🌳 Hard · 7×5, 4 holes</span>
-              <span style={{ fontSize: 13, opacity: 0.85 }}>★★★</span>
-            </div>
+          <button className="btn btn-purple" onClick={() => startGame(2)} style={{ fontSize: 17, padding: '14px 18px' }}>
+            🌳 Hard · 6×8, 4 holes
           </button>
         </div>
 
         {bestSolved > 0 && (
           <p style={{ marginTop: 24, fontSize: 14, color: 'var(--text-medium)' }}>
-            🏆 Best puzzles solved (this level): <strong>{bestSolved}</strong>
+            🏆 Best puzzles solved: <strong>{bestSolved}</strong>/{TOTAL_ROUNDS}
           </p>
         )}
 
         <p style={{ marginTop: 16, fontSize: 13, color: 'var(--text-medium)' }}>
-          {TOTAL_ROUNDS} puzzles per match. Arrow keys or tap the penguin then an adjacent cell.
+          {TOTAL_ROUNDS} puzzles per match. Fill all the holes to win each one!
         </p>
       </div>
     );
@@ -339,13 +309,13 @@ export default function Penguins({ onBack, kidName }: { onBack: () => void; kidN
         <button className="back-btn" onClick={onBack} style={{ marginRight: 'auto' }}>← Back</button>
         <div style={{ fontSize: 90, marginTop: 24 }}>🐧</div>
         <h1 style={{ fontSize: 30, fontWeight: 700, color: 'var(--accent-blue)', marginTop: 12 }}>
-          Match complete!
+          {round >= TOTAL_ROUNDS ? 'Match complete!' : 'Game over'}
         </h1>
         <p style={{ fontSize: 18, color: 'var(--text-medium)', marginTop: 8 }}>
-          Puzzles solved: <strong>{solved}</strong>/{TOTAL_ROUNDS} · Best: <strong>{bestSolved}</strong>
+          Puzzles solved: <strong>{round}</strong>/{TOTAL_ROUNDS} · Best: <strong>{bestSolved}</strong>
         </p>
         <div style={{ fontSize: 56, margin: '12px 0' }}>
-          {solved === TOTAL_ROUNDS ? '⭐⭐⭐' : solved >= 2 ? '⭐⭐' : '⭐'}
+          {round >= TOTAL_ROUNDS ? '⭐⭐⭐' : round >= 2 ? '⭐⭐' : '⭐'}
         </div>
 
         {!rated && bestSolved > 0 && (
@@ -382,19 +352,20 @@ export default function Penguins({ onBack, kidName }: { onBack: () => void; kidN
   // ─── PLAY ───
   const rows = grid.length;
   const cols = grid[0]?.length || 0;
-  const cellSize = Math.min(56, Math.floor(420 / Math.max(rows, cols)));
+  const cellSize = Math.min(64, Math.floor(420 / Math.max(rows, cols)));
+  const holesLeft = countHoles(grid);
 
   return (
-    <div className="canvas-page slide-up" style={{ maxWidth: 720, position: 'relative' }}>
+    <div className="canvas-page slide-up" style={{ maxWidth: 720 }}>
       <button className="back-btn" onClick={onBack}>← Back</button>
       <h1 className="page-title" style={{ marginBottom: 6 }}>🐧 Penguins</h1>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap', fontSize: 14, color: 'var(--text-medium)' }}>
-        <span>Puzzle <strong style={{ color: 'var(--accent-blue)' }}>{solved + 1}</strong>/{TOTAL_ROUNDS}</span>
+        <span>Puzzle <strong style={{ color: 'var(--accent-blue)' }}>{round + 1}</strong>/{TOTAL_ROUNDS}</span>
         <span>·</span>
         <span>Moves <strong style={{ color: 'var(--accent-orange)' }}>{movesLeft}</strong></span>
         <span>·</span>
-        <span>Solved <strong style={{ color: 'var(--accent-green)' }}>{solved}</strong></span>
+        <span>Holes <strong style={{ color: 'var(--accent-pink)' }}>{holesLeft}</strong></span>
         <span>·</span>
         <span>🏆 <strong>{bestSolved}</strong></span>
       </div>
@@ -405,59 +376,60 @@ export default function Penguins({ onBack, kidName }: { onBack: () => void; kidN
         </div>
       )}
 
-      {/* Grid */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
         <div
           style={{
             display: 'grid',
             gridTemplateRows: `repeat(${rows}, 1fr)`,
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gap: 2,
-            padding: 4,
-            background: '#4A6B7A',
-            borderRadius: 6,
-            border: '3px solid #1B4F6B',
+            padding: 6,
+            background: '#D6E9F2',
+            borderRadius: 8,
+            border: '3px solid #5B7FFF',
           }}
         >
           {grid.map((row, r) =>
             row.map((cell, c) => {
               const isPenguin = r === penguin.r && c === penguin.c;
-              const isSelected = selected && selected.r === r && selected.c === c;
               return (
-                <button
+                <div
                   key={`${r}-${c}`}
-                  onClick={() => handleClick(r, c)}
-                  disabled={gameOver}
                   style={{
                     width: cellSize, height: cellSize,
-                    background: isPenguin ? PENGUIN_COLOR : CELL_COLORS[cell as CellType],
-                    border: isSelected ? '3px solid var(--accent-orange)' : '1px solid rgba(0,0,0,0.2)',
-                    borderRadius: 4, padding: 0,
+                    background: isPenguin ? '#1B4F6B' : '#F5FBFD',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: 4,
                     position: 'relative',
-                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: cellSize * 0.6,
                   }}
                 >
-                  {isPenguin && (
-                    <div style={{
-                      position: 'absolute', top: '20%', left: '20%',
-                      width: '60%', height: '50%', background: PENGUIN_BELLY, borderRadius: '50%',
-                    }} />
-                  )}
-                  {cell === 2 && (
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                      width: '40%', height: '40%', background: '#1B4F6B', borderRadius: '50%',
-                    }} />
-                  )}
-                </button>
+                  {isPenguin ? '🐧' : cell === 1 ? '🧊' : cell === 2 ? '🕳️' : ''}
+                </div>
               );
             })
           )}
         </div>
       </div>
 
+      {/* On-screen direction buttons */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 60px)', gridTemplateRows: 'repeat(3, 60px)', gap: 6 }}>
+          <div />
+          <button className="btn btn-primary" onClick={() => doMove(-1, 0)} style={{ fontSize: 24, padding: 0, touchAction: 'manipulation' }}>▲</button>
+          <div />
+          <button className="btn btn-primary" onClick={() => doMove(0, -1)} style={{ fontSize: 24, padding: 0, touchAction: 'manipulation' }}>◀</button>
+          <div />
+          <button className="btn btn-primary" onClick={() => doMove(0, 1)} style={{ fontSize: 24, padding: 0, touchAction: 'manipulation' }}>▶</button>
+          <div />
+          <button className="btn btn-primary" onClick={() => doMove(1, 0)} style={{ fontSize: 24, padding: 0, touchAction: 'manipulation' }}>▼</button>
+          <div />
+        </div>
+      </div>
+
       <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-medium)' }}>
-        Tip: arrow keys to push the penguin. Push ice blocks into the dark holes. You can only push — never pull!
+        Tip: arrow keys or tap the buttons. Push 🧊 into 🕳️ to fill holes. Penguins can walk over holes safely.
       </p>
 
       {showRating && !rated && (

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐋 Bitcoin Whale Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      background: #0a0e17; 
+      color: #e0e8f0; 
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 { 
+      color: #fff; 
+      margin-bottom: 4px;
+      font-size: 1.8em;
+    }
+    .subtitle { color: #6b7c93; font-size: 0.85em; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .card h2 { color: #fff; font-size: 1.1em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.4em; font-weight: 700; color: #fff; }
+    .stat-label { font-size: 0.75em; color: #6b7c93; margin-top: 4px; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+    th { text-align: left; color: #6b7c93; font-weight: 500; padding: 8px 12px; border-bottom: 1px solid #1e293b; font-size: 0.75em; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1a2235; }
+    tr:hover td { background: #1a2235; }
+    .tier { font-size: 1.2em; width: 40px; }
+    .label { font-weight: 500; color: #fff; }
+    .balance { font-weight: 600; color: #44ccff; font-family: 'Courier New', monospace; }
+    .change { font-size: 0.85em; font-weight: 600; }
+    .change.positive { color: #44ff88; }
+    .change.negative { color: #ff4444; }
+    .change.neutral { color: #4a5568; }
+    .address a { color: #6b7c93; text-decoration: none; font-family: monospace; font-size: 0.85em; }
+    .address a:hover { color: #44ccff; }
+    .note { font-size: 0.75em; color: #6b7c93; }
+    .error { color: #ff6b6b; }
+    small { color: #6b7c93; font-weight: 400; }
+    
+    .refresh-btn {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 0.9em;
+      margin-top: 20px;
+    }
+    .refresh-btn:hover { background: #334155; }
+    
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8em; color: #6b7c93; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    
+    .footer { text-align: center; color: #4a5568; font-size: 0.75em; margin-top: 40px; padding-top: 20px; border-top: 1px solid #1e293b; }
+  </style>
+</head>
+<body>
+  <h1>🐋 Bitcoin Whale Tracker</h1>
+  <p class="subtitle">Real-time on-chain monitoring • Blockstream API • Updated 6/12/2026, 9:14:19 PM</p>
+  
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">30</div>
+      <div class="stat-label">Tracked Addresses</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">2039.5K BTC</div>
+      <div class="stat-label">Total BTC Tracked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">✅ quiet</div>
+      <div class="stat-label">Movements (15min)</div>
+    </div>
+  </div>
+  
+  <div class="grid">
+    <div class="card">
+      <h2>🐋 Whale Addresses</h2>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>🐋 Whale (>1K BTC)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff8844"></div>🦈 Shark (100-1K)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#44ccff"></div>🐬 Dolphin (10-100)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#88cc44"></div>🦐 Shrimp (<10)</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Label</th>
+            <th>Balance</th>
+            <th>Change</th>
+            <th>Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance Cold Wallet #1</td>
+      <td class="balance">248.6K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo" target="_blank">34xp4vRoCGJym3xR7y...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance Cold Wallet #2</td>
+      <td class="balance">174.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3M219KR5vEneNb47ewrPfWyb5jQ2DjxRP6" target="_blank">3M219KR5vEneNb47ew...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Robinhood Cold Wallet</td>
+      <td class="balance">140.8K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1ql49ydapnjafl5t2cp9zqpjwe6pdgmxy98859v2" target="_blank">bc1ql49ydapnjafl5t...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Bitfinex Cold Wallet</td>
+      <td class="balance">130.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97" target="_blank">bc1qgdjqv0av3q56jv...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Tether Treasury</td>
+      <td class="balance">96.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qjasf9z3h7w3jspkhtgatgpyvvzgpa2wwd2lr0eh5tx44reyn2k7sfc27a4" target="_blank">bc1qjasf9z3h7w3jsp...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Bitfinex Hack Recovery</td>
+      <td class="balance">94.6K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt" target="_blank">bc1qazcm763858nkj2...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">91.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qd4ysezhmypwty5dnw7c8nqy5h5nxg0xqsvaefd0qn5kq32vwnwqqgv4rzr" target="_blank">bc1qd4ysezhmypwty5...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Mt Gox Hack (Inactive)</td>
+      <td class="balance">80.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF" target="_blank">1FeexV6bAHb8ybZjqQ...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">78.3K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q8yj0herd4r4yxszw3nkfvt53433thk0f5qst4g" target="_blank">bc1q8yj0herd4r4yxs...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Mr. 100 (Active Trader)</td>
+      <td class="balance">72.8K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP" target="_blank">1Ay8vMC7R1UbyCCZRV...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Silk Road FBI Confiscated</td>
+      <td class="balance">69.4K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6" target="_blank">bc1qa5wkgaew2dkv56...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance BTCB Reserve</td>
+      <td class="balance">68.2K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3LYJfcfHPXYJreMsASk2jkn69LWEYKzexb" target="_blank">3LYJfcfHPXYJreMsAS...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">62.7K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q0ymzksy046tv4z88ts5nmu7s574umnwmdev3rt" target="_blank">bc1q0ymzksy046tv4z...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">OKEx Cold Wallet</td>
+      <td class="balance">55.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3MgEAFWu1HKSnZ5ZsC8qf61ZW18xrP5pgd" target="_blank">3MgEAFWu1HKSnZ5ZsC...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">53.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1LdRcdxfbSnmCYYNdeYpUnztiYzVfBEQeC" target="_blank">1LdRcdxfbSnmCYYNde...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">51.8K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1AC4fMwgY8j9onSbXEWeH6Zan8QGMSdmtA" target="_blank">1AC4fMwgY8j9onSbXE...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">44.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1LruNZjwamWJXThX2Y8C2d47QqhAkkc5os" target="_blank">1LruNZjwamWJXThX2Y...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Active Whale (Accumulating)</td>
+      <td class="balance">43.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q0j55cut9nd2c88tnnsfultdx696c8lt6n4n0su" target="_blank">bc1q0j55cut9nd2c88...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Coincheck</td>
+      <td class="balance">42.5K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q4j7fcl8zx5yl56j00nkqez9zf3f6ggqchwzzcs5hjxwqhsgxvavq3qfgpr" target="_blank">bc1q4j7fcl8zx5yl56...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Active Whale (Trading)</td>
+      <td class="balance">42.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qws342rlkhszh58rtn35zrw7w076puz83gkcufy" target="_blank">bc1qws342rlkhszh58...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance Cold Wallet #3</td>
+      <td class="balance">37.9K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3LQUu4v9z6KNch71j7kbj8GPeAGUo1FW6a" target="_blank">3LQUu4v9z6KNch71j7...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Unknown Whale</td>
+      <td class="balance">37.5K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qy3uw2kk45uj9vsy52rjfhydm2tnd6hreu8vha3" target="_blank">bc1qy3uw2kk45uj9vs...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">UK Gov Confiscated</td>
+      <td class="balance">36.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q7ydrtdn8z62xhslqyqtyt38mm4e2c4h3mxjkug" target="_blank">bc1q7ydrtdn8z62xhs...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance Pool</td>
+      <td class="balance">31.6K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qx9t2l3pyny2spqpqlye8svce70nppwtaxwdrp4" target="_blank">bc1qx9t2l3pyny2spq...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Active Whale (Trading)</td>
+      <td class="balance">31.4K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3FuhQLprN9s9MR3bZzR5da7mw75fuahsaU" target="_blank">3FuhQLprN9s9MR3bZz...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Binance Cold Wallet #4</td>
+      <td class="balance">31.3K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/3FHNBLobJnbCTFTVakh5TXmEneyf5PT61B" target="_blank">3FHNBLobJnbCTFTVak...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">967 (Active Whale)</td>
+      <td class="balance">31.0K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/12ib7dApVFvg82TXKycWBNpN8kFyiAN1dr" target="_blank">12ib7dApVFvg82TXKy...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Accumulating Whale</td>
+      <td class="balance">30.5K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1qukw69mjxwp30adfqddv6gcyva26laxz562rhlk" target="_blank">bc1qukw69mjxwp30ad...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">Dumping Whale</td>
+      <td class="balance">30.1K BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/bc1q6h2v33qt0jjvpr2hxxtwhtvdvtn086g0n2qu06" target="_blank">bc1q6h2v33qt0jjvpr...</a></td>
+    </tr><tr>
+      <td class="tier" style="color:#88cc44">🦐</td>
+      <td class="label">Bitwise BITB ETF (disclosed)</td>
+      <td class="balance">0.0000 BTC</td>
+      <td class="change-cell"><span class="change neutral">—</span></td>
+      <td class="address"><a href="https://blockstream.info/address/1CKVszDdUp4ymGceAZpGzYEFr4RPNHYqaM" target="_blank">1CKVszDdUp4ymGceAZ...</a></td>
+    </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div>
+      <div class="card">
+        <h2>🏦 Bitcoin ETFs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Fund</th>
+              <th>Balance</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+      <td class="tier" style="color:#88cc44">🦐</td>
+      <td class="label">BITB<br><small>Bitwise Bitcoin ETF</small></td>
+      <td class="balance">0.0000 BTC</td>
+      <td class="note">Publicly disclosed by Bitwise</td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">IBIT<br><small>iShares Bitcoin Trust (BlackRock)</small></td>
+      <td class="balance">248.6K BTC</td>
+      <td class="note">Coinbase Prime custodian</td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">FBTC<br><small>Fidelity Wise Origin Bitcoin Fund</small></td>
+      <td class="balance">174.9K BTC</td>
+      <td class="note">Coinbase Prime custodian</td>
+    </tr><tr>
+      <td class="tier" style="color:#ff4444">🐋</td>
+      <td class="label">EZBC<br><small>Franklin Bitcoin ETF</small></td>
+      <td class="balance">96.9K BTC</td>
+      <td class="note">Coinbase Prime custodian</td>
+    </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="card">
+        <h2>📊 Market Context</h2>
+        <table>
+          <tr><td class="label">BTC Price</td><td class="balance">~$63,500</td></tr>
+          <tr><td class="label">Cycle Position</td><td class="balance">Late Bear</td></tr>
+          <tr><td class="label">Q4 Window</td><td class="balance">~4-8 weeks</td></tr>
+          <tr><td class="label">Thesis</td><td class="balance">HIGH CONFIDENCE</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Dashboard</button>
+  
+  <div class="footer">
+    Data from Blockstream API • Whale Tracker v1.0 • GoodBot Systems<br>
+    Addresses update every 15 minutes via cron • Last full refresh: 6/12/2026, 9:14:19 PM
+  </div>
+</body>
+</html>
