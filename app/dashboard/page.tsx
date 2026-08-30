@@ -98,6 +98,7 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'penguins': { name: 'Penguins', emoji: '🐧', color: 'var(--accent-blue)', bestKey: 'penguins_best_0' },
   'lunar-lander': { name: 'Lunar Lander', emoji: '🌙', color: 'var(--accent-purple)', bestKey: 'lunar_best_0' },
   'avalanche': { name: 'Avalanche', emoji: '🪨', color: 'var(--accent-green)', bestKey: 'avalanche_best_0' },
+  'galaxy': { name: 'Galaxy Defenders', emoji: '👾', color: 'var(--accent-purple)', bestKey: 'galaxy_best_0' },
 };
 
 export default function Dashboard() {

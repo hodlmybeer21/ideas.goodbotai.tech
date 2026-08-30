@@ -53,6 +53,7 @@ import Wordle from '../components/Wordle';
 import Penguins from '../components/Penguins';
 import LunarLander from '../components/LunarLander';
 import Avalanche from '../components/Avalanche';
+import GalaxyDefenders from '../components/GalaxyDefenders';
 
 const PLAYER_COLORS = [
   { color: '#FF6B9D', label: 'Pink', emoji: '🩷' },
@@ -317,6 +318,7 @@ function ActivityBridge({ component, onDone }) {
     case 'penguins':         return <Penguins            onBack={onDone} />;
     case 'lunarlander':      return <LunarLander         onBack={onDone} />;
     case 'avalanche':        return <Avalanche           onBack={onDone} />;
+    case 'galaxy':           return <GalaxyDefenders     onBack={onDone} />;
     case 'wordsearch':
     case 'vocabventure':
     case 'mathrace':
