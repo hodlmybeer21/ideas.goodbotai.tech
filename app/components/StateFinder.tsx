@@ -18,6 +18,7 @@ const REGION_COLORS: Record<string, string> = {
 
 const STATE_REGION: Record<string, string> = {
   'Alabama':'Southeast','Alaska':'West','Arizona':'Southwest','Arkansas':'Southeast',
+  'Hawaii':'West',
   'California':'West','Colorado':'Mountain','Connecticut':'Northeast',
   'Delaware':'Northeast','Florida':'Southeast','Georgia':'Southeast',
   'Idaho':'Mountain','Illinois':'Midwest','Indiana':'Midwest','Iowa':'Midwest',

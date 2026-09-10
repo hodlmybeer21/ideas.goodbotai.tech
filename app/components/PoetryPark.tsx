@@ -20,7 +20,7 @@ interface Question {
   choices: string[];
 }
 
-const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repetition' }[] = [
+const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repetition'; rhymePair: [number, number] }[] = [
   {
     lines: [
       'Roses are red,',
@@ -29,6 +29,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       'And so are you.',
     ],
     type: 'rhyming',
+    rhymePair: [0, 2], // red / sweet (ABAB scheme)
   },
   {
     lines: [
@@ -38,6 +39,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       'Like a diamond in the sky.',
     ],
     type: 'rhyming',
+    rhymePair: [0, 1], // star / are (AABB scheme)
   },
   {
     lines: [
@@ -47,6 +49,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       "Couldn't put Humpty together again.",
     ],
     type: 'rhyming',
+    rhymePair: [0, 1], // wall / fall (AABB scheme)
   },
   {
     lines: [
@@ -56,6 +59,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       'Three bags full.',
     ],
     type: 'rhyming',
+    rhymePair: [0, 1], // sheep / wool (AABB scheme)
   },
   {
     lines: [
@@ -65,6 +69,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       'And Jill came tumbling after.',
     ],
     type: 'rhyming',
+    rhymePair: [0, 1], // hill / water (AABB scheme)
   },
   {
     lines: [
@@ -74,6 +79,7 @@ const CLASSIC_POEMS: { lines: string[]; type: 'rhyming' | 'alliteration' | 'repe
       'And there he kept her very well.',
     ],
     type: 'rhyming',
+    rhymePair: [0, 1], // eater / keep her (AABB scheme)
   },
 ];
 
@@ -122,12 +128,14 @@ function makeQuestion(difficulty: Difficulty): Question {
   if (difficulty === 1) {
     // Medium: pick the two lines that rhyme (or pick which words in a line rhyme)
     const poem = pick(CLASSIC_POEMS);
+    const [a, b] = poem.rhymePair;
+    const correct = `Lines ${a + 1} and ${b + 1}`;
     return {
       kind: 'rhyming-lines',
       prompt: 'Which two lines rhyme in this poem?',
       promptLines: poem.lines,
-      correct: 'Lines 1 and 3', // we'll let players pick by tapping two — for now show as multiple choice
-      choices: shuffle(['Lines 1 and 3', 'Lines 1 and 2', 'Lines 2 and 4', 'Lines 3 and 4']),
+      correct,
+      choices: shuffle([correct, 'Lines 1 and 2', 'Lines 2 and 4', 'Lines 3 and 4']),
     };
   }
 

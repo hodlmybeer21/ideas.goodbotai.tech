@@ -164,10 +164,11 @@ type Level = {
   label: string; color: string; shadow: string;
 };
 const LEVELS: Level[] = [
-  { id: 1, name: 'Tens',      label: 'Count by 10s to 50',   minNum: 10, maxNum: 50, tens: 10, ones: 0,  color: '#FF6B9D', shadow: '#c9456e' },
+  { id: 1, name: 'Tens',      label: 'Numbers 10–50',       minNum: 10, maxNum: 50, tens: 10, ones: 0,  color: '#FF6B9D', shadow: '#c9456e' },
   { id: 2, name: 'Tens+Ones', label: 'Numbers 11–50',        minNum: 11, maxNum: 50, tens: 10, ones: 9,  color: '#6BCBFF', shadow: '#4a9fd9' },
   { id: 3, name: 'Bigger',    label: 'Numbers 20–79',         minNum: 20, maxNum: 79, tens: 10, ones: 9,  color: '#6BCB77', shadow: '#4fa05c' },
   { id: 4, name: 'Almost 100',label: 'Numbers 50–99',         minNum: 50, maxNum: 99, tens: 10, ones: 9,  color: '#C084FC', shadow: '#9660d4' },
+  { id: 5, name: 'Full 99',  label: 'All numbers 10–99',     minNum: 10, maxNum: 99, tens: 10, ones: 9,  color: '#FF9F43', shadow: '#cc7a2f' },
   { id: 5, name: 'Full 99',  label: 'All numbers 10–99',     minNum: 10, maxNum: 99, tens: 10, ones: 9,  color: '#FF9F43', shadow: '#cc7a2f' },
 ];
 

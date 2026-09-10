@@ -79,7 +79,8 @@ function makeProblem(difficulty: Difficulty): Problem {
   if (difficulty === 1) {
     // Medium: given total, find a factor pair (rows × cols).
     // Pick a total that has multiple factor pairs ≤ 5×5
-    const candidates = [12, 16, 18, 20, 24];
+    // (18 and 24 have no factor pairs within the 5×5 CCSS 2nd-grade bound, so they're excluded.)
+    const candidates = [12, 16, 20];
     const total = pick(candidates);
     const pairs = factorPairs(total);
     if (pairs.length === 0) {
@@ -109,8 +110,6 @@ function makeProblem(difficulty: Difficulty): Problem {
   const recipe = pick([
     { w: 4, h: 6, ts: 2 },
     { w: 6, h: 4, ts: 2 },
-    { w: 4, h: 6, ts: 3 },
-    { w: 6, h: 4, ts: 3 },
     { w: 6, h: 6, ts: 3 },
     { w: 6, h: 4, ts: 2 },
     { w: 4, h: 4, ts: 2 },

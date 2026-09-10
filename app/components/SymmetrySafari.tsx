@@ -35,7 +35,7 @@ interface ShapeInfo {
 const SHAPES: Record<ShapeName, ShapeInfo> = {
   square:     { sides: 4, symmetry: 4, emoji: '🟧', hasVertical: true, hasHorizontal: true, hasDiagonal: true },
   rectangle:  { sides: 4, symmetry: 2, emoji: '🟦', hasVertical: true, hasHorizontal: true, hasDiagonal: false },
-  rhombus:    { sides: 4, symmetry: 2, emoji: '◆',  hasVertical: true, hasHorizontal: false, hasDiagonal: true },
+  rhombus:    { sides: 4, symmetry: 4, emoji: '◆',  hasVertical: true, hasHorizontal: true, hasDiagonal: true },
   circle:     { sides: 0, symmetry: 99, emoji: '⭕', hasVertical: true, hasHorizontal: true, hasDiagonal: true },
   equilateral: { sides: 3, symmetry: 3, emoji: '🔺', hasVertical: true, hasHorizontal: false, hasDiagonal: true },
   hexagon:    { sides: 6, symmetry: 6, emoji: '⬢',  hasVertical: true, hasHorizontal: true, hasDiagonal: true },

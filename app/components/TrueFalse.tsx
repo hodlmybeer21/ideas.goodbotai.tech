@@ -55,7 +55,7 @@ interface Question {
 // Easy: simple illustrated facts — ages 4+
 const EASY_QUESTIONS: Question[] = [
   { id: 'e1',  emoji: '🌞', topic: 'Nature',     statement: 'The sun shines during the day.', isTrue: true,  funFact: 'The sun always shines during the day!' },
-  { id: 'e2',  emoji: '🌙', topic: 'Nature',     statement: 'The moon comes out only at night.', isTrue: true,  funFact: 'You can sometimes see the moon in the daytime too!' },
+  { id: 'e2',  emoji: '🌙', topic: 'Nature',     statement: 'The moon comes out only at night.', isTrue: false, explanation: 'You can sometimes see the moon in the daytime too — it\'s just harder to spot against a bright sky!' },
   { id: 'e3',  emoji: '🐦', topic: 'Animals',     statement: 'Birds have wings.', isTrue: true,  funFact: 'Wings are how birds fly!' },
   { id: 'e4',  emoji: '🐟', topic: 'Animals',     statement: 'Fish can swim.', isTrue: true,  funFact: 'Fish use their fins to swim!' },
   { id: 'e5',  emoji: '🦵', topic: 'Body',        statement: 'People have two legs.', isTrue: true,  funFact: 'Most people have two legs!' },
@@ -99,7 +99,7 @@ const MEDIUM_QUESTIONS: Question[] = [
   { id: 'm8',  emoji: '🪱', topic: 'Animals',     statement: 'Worms like sunlight.', isTrue: false, explanation: 'Worms stay underground — sunlight dries them out!' },
   { id: 'm9',  emoji: '🦕', topic: 'Animals',     statement: 'All dinosaurs are extinct.', isTrue: false, explanation: 'Birds are actually living dinosaurs!' },
   { id: 'm10', emoji: '🍌', topic: 'Food',        statement: 'Bananas grow on trees.', isTrue: false, explanation: 'Bananas grow on very tall plants, not trees!' },
-  { id: 'm11', emoji: '🧊', topic: 'Science',     statement: 'Ice is lighter than water.', isTrue: false, explanation: 'Ice floats on water because it\'s lighter — but it\'s still frozen water!' },
+  { id: 'm11', emoji: '🧊', topic: 'Science',     statement: 'Ice is lighter than water.', isTrue: true,  funFact: 'Ice is less dense than water — that\'s why ice cubes and icebergs float!' },
   { id: 'm12', emoji: '🌋', topic: 'Science',     statement: 'Only Earth has volcanoes.', isTrue: false, explanation: 'Other planets like Venus have volcanoes too!' },
   { id: 'm13', emoji: '🌊', topic: 'Nature',     statement: 'The ocean is always blue.', isTrue: false, explanation: 'The ocean can look blue, green, or even reddish!' },
   { id: 'm14', emoji: '🦴', topic: 'Body',        statement: 'Adults have more bones than babies.', isTrue: false, explanation: 'Babies are born with more bones — some fuse together as you grow!' },
@@ -423,8 +423,8 @@ export default function TrueFalse({ onBack, kidName }: { onBack: () => void; kid
           </div>
           <div style={{ fontSize: 15, color: '#555' }}>
             {currentQ.isTrue
-              ? `True! ${currentQ.funFact}`
-              : `True! ${currentQ.funFact}`}
+              ? `True! ${currentQ.funFact ?? ''}`
+              : `False! ${currentQ.explanation ?? ''}`}
           </div>
         </>
       ) : (
