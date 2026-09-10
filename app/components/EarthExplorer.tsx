@@ -64,6 +64,37 @@ const LANDFORM_NAMES: Record<string, string> = {
   waterfall: 'Waterfall',
 };
 
+// Kid-friendly facts shown after a correct answer. Kept short and concrete —
+// second-grade reading level. Falls back to a generic confirmation if a fact
+// hasn't been written yet.
+const FACTS: Record<string, string> = {
+  // Continents
+  'Asia': "Asia is the biggest continent — over 4 billion people live there! That's more than half the world. 🌏",
+  'Africa': "Africa has the biggest hot desert in the world — the Sahara! 🏜️",
+  'North America': "North America stretches from the icy Arctic all the way down to warm Central America. ❄️☀️",
+  'South America': "The Amazon rainforest in South America has more kinds of animals than anywhere else on Earth! 🐒",
+  'Antarctica': "Antarctica is the coldest, windiest place on Earth — no one lives there full-time! 🥶",
+  'Europe': "Europe has more countries than any other continent — 44 of them! 🏰",
+  'Australia': "Australia is both a country AND a continent — home to kangaroos and koalas! 🦘",
+  // Oceans
+  'Pacific Ocean': "The Pacific is the biggest ocean — bigger than ALL the land on Earth put together! 🌊",
+  'Atlantic Ocean': "The Atlantic Ocean separates the Americas from Europe and Africa. ⛵",
+  'Indian Ocean': "The Indian Ocean is the warmest — it sits near the equator. ☀️",
+  'Arctic Ocean': "The Arctic is the smallest ocean, and it's frozen most of the year! 🧊",
+  'Southern Ocean': "The Southern Ocean wraps all the way around Antarctica — it's super windy! 💨",
+  // Landforms
+  'Mountain': "Mountains are way taller than hills — some are taller than airplanes fly! ⛰️",
+  'River': "Rivers always flow downhill — they start high up and end in a lake or ocean! 🏞️",
+  'Lake': "Lakes are water surrounded by land — the Great Lakes hold a fifth of Earth's fresh water! 💧",
+  'Desert': "Deserts are super dry — they get less rain than almost anywhere else! 🏜️",
+  'Island': "Islands are land completely surrounded by water — like Hawaii! 🏝️",
+  'Volcano': "Volcanoes can erupt and shoot out melted rock called lava! 🌋",
+  'Valley': "Valleys are low land between mountains — rivers often flow through them! 🌄",
+  'Canyon': "The Grand Canyon is so deep it could fit 4 Statue of Liberties stacked up! 🪨",
+  'Forest': "Forests cover about a third of all the land on Earth — and they make the air we breathe! 🌲",
+  'Waterfall': "Waterfalls happen when a river drops straight down off a cliff — splash! 💦",
+};
+
 // Bounding boxes for each continent, expressed as percentages of the
 // Wikimedia Continents.svg viewBox (468 × 239). Coordinates were measured
 // from the public-domain SVG (PD-USGov-CIA-WF). Antarctica is added on top
@@ -79,12 +110,14 @@ const CONTINENT_BOXES: Record<string, { x: number; y: number; w: number; h: numb
 };
 
 // Ocean bounding boxes (used to highlight when the question is about an ocean).
+// Tuned tighter than the original defaults so the highlight rectangle sits
+// over actual ocean water instead of spilling onto adjacent landmasses.
 const OCEAN_BOXES: Record<string, { x: number; y: number; w: number; h: number }> = {
-  pacific:  { x:  0.0, y: 25.0, w: 15.0, h: 50.0 },
-  atlantic: { x: 44.0, y: 25.0, w: 12.0, h: 55.0 },
-  indian:   { x: 60.0, y: 50.0, w: 18.0, h: 35.0 },
-  arctic:   { x: 12.0, y:  0.0, w: 78.0, h: 12.0 },
-  southern: { x: 12.0, y: 78.0, w: 78.0, h: 12.0 },
+  pacific:  { x:  0.0, y: 22.0, w: 11.0, h: 56.0 },  // west of Americas, east of Asia
+  atlantic: { x: 38.0, y: 22.0, w:  9.5, h: 58.0 },  // between Americas and Europe/Africa
+  indian:   { x: 59.0, y: 48.0, w: 17.0, h: 32.0 },  // between Africa, Asia, Australia
+  arctic:   { x: 12.0, y:  0.0, w: 78.0, h: 10.0 },  // top strip
+  southern: { x: 12.0, y: 86.0, w: 78.0, h: 12.0 },  // bottom strip above Antarctica
 };
 
 function randInt(lo: number, hi: number) {
@@ -179,14 +212,14 @@ function LandformCard({ kind, size = 140 }: { kind: string; size?: number }) {
   const emoji: Record<string, string> = {
     mountain: '⛰️',
     river: '🏞️',
-    lake: '🏞️',
+    lake: '💧',
     desert: '🏜️',
     island: '🏝️',
     volcano: '🌋',
-    valley: '🏞️',
-    canyon: '🏞️',
+    valley: '🌄',
+    canyon: '🪨',
     forest: '🌲',
-    waterfall: '🌊',
+    waterfall: '💦',
   };
   return (
     <div
@@ -225,7 +258,8 @@ function makeQuestion(difficulty: Difficulty): Question {
     };
   }
   if (difficulty === 1) {
-    // Medium: continents + oceans
+    // Medium: continents + oceans. Distractors always stay in the target's
+    // own category — an ocean question never offers a continent (or vice versa).
     const oceanIds = Object.keys(OCEAN_NAMES);
     const continentIds = Object.keys(CONTINENT_NAMES);
     const pool: Array<{ id: string; name: string; category: 'continent' | 'ocean' }> = [
@@ -233,7 +267,8 @@ function makeQuestion(difficulty: Difficulty): Question {
       ...oceanIds.map(id => ({ id, name: OCEAN_NAMES[id], category: 'ocean' as const })),
     ];
     const target = pick(pool);
-    const distractors = shuffle(pool.filter(p => p.id !== target.id)).slice(0, 3).map(p => p.name);
+    const sameCategory = pool.filter(p => p.id !== target.id && p.category === target.category);
+    const distractors = shuffle(sameCategory).slice(0, 3).map(p => p.name);
     return {
       target: target.name,
       category: target.category,
@@ -241,7 +276,9 @@ function makeQuestion(difficulty: Difficulty): Question {
       choices: shuffle([target.name, ...distractors]),
     };
   }
-  // Hard: continents + oceans + landforms
+  // Hard: continents + oceans + landforms. Distractors stay in the target's
+  // own category — never mix a landform into an ocean question (e.g. "Waterfall"
+  // as an option for "Which ocean is highlighted?" was the visible bug).
   const landformIds = Object.keys(LANDFORM_NAMES);
   const all: Array<{ name: string; category: 'continent' | 'ocean' | 'landform' }> = [
     ...Object.values(CONTINENT_NAMES).map(n => ({ name: n, category: 'continent' as const })),
@@ -249,7 +286,8 @@ function makeQuestion(difficulty: Difficulty): Question {
     ...landformIds.map(id => ({ name: LANDFORM_NAMES[id], category: 'landform' as const })),
   ];
   const target = pick(all);
-  const distractors = shuffle(all.filter(p => p.name !== target.name)).slice(0, 3).map(p => p.name);
+  const sameCategory = all.filter(p => p.category === target.category && p.name !== target.name);
+  const distractors = shuffle(sameCategory).slice(0, 3).map(p => p.name);
   return {
     target: target.name,
     category: target.category,
@@ -271,7 +309,7 @@ export default function EarthExplorer({ onBack, kidName }: { onBack: () => void;
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [current, setCurrent] = useState(0);
-  const [feedback, setFeedback] = useState<{ kind: 'good' | 'bad'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'good' | 'bad'; text: string; fact?: string } | null>(null);
   const [locked, setLocked] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [rated, setRated] = useState(false);
@@ -315,7 +353,11 @@ export default function EarthExplorer({ onBack, kidName }: { onBack: () => void;
       setCurrent(newCurrent);
       setLocked(true);
       setFlash('good');
-      setFeedback({ kind: 'good', text: `✅ Correct! That's ${question.correct}. 🌍` });
+      setFeedback({
+        kind: 'good',
+        text: `✅ That's ${question.correct}!`,
+        fact: FACTS[question.correct],
+      });
       const isLast = newCurrent >= TOTAL_ROUNDS;
       setTimeout(() => {
         setFlash(null);
@@ -544,7 +586,12 @@ export default function EarthExplorer({ onBack, kidName }: { onBack: () => void;
             boxShadow: '0 4px 0 rgba(0,0,0,0.08)',
           }}
         >
-          {feedback.text}
+          <div>{feedback.text}</div>
+          {feedback.fact && (
+            <div style={{ marginTop: 8, fontSize: 14, fontWeight: 500, opacity: 0.95, lineHeight: 1.4 }}>
+              💡 {feedback.fact}
+            </div>
+          )}
         </div>
       )}
 
