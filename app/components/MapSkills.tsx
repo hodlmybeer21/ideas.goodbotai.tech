@@ -17,6 +17,9 @@ interface Question {
   correct: string;
   choices: string[];
   visual?: 'compass' | 'grid';
+  // Present for grid questions — the player marker position and the target
+  // position so the rendered map matches the actual puzzle.
+  marker?: { row: number; col: number; target: { row: number; col: number } };
 }
 
 const DIRECTIONS_4 = [
@@ -33,6 +36,21 @@ const DIRECTIONS_8 = [
   { abbr: 'SE', name: 'Southeast' },
   { abbr: 'SW', name: 'Southwest' },
 ];
+
+// Prompt text keyed by direction. Each randomly-picked direction gets the
+// prompt that actually describes it — so the question and the correct
+// answer always match (fix for the "between North and East" / "Southeast"
+// mismatch bug where the prompt was hardcoded but the answer was random).
+const DIRECTION_PROMPTS: Record<string, string> = {
+  N:  'Which direction is at the TOP of the compass?',
+  S:  'Which direction is at the BOTTOM of the compass?',
+  E:  'Which direction is at the RIGHT of the compass?',
+  W:  'Which direction is at the LEFT of the compass?',
+  NE: 'Which direction is between North and East on the compass?',
+  NW: 'Which direction is between North and West on the compass?',
+  SE: 'Which direction is between South and East on the compass?',
+  SW: 'Which direction is between South and West on the compass?',
+};
 
 function randInt(lo: number, hi: number) {
   return Math.floor(Math.random() * (hi - lo + 1) + lo);
@@ -151,11 +169,12 @@ function makeQuestion(difficulty: Difficulty): Question {
     }
   }
   if (difficulty === 1) {
-    // Medium: 8-direction compass
+    // Medium: 8-direction compass. Prompt and correct answer always match —
+    // each random pick uses its own prompt from DIRECTION_PROMPTS.
     const dir = pick(DIRECTIONS_8);
     return {
-      prompt: `Which direction is between North and East on the compass?`,
-      correct: dir.abbr === 'NE' ? 'Northeast' : dir.name,
+      prompt: DIRECTION_PROMPTS[dir.abbr],
+      correct: dir.name,
       choices: shuffle(DIRECTIONS_8.map(d => d.name)),
       visual: 'compass',
     };
@@ -184,6 +203,9 @@ function makeQuestion(difficulty: Difficulty): Question {
     correct: direction,
     choices: shuffle(DIRECTIONS_8.map(d => d.name)),
     visual: 'grid',
+    // Player + target positions so the rendered map matches the question —
+    // previously the GridMap was hardcoded regardless of the actual puzzle.
+    marker: { row: playerRow, col: playerCol, target: { row: targetRow, col: targetCol } },
   };
 }
 
@@ -407,8 +429,8 @@ export default function MapSkills({ onBack, kidName }: { onBack: () => void; kid
           {question.prompt}
         </p>
         <div style={{ marginTop: 14, display: 'inline-block' }}>
-          {question.visual === 'grid' ? (
-            <GridMap marker={{ row: 1, col: 1, target: { row: 2, col: 2 } }} />
+          {question.visual === 'grid' && question.marker ? (
+            <GridMap marker={question.marker} />
           ) : (
             <CompassRose />
           )}
