@@ -30,6 +30,11 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
   });
   const facingRef = useRef(0);
   const movingRef = useRef(false);
+  // Imperative ref to the rendered group — updated each frame to mirror
+  // positionRef.current. Without this, the visual mesh stays frozen at
+  // its initial JSX position while positionRef advances (causing the
+  // "walking in place, screen moves" symptom).
+  const meshRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
     const map = (code: string, down: boolean) => {
@@ -102,6 +107,12 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
       facingRef.current = Math.atan2(wx, wz);
     }
 
+    // Push position + facing to the actual rendered mesh
+    if (meshRef.current) {
+      meshRef.current.position.copy(positionRef.current);
+      meshRef.current.rotation.y = facingRef.current;
+    }
+
     // 4. Camera follows at the current yaw angle (orbiting the player)
     const cam = state.camera;
     const camDist = 13;
@@ -117,7 +128,7 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
   });
 
   return (
-    <group position={[0, 0, 8]}>
+    <group ref={meshRef} position={[0, 0, 8]}>
       <Humanoid
         color={color}
         height={1.0}
