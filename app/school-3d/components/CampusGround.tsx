@@ -127,24 +127,107 @@ export default function CampusGround() {
     []
   );
 
-  // Spoke paths from courtyard center to each building's door
-  const spokes = useMemo(() => {
-    return BUILDINGS.map((b) => {
-      const cx = COURTYARD_CENTER[0];
-      const cz = COURTYARD_CENTER[2];
+  // Paths from the plaza to each building's door.
+  //
+  // The previous version drew one wide spoke per building — that made
+  // buildings that share the same direction from the plaza (library + gym
+  // at -114°, office + auditorium at -42°/-43°) overlap into wide blurry strips.
+  //
+  // New approach:
+  //   1. Cluster buildings by angle from the plaza (within ~11.5° = same group)
+  //   2. Emit ONE shared spoke per cluster, slightly narrower than before
+  //   3. Add short perpendicular branch paths from the spoke tip to each
+  //      individual building's footprint
+  //
+  // Result: ~9 spokes instead of 12, none of them overlapping, with clean
+  // branches leading to each building's door.
+  type PathSeg = { position: [number, number, number]; rotation: number; length: number; width: number };
+  const PLAZA_R = 4.5;
+  const SPOKE_W = 1.5;
+  const BRANCH_W = 1.0;
+  const ANGLE_THRESHOLD = 0.20; // ~11.5° rad
+
+  const { spokes, branches } = useMemo(() => {
+    const cx = COURTYARD_CENTER[0];
+    const cz = COURTYARD_CENTER[2];
+
+    // 1. Annotate each building with angle + distance from plaza
+    const annotated = BUILDINGS.map((b) => {
       const dx = b.position[0] - cx;
       const dz = b.position[2] - cz;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      // Stop path short of the building footprint (so it doesn't intersect)
-      const stopDist = dist - Math.max(b.size[0], b.size[1]) / 2 - 0.6;
-      // Start past the plaza edge
-      const startDist = 4.5;
-      const len = Math.max(0.5, stopDist - startDist);
-      const midX = cx + (dx / dist) * (startDist + len / 2);
-      const midZ = cz + (dz / dist) * (startDist + len / 2);
       const angle = Math.atan2(dx, dz);
-      return { position: [midX, 0.005, midZ] as [number, number, number], rotation: angle, length: len };
+      return { b, angle, dist, dirX: dx / dist, dirZ: dz / dist };
     });
+
+    // 2. Sort by angle, cluster within ANGLE_THRESHOLD
+    const sorted = [...annotated].sort((a, b) => a.angle - b.angle);
+    const clusters: typeof annotated[] = [];
+    let cur: typeof annotated = [];
+    for (const item of sorted) {
+      if (cur.length === 0) {
+        cur.push(item);
+      } else {
+        const last = cur[cur.length - 1];
+        if (item.angle - last.angle > ANGLE_THRESHOLD) {
+          clusters.push(cur);
+          cur = [item];
+        } else {
+          cur.push(item);
+        }
+      }
+    }
+    if (cur.length > 0) clusters.push(cur);
+
+    // 3. Emit one spoke per cluster + a branch per building in the cluster
+    const spokes: PathSeg[] = [];
+    const branches: PathSeg[] = [];
+    for (const cluster of clusters) {
+      const avgAngle = cluster.reduce((s, c) => s + c.angle, 0) / cluster.length;
+      const dirX = Math.sin(avgAngle);
+      const dirZ = Math.cos(avgAngle);
+
+      // Furthest footprint edge along the spoke direction
+      let maxEdgeDist = PLAZA_R;
+      for (const item of cluster) {
+        const footprintHalf = Math.max(item.b.size[0], item.b.size[1]) / 2;
+        const projectedEdge = item.dist - footprintHalf - 0.6;
+        if (projectedEdge > maxEdgeDist) maxEdgeDist = projectedEdge;
+      }
+
+      const spokeLen = Math.max(0.5, maxEdgeDist - PLAZA_R);
+      if (spokeLen > 0.5) {
+        const midR = PLAZA_R + spokeLen / 2;
+        spokes.push({
+          position: [cx + dirX * midR, 0.005, cz + dirZ * midR],
+          rotation: avgAngle,
+          length: spokeLen,
+          width: SPOKE_W,
+        });
+      }
+
+      // Spoke tip — branches radiate from here to each building footprint
+      const spokeTipX = cx + dirX * maxEdgeDist;
+      const spokeTipZ = cz + dirZ * maxEdgeDist;
+
+      for (const item of cluster) {
+        const bEdgeX = item.b.position[0];
+        const bEdgeZ = item.b.position[2];
+        const dx = bEdgeX - spokeTipX;
+        const dz = bEdgeZ - spokeTipZ;
+        const branchLen = Math.sqrt(dx * dx + dz * dz);
+        if (branchLen > 0.5) {
+          branches.push({
+            position: [(spokeTipX + bEdgeX) / 2, 0.005, (spokeTipZ + bEdgeZ) / 2],
+            rotation: Math.atan2(dx, dz),
+            length: branchLen,
+            width: BRANCH_W,
+          });
+        }
+      }
+    }
+
+    return { spokes, branches };
   }, []);
 
   // Decorative grass patches scattered around
@@ -184,15 +267,28 @@ export default function CampusGround() {
         <primitive object={pathMat} attach="material" />
       </mesh>
 
-      {/* Spoke paths from plaza to each building */}
+      {/* Spoke paths from plaza to each building cluster */}
       {spokes.map((s, i) => (
         <mesh
-          key={i}
+          key={`spoke-${i}`}
           receiveShadow
           rotation={[-Math.PI / 2, 0, -s.rotation]}
           position={s.position}
         >
-          <planeGeometry args={[2.4, s.length]} />
+          <planeGeometry args={[s.width, s.length]} />
+          <primitive object={pathMat} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Short branch paths from spoke tips to each building's footprint */}
+      {branches.map((b, i) => (
+        <mesh
+          key={`branch-${i}`}
+          receiveShadow
+          rotation={[-Math.PI / 2, 0, -b.rotation]}
+          position={b.position}
+        >
+          <planeGeometry args={[b.width, b.length]} />
           <primitive object={pathMat} attach="material" />
         </mesh>
       ))}
