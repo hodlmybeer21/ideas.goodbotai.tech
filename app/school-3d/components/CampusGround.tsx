@@ -205,6 +205,12 @@ export default function CampusGround() {
       {/* Benches — wooden seats facing the plaza */}
       <Benches />
 
+      {/* Lamp posts on the plaza */}
+      <Lamps />
+
+      {/* School entrance marker (south entry) */}
+      <EntranceMarker />
+
       {/* Flower beds near plaza */}
       <FlowerBed position={[ 4,  4]} colors={['#FF6B9D', '#FFD93D', '#C084FC']} />
       <FlowerBed position={[-4,  4]} colors={['#6BCBFF', '#6BCB77', '#FF9F43']} />
@@ -383,6 +389,90 @@ function Benches() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+function Lamps() {
+  // Lamp posts at 4 compass points around the plaza. Post + glowing
+  // bulb + warm halo so the courtyard feels lived-in.
+  const lamps = [
+    { x:  4.5, z:  0 },
+    { x: -4.5, z:  0 },
+    { x:  0, z:  4.5 },
+    { x:  0, z: -4.5 },
+  ];
+  return (
+    <group>
+      {lamps.map((l, i) => (
+        <group key={i} position={[l.x, 0, l.z]}>
+          {/* base */}
+          <mesh castShadow position={[0, 0.1, 0]}>
+            <cylinderGeometry args={[0.18, 0.22, 0.2, 8]} />
+            <meshStandardMaterial color="#3E2723" />
+          </mesh>
+          {/* post */}
+          <mesh castShadow position={[0, 1.0, 0]}>
+            <cylinderGeometry args={[0.06, 0.08, 1.8, 8]} />
+            <meshStandardMaterial color="#212121" />
+          </mesh>
+          {/* arm */}
+          <mesh castShadow position={[0, 1.85, 0]}>
+            <boxGeometry args={[0.4, 0.06, 0.06]} />
+            <meshStandardMaterial color="#212121" />
+          </mesh>
+          {/* bulb */}
+          <mesh position={[0.2, 1.7, 0]}>
+            <sphereGeometry args={[0.18, 12, 12]} />
+            <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.7} />
+          </mesh>
+          {/* halo */}
+          <mesh position={[0.2, 1.7, 0]}>
+            <sphereGeometry args={[0.4, 12, 12]} />
+            <meshBasicMaterial color="#FFE680" transparent opacity={0.25} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function EntranceMarker() {
+  // Wooden signpost at the south entry path, greeting visitors.
+  return (
+    <group position={[0, 0, 9]}>
+      {/* two posts */}
+      <mesh castShadow position={[-0.7, 1.2, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+      <mesh castShadow position={[0.7, 1.2, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+      {/* horizontal beam (top) */}
+      <mesh castShadow position={[0, 2.45, 0]}>
+        <boxGeometry args={[2.2, 0.3, 0.3]} />
+        <meshStandardMaterial color="#3E2723" />
+      </mesh>
+      {/* hanging sign */}
+      <mesh castShadow position={[0, 1.9, 0]}>
+        <boxGeometry args={[1.4, 0.7, 0.08]} />
+        <meshStandardMaterial color="#FF6B9D" />
+      </mesh>
+      <mesh castShadow position={[0, 1.9, 0.05]}>
+        <boxGeometry args={[1.2, 0.5, 0.02]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+      {/* chains */}
+      <mesh position={[-0.55, 2.15, 0.04]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.3, 4]} />
+        <meshStandardMaterial color="#212121" />
+      </mesh>
+      <mesh position={[0.55, 2.15, 0.04]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.3, 4]} />
+        <meshStandardMaterial color="#212121" />
+      </mesh>
     </group>
   );
 }
