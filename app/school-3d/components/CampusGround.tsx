@@ -470,6 +470,9 @@ export default function CampusGround() {
       {/* Grand entrance arch with "UNIVERSITY" sign (south entry) */}
       <EntranceArch />
 
+      {/* Bus stop near the entrance */}
+      <BusStop />
+
       {/* Lake feature (NW campus) */}
       <Lake />
 
@@ -676,6 +679,50 @@ function Benches() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+/**
+ * BusStop — small shelter with bench + sign near the south entrance so the
+ * downtown block reads as a "real" college campus with public transit.
+ */
+function BusStop() {
+  return (
+    <group position={[6, 0, 11]}>
+      {/* Back wall */}
+      <mesh castShadow position={[0, 0.9, -0.3]}>
+        <boxGeometry args={[1.6, 1.8, 0.08]} />
+        <meshStandardMaterial color="#5D9CC9" roughness={0.6} />
+      </mesh>
+      {/* Roof */}
+      <mesh castShadow position={[0, 1.9, 0]}>
+        <boxGeometry args={[1.8, 0.1, 0.7]} />
+        <meshStandardMaterial color="#5D4037" roughness={0.7} />
+      </mesh>
+      {/* Bench */}
+      <mesh castShadow position={[0, 0.25, 0.15]}>
+        <boxGeometry args={[1.4, 0.08, 0.3]} />
+        <meshStandardMaterial color="#5D4037" roughness={0.7} />
+      </mesh>
+      {/* Bench legs */}
+      <mesh position={[-0.55, 0.1, 0.15]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.3, 6]} />
+        <meshStandardMaterial color="#424242" />
+      </mesh>
+      <mesh position={[0.55, 0.1, 0.15]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.3, 6]} />
+        <meshStandardMaterial color="#424242" />
+      </mesh>
+      {/* Bus stop sign post + sign */}
+      <mesh position={[0.95, 0.3, -0.25]}>
+        <cylinderGeometry args={[0.04, 0.04, 1.8, 6]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+      <mesh position={[0.95, 1.1, -0.21]}>
+        <boxGeometry args={[0.4, 0.4, 0.05]} />
+        <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.3} />
+      </mesh>
     </group>
   );
 }
