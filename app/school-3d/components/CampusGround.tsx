@@ -129,105 +129,139 @@ export default function CampusGround() {
 
   // Paths from the plaza to each building's door.
   //
-  // The previous version drew one wide spoke per building — that made
-  // buildings that share the same direction from the plaza (library + gym
-  // at -114°, office + auditorium at -42°/-43°) overlap into wide blurry strips.
+  // The previous two attempts (12 radial spokes, then 9 cluster-by-angle
+  // spokes) both still left the paths looking chaotic because they all radiate
+  // from the same center point in different directions.
   //
-  // New approach:
-  //   1. Cluster buildings by angle from the plaza (within ~11.5° = same group)
-  //   2. Emit ONE shared spoke per cluster, slightly narrower than before
-  //   3. Add short perpendicular branch paths from the spoke tip to each
-  //      individual building's footprint
+  // New approach: a proper campus grid.
+  //   - 3 main AVENUES running ALONG each building row (between the plaza
+  //     and the buildings, parallel to the buildings). These read as "main
+  //     streets" that lead somewhere.
+  //   - Short perpendicular BRANCHES from each avenue to each building's door.
+  //   - Isolated single SPOKES for playground + greenhouse (no cluster).
   //
-  // Result: ~9 spokes instead of 12, none of them overlapping, with clean
-  // branches leading to each building's door.
+  // Building rows:
+  //   NORTH row  : artroom, library, sciceng, auditorium  (all z=-20)
+  //   WEST column: gym, cafetria, nurse                   (all x=-22)
+  //   SOUTH row  : office, mathroom, musicrm              (all z=14)
   type PathSeg = { position: [number, number, number]; rotation: number; length: number; width: number };
-  const PLAZA_R = 4.5;
-  const SPOKE_W = 1.5;
-  const BRANCH_W = 1.0;
-  const ANGLE_THRESHOLD = 0.20; // ~11.5° rad
+  const AVENUE_W = 2.0;
+  const BRANCH_W = 1.2;
+  const SPOKE_W = 1.4;
+  const BUILDING_MARGIN = 1.0; // avenue sits this far from the building edge
 
-  const { spokes, branches } = useMemo(() => {
-    const cx = COURTYARD_CENTER[0];
-    const cz = COURTYARD_CENTER[2];
-
-    // 1. Annotate each building with angle + distance from plaza
-    const annotated = BUILDINGS.map((b) => {
-      const dx = b.position[0] - cx;
-      const dz = b.position[2] - cz;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      const angle = Math.atan2(dx, dz);
-      return { b, angle, dist, dirX: dx / dist, dirZ: dz / dist };
-    });
-
-    // 2. Sort by angle, cluster within ANGLE_THRESHOLD
-    const sorted = [...annotated].sort((a, b) => a.angle - b.angle);
-    const clusters: typeof annotated[] = [];
-    let cur: typeof annotated = [];
-    for (const item of sorted) {
-      if (cur.length === 0) {
-        cur.push(item);
-      } else {
-        const last = cur[cur.length - 1];
-        if (item.angle - last.angle > ANGLE_THRESHOLD) {
-          clusters.push(cur);
-          cur = [item];
-        } else {
-          cur.push(item);
-        }
-      }
-    }
-    if (cur.length > 0) clusters.push(cur);
-
-    // 3. Emit one spoke per cluster + a branch per building in the cluster
-    const spokes: PathSeg[] = [];
+  const { avenues, branches, spokes } = useMemo(() => {
+    const avenues: PathSeg[] = [];
     const branches: PathSeg[] = [];
-    for (const cluster of clusters) {
-      const avgAngle = cluster.reduce((s, c) => s + c.angle, 0) / cluster.length;
-      const dirX = Math.sin(avgAngle);
-      const dirZ = Math.cos(avgAngle);
 
-      // Furthest footprint edge along the spoke direction
-      let maxEdgeDist = PLAZA_R;
-      for (const item of cluster) {
-        const footprintHalf = Math.max(item.b.size[0], item.b.size[1]) / 2;
-        const projectedEdge = item.dist - footprintHalf - 0.6;
-        if (projectedEdge > maxEdgeDist) maxEdgeDist = projectedEdge;
-      }
-
-      const spokeLen = Math.max(0.5, maxEdgeDist - PLAZA_R);
-      if (spokeLen > 0.5) {
-        const midR = PLAZA_R + spokeLen / 2;
-        spokes.push({
-          position: [cx + dirX * midR, 0.005, cz + dirZ * midR],
-          rotation: avgAngle,
-          length: spokeLen,
-          width: SPOKE_W,
+    // === NORTH row (artroom, library, sciceng, auditorium) — z=-20 ===
+    // Door-side edge at z = -20 + 5.5/2 = -17.25 (facing +Z toward plaza).
+    // Avenue runs at z=-15 (between plaza edge at z=-4.5 and doors at z=-17.25).
+    const northBs = BUILDINGS.filter((b) => Math.abs(b.position[2] - (-20)) < 1);
+    if (northBs.length > 0) {
+      const aveZ = -15;
+      const xMin = Math.min(...northBs.map((b) => b.position[0])) - 5;
+      const xMax = Math.max(...northBs.map((b) => b.position[0])) + 5;
+      const len = xMax - xMin;
+      avenues.push({
+        position: [(xMin + xMax) / 2, 0.005, aveZ],
+        rotation: 0, // length along X
+        length: len,
+        width: AVENUE_W,
+      });
+      for (const b of northBs) {
+        const bx = b.position[0];
+        const doorZ = b.position[2] + b.size[1] / 2; // facing plaza (+Z)
+        branches.push({
+          position: [bx, 0.005, (aveZ + doorZ) / 2],
+          rotation: 0,
+          length: doorZ - aveZ,
+          width: BRANCH_W,
         });
       }
+    }
 
-      // Spoke tip — branches radiate from here to each building footprint
-      const spokeTipX = cx + dirX * maxEdgeDist;
-      const spokeTipZ = cz + dirZ * maxEdgeDist;
-
-      for (const item of cluster) {
-        const bEdgeX = item.b.position[0];
-        const bEdgeZ = item.b.position[2];
-        const dx = bEdgeX - spokeTipX;
-        const dz = bEdgeZ - spokeTipZ;
-        const branchLen = Math.sqrt(dx * dx + dz * dz);
-        if (branchLen > 0.5) {
-          branches.push({
-            position: [(spokeTipX + bEdgeX) / 2, 0.005, (spokeTipZ + bEdgeZ) / 2],
-            rotation: Math.atan2(dx, dz),
-            length: branchLen,
-            width: BRANCH_W,
-          });
-        }
+    // === WEST column (gym, cafetria, nurse) — x=-22 ===
+    // Door-side edge at x = -22 + 7/2 = -18.5 (facing +X toward plaza).
+    // Avenue runs at x=-15 (between plaza edge at x=-4.5 and doors at x=-18.5).
+    const westBs = BUILDINGS.filter((b) => Math.abs(b.position[0] - (-22)) < 1);
+    if (westBs.length > 0) {
+      const aveX = -15;
+      const zMin = Math.min(...westBs.map((b) => b.position[2])) - 5;
+      const zMax = Math.max(...westBs.map((b) => b.position[2])) + 5;
+      const len = zMax - zMin;
+      avenues.push({
+        position: [aveX, 0.005, (zMin + zMax) / 2],
+        rotation: Math.PI / 2, // length along Z
+        length: len,
+        width: AVENUE_W,
+      });
+      for (const b of westBs) {
+        const bz = b.position[2];
+        const doorX = b.position[0] + b.size[0] / 2; // facing plaza (+X)
+        branches.push({
+          position: [(aveX + doorX) / 2, 0.005, bz],
+          rotation: Math.PI / 2,
+          length: doorX - aveX,
+          width: BRANCH_W,
+        });
       }
     }
 
-    return { spokes, branches };
+    // === SOUTH row (office, mathroom, musicrm) — z=14 ===
+    // Door-side edge at z = 14 - 5/2 = 11.5 (facing -Z toward plaza).
+    // Avenue runs at z=10 (between plaza edge at z=4.5 and doors at z=11.5).
+    const southBs = BUILDINGS.filter((b) => Math.abs(b.position[2] - 14) < 1);
+    if (southBs.length > 0) {
+      const aveZ = 10;
+      const xMin = Math.min(...southBs.map((b) => b.position[0])) - 5;
+      const xMax = Math.max(...southBs.map((b) => b.position[0])) + 5;
+      const len = xMax - xMin;
+      avenues.push({
+        position: [(xMin + xMax) / 2, 0.005, aveZ],
+        rotation: 0,
+        length: len,
+        width: AVENUE_W,
+      });
+      for (const b of southBs) {
+        const bx = b.position[0];
+        const doorZ = b.position[2] - b.size[1] / 2; // facing plaza (-Z)
+        branches.push({
+          position: [bx, 0.005, (aveZ + doorZ) / 2],
+          rotation: 0,
+          length: aveZ - doorZ,
+          width: BRANCH_W,
+        });
+      }
+    }
+
+    // === Isolated spokes for playground + greenhouse (no cluster) ===
+    const clusteredIds = new Set([
+      ...BUILDINGS.filter((b) => Math.abs(b.position[2] - (-20)) < 1).map((b) => b.id),
+      ...BUILDINGS.filter((b) => Math.abs(b.position[0] - (-22)) < 1).map((b) => b.id),
+      ...BUILDINGS.filter((b) => Math.abs(b.position[2] - 14) < 1).map((b) => b.id),
+    ]);
+    const isolated = BUILDINGS.filter((b) => !clusteredIds.has(b.id));
+    const spokes: PathSeg[] = [];
+    for (const b of isolated) {
+      const dx = b.position[0];
+      const dz = b.position[2];
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const dirX = dx / dist;
+      const dirZ = dz / dist;
+      const startDist = 4.5; // plaza edge
+      const stopDist = dist - Math.max(b.size[0], b.size[1]) / 2 - 0.6;
+      const len = Math.max(0.5, stopDist - startDist);
+      const midR = startDist + len / 2;
+      spokes.push({
+        position: [dirX * midR, 0.005, dirZ * midR],
+        rotation: Math.atan2(dx, dz),
+        length: len,
+        width: SPOKE_W,
+      });
+    }
+
+    return { avenues, branches, spokes };
   }, []);
 
   // Decorative grass patches scattered around
@@ -268,9 +302,9 @@ export default function CampusGround() {
       </mesh>
 
       {/* Spoke paths from plaza to each building cluster */}
-      {spokes.map((s, i) => (
+      {avenues.map((s, i) => (
         <mesh
-          key={`spoke-${i}`}
+          key={`avenue-${i}`}
           receiveShadow
           rotation={[-Math.PI / 2, 0, -s.rotation]}
           position={s.position}
@@ -289,6 +323,19 @@ export default function CampusGround() {
           position={b.position}
         >
           <planeGeometry args={[b.width, b.length]} />
+          <primitive object={pathMat} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Isolated spokes for playground + greenhouse */}
+      {spokes.map((s, i) => (
+        <mesh
+          key={`spoke-${i}`}
+          receiveShadow
+          rotation={[-Math.PI / 2, 0, -s.rotation]}
+          position={s.position}
+        >
+          <planeGeometry args={[s.width, s.length]} />
           <primitive object={pathMat} attach="material" />
         </mesh>
       ))}
