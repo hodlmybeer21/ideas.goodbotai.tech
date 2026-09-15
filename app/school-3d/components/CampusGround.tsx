@@ -304,6 +304,10 @@ export default function CampusGround() {
     out.push({ position: [11, 0.005, 0], rotation: Math.PI / 2, length: 60, width: SIDE_W, type: 'road' });
     // Far south connector (EW at z=22, for greenhouse)
     out.push({ position: [-6, 0.005, 22], rotation: 0, length: 18, width: SIDE_W, type: 'road' });
+    // North St (EW at z=-12) — parallels Main St, forms block with north buildings
+    out.push({ position: [0, 0.005, -12], rotation: 0, length: 60, width: SIDE_W, type: 'road' });
+    // South St (EW at z=+12) — parallels Main St, forms block with south buildings
+    out.push({ position: [0, 0.005, 12], rotation: 0, length: 60, width: SIDE_W, type: 'road' });
 
     // Sidewalks — cobblestone strips parallel to each road
     const mainSideOff = ROAD_W / 2 + SIDEWALK_W / 2;
@@ -314,6 +318,12 @@ export default function CampusGround() {
     out.push({ position: [-11 + sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
     out.push({ position: [11 - sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
     out.push({ position: [11 + sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    // North St sidewalks (offset along Z)
+    out.push({ position: [0, 0.006, -12 - sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [0, 0.006, -12 + sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    // South St sidewalks
+    out.push({ position: [0, 0.006, 12 - sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [0, 0.006, 12 + sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
 
     // Center stripes (white dashes) along Main St
     for (let x = -29; x <= 29; x += STRIPE_LEN + STRIPE_GAP) {
@@ -324,9 +334,22 @@ export default function CampusGround() {
       out.push({ position: [-11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
       out.push({ position: [11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
     }
+    // Center stripes along North St and South St (along X)
+    for (let x = -29; x <= 29; x += STRIPE_LEN + STRIPE_GAP) {
+      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, -12], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
+      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, 12], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
+    }
     // Crosswalks at each intersection
     out.push({ position: [-11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
     out.push({ position: [11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    // North St × West Side St intersection
+    out.push({ position: [-11, 0.009, -12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    // North St × East Side St intersection
+    out.push({ position: [11, 0.009, -12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    // South St × West Side St intersection
+    out.push({ position: [-11, 0.009, 12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    // South St × East Side St intersection
+    out.push({ position: [11, 0.009, 12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
 
     return out;
   }, []);

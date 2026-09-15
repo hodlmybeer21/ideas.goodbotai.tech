@@ -21,21 +21,31 @@ export type Building = {
 };
 
 /**
- * Full campus layout — 12 buildings arranged around a central courtyard.
- * Positions were redesigned from the Phaser 2D map (2000x1600) to a cleaner
- * 3D-friendly grid. Doors auto-orient toward the courtyard.
+ * Full campus layout — 12 buildings arranged in a downtown block pattern
+ * (modeled on the Morgantown near Oglebay Hall reference). Buildings line
+ * the streets on BOTH sides of each road:
+ *   - North St (z=-12): artroom/auditorium on the outer (north) side,
+ *     library/sciceng on the inner (south) side
+ *   - South St (z=+12): office on the outer (south) side,
+ *     mathroom/musicrm on the inner (north) side
+ *   - West St (x=-11): gym/cafetria/nurse on the outer (west) side
+ *   - East St (x=+11): playground on the outer (east) side
+ *   - Far South St (z=+22): greenhouse on the outer (south) side
+ *
+ * Doors auto-orient toward the plaza, so all buildings face the central
+ * road grid from their respective sides.
  *
  * Stations use the same activity ids as the existing /school game.js so the
  * StationPicker → ActivityModal handoff stays identical to the proven 2D path.
  */
 export const BUILDINGS: Building[] = [
-  // ── NORTH ROW (z = -20) ─────────────────────────────────────────
+  // ── NORTH ROW OUTER (just north of North St at z=-12) ──────────────
   {
     id: 'artroom',
     label: 'Art Studio',
     sublabel: 'Creative Corner',
     color: '#F06292',
-    position: [-22, 0, -20],
+    position: [-22, 0, -18],
     size: [7, 5.5],
     roofStyle: 'pagoda',
     roofColor: '#EC407A',
@@ -45,12 +55,13 @@ export const BUILDINGS: Building[] = [
       { id: 'drawingcanvas',  name: 'Magic Canvas',   icon: '🖌️', ready: true },
     ],
   },
+  // ── NORTH ROW INNER (between Main St z=0 and North St z=-12) ─────
   {
     id: 'library',
     label: 'Library',
     sublabel: 'Story Hall',
     color: '#4FC3F7',
-    position: [-9, 0, -20],
+    position: [-9, 0, -7],
     size: [7, 5.5],
     roofStyle: 'gable',
     roofColor: '#5D4037',
@@ -65,7 +76,7 @@ export const BUILDINGS: Building[] = [
     label: 'Science Lab',
     sublabel: 'Experiments',
     color: '#81C784',
-    position: [9, 0, -20],
+    position: [9, 0, -7],
     size: [7, 5.5],
     roofStyle: 'dome',
     roofColor: '#66BB6A',
@@ -75,12 +86,13 @@ export const BUILDINGS: Building[] = [
       { id: 'mattermixer',name: 'Matter Mixer',     icon: '🧪', ready: true },
     ],
   },
+  // ── NORTH ROW OUTER (NE corner) ─────────────────────────────
   {
     id: 'auditorium',
     label: 'Auditorium',
     sublabel: 'Stage',
     color: '#CE93D8',
-    position: [22, 0, -20],
+    position: [22, 0, -18],
     size: [7, 5.5],
     roofStyle: 'peaked',
     roofColor: '#BA68C8',
@@ -91,13 +103,13 @@ export const BUILDINGS: Building[] = [
     ],
   },
 
-  // ── UPPER MID (z = -10) ────────────────────────────────────────
+  // ── WEST COLUMN OUTER (just west of West St at x=-11) ──────────
   {
     id: 'gym',
     label: 'Gymnasium',
     sublabel: 'Fitness',
     color: '#7E57C2',
-    position: [-22, 0, -10],
+    position: [-16, 0, -10],
     size: [7, 5.5],
     roofStyle: 'dome',
     roofColor: '#5E35B1',
@@ -106,14 +118,12 @@ export const BUILDINGS: Building[] = [
       { id: 'mathrace', name: 'Math Race',     icon: '🏃', ready: false },
     ],
   },
-
-  // ── LOWER MID (z = 0, near courtyard) ──────────────────────────
   {
     id: 'cafetria',
     label: 'Cafeteria',
     sublabel: 'Healthy Fun',
     color: '#FFB74D',
-    position: [-22, 0, 2],
+    position: [-16, 0, 2],
     size: [7, 5.5],
     roofStyle: 'flat',
     roofColor: '#FFA726',
@@ -122,14 +132,12 @@ export const BUILDINGS: Building[] = [
       { id: 'coinchallenge', name: 'Coin Challenge', icon: '🪙', ready: true },
     ],
   },
-
-  // ── SOUTH ROW (z = 14) ─────────────────────────────────────────
   {
     id: 'nurse',
     label: "Nurse's Office",
     sublabel: 'Health Hub',
     color: '#4DB6AC',
-    position: [-22, 0, 14],
+    position: [-16, 0, 14],
     size: [6, 5],
     roofStyle: 'flat',
     roofColor: '#26A69A',
@@ -137,12 +145,14 @@ export const BUILDINGS: Building[] = [
       { id: 'telltime', name: 'Tell Time', icon: '🕐', ready: true },
     ],
   },
+
+  // ── SOUTH ROW OUTER (just south of South St at z=+12) ──────────
   {
     id: 'office',
     label: 'Main Office',
     sublabel: 'HQ',
     color: '#A1887F',
-    position: [-13, 0, 14],
+    position: [-13, 0, 16],
     size: [6, 5],
     roofStyle: 'peaked',
     roofColor: '#8D6E63',
@@ -151,12 +161,13 @@ export const BUILDINGS: Building[] = [
       { id: 'istherobotright',  name: 'Is the Robot Right?', icon: '🤖', ready: true },
     ],
   },
+  // ── SOUTH ROW INNER (between Main St z=0 and South St z=+12) ─────
   {
     id: 'mathroom',
     label: 'Math Den',
     sublabel: 'Numbers',
     color: '#FFD54F',
-    position: [-4, 0, 14],
+    position: [-4, 0, 7],
     size: [6, 5],
     roofStyle: 'gable',
     roofColor: '#FFB300',
@@ -171,7 +182,7 @@ export const BUILDINGS: Building[] = [
     label: 'Music Room',
     sublabel: 'Sounds',
     color: '#FF8A65',
-    position: [5, 0, 14],
+    position: [5, 0, 7],
     size: [6, 5],
     roofStyle: 'gable',
     roofColor: '#FF7043',
@@ -181,12 +192,14 @@ export const BUILDINGS: Building[] = [
       { id: 'beatcomposer', name: 'Beat Composer',  icon: '🎵', ready: true },
     ],
   },
+
+  // ── EAST single (just east of East St at x=+11) ─────────────
   {
     id: 'playground',
     label: 'Playground',
     sublabel: 'Outdoor Fun',
     color: '#64B5F6',
-    position: [18, 0, 12],
+    position: [16, 0, 12],
     size: [8, 7],
     roofStyle: 'open',
     stations: [
@@ -196,13 +209,13 @@ export const BUILDINGS: Building[] = [
     ],
   },
 
-  // ── FAR SOUTH (z = 24) ─────────────────────────────────────────
+  // ── FAR SOUTH (south of Far South Road at z=+22) ────────────
   {
     id: 'greenhouse',
     label: 'Greenhouse',
     sublabel: 'Nature Walk',
     color: '#AED581',
-    position: [-12, 0, 24],
+    position: [-6, 0, 27],
     size: [10, 4],
     roofStyle: 'peaked',
     roofColor: '#7CB342',
