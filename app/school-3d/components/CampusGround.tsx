@@ -145,15 +145,15 @@ export default function CampusGround() {
       g.fillStyle = `rgba(${45 + Math.random() * 35},${45 + Math.random() * 35},${45 + Math.random() * 35},0.5)`;
       g.fillRect(Math.random() * 512, Math.random() * 128, 2, 2);
     }
-    // Center yellow dashes (every ~12 units at repeat 8x)
+    // Center yellow dashes (bigger and more visible, every ~12 units)
     for (let x = 24; x < 512; x += 96) {
       g.fillStyle = '#FFD54F';
-      g.fillRect(x, 60, 48, 5);
+      g.fillRect(x, 58, 56, 10);
     }
-    // White edge lines
-    g.fillStyle = 'rgba(250,250,250,0.85)';
-    g.fillRect(0, 16, 512, 2);
-    g.fillRect(0, 110, 512, 2);
+    // White edge lines (slightly thicker)
+    g.fillStyle = 'rgba(250,250,250,0.9)';
+    g.fillRect(0, 16, 512, 3);
+    g.fillRect(0, 109, 512, 3);
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
@@ -400,6 +400,81 @@ export default function CampusGround() {
     zebraStrips(-11, 12, true, SIDE_W);
     zebraStrips(11, 12, true, SIDE_W);
 
+    // === Lane direction arrows (small white arrows on the road) ===
+    const pushArrow = (x: number, z: number, angle: number) => {
+      out.push({
+        position: [x, 0.0088, z],
+        rotation: angle,
+        length: 1.4,
+        width: 0.42,
+        type: 'crosswalk',
+      });
+    };
+    // Main St — arrows at midpoints between intersections (forward)
+    pushArrow(-5, 0, 0); pushArrow(5, 0, 0); pushArrow(17, 0, 0);
+    // West Side St — arrows pointing north (-Z)
+    pushArrow(-11, -5, Math.PI); pushArrow(-11, 8, Math.PI);
+    // East Side St — arrows pointing south (+Z)
+    pushArrow(11, -5, 0); pushArrow(11, 8, 0);
+    // North St — arrows forward
+    pushArrow(-5, -12, 0); pushArrow(5, -12, 0); pushArrow(17, -12, 0);
+    // South St — arrows backward
+    pushArrow(-5, 12, Math.PI); pushArrow(5, 12, Math.PI); pushArrow(17, 12, Math.PI);
+
+    // === Stop lines (white transverse bars before each crosswalk) ===
+    const pushStopLine = (cx: number, cz: number, isNS: boolean, sign: number) => {
+      if (isNS) {
+        out.push({
+          position: [cx + sign * (SIDE_W / 2 + 0.5), 0.0088, cz],
+          rotation: 0,
+          length: 1.4,
+          width: 0.22,
+          type: 'crosswalk',
+        });
+      } else {
+        out.push({
+          position: [cx, 0.0088, cz + sign * (ROAD_W / 2 + 0.5)],
+          rotation: Math.PI / 2,
+          length: 1.4,
+          width: 0.22,
+          type: 'crosswalk',
+        });
+      }
+    };
+    // Stop lines on each leg of each intersection
+    pushStopLine(-11, 0, true, -1);  pushStopLine(-11, 0, true,  1);
+    pushStopLine( 11, 0, true, -1);  pushStopLine( 11, 0, true,  1);
+    pushStopLine(-11,-12, true, -1); pushStopLine(-11,-12, true,  1);
+    pushStopLine( 11,-12, true, -1); pushStopLine( 11,-12, true,  1);
+    pushStopLine(-11, 12, true, -1); pushStopLine(-11, 12, true,  1);
+    pushStopLine( 11, 12, true, -1); pushStopLine( 11, 12, true,  1);
+    pushStopLine(0, -11, false, -1); pushStopLine(0, -11, false,  1);
+    pushStopLine(0,  11, false, -1); pushStopLine(0,  11, false,  1);
+    pushStopLine(0, 0, false, -1);   pushStopLine(0, 0, false,  1);
+    pushStopLine(0,-12, false, -1);   pushStopLine(0,-12, false,  1);
+    pushStopLine(0, 12, false, -1);   pushStopLine(0, 12, false,  1);
+
+    // === Manhole covers scattered along every road ===
+    const pushManhole = (hx: number, hz: number, rot: number) => {
+      out.push({
+        position: [hx, 0.0088, hz],
+        rotation: rot,
+        length: 0.12,
+        width: 0.5,
+        type: 'crosswalk',
+      });
+    };
+    for (const [hx, hz, hr] of [
+      [-18, 0, 0], [-4, 0, 1], [12, 0, 0],
+      [-11, -16, 0], [-11, 4, 1], [-11, 18, 0],
+      [11, -16, 0], [11, 4, 1], [11, 18, 0],
+      [0, -16, 1], [0, 4, 0], [0, 18, 1],
+      [-5, -12, 1], [-5, 12, 0],
+      [12, -12, 1], [12, 12, 0],
+    ] as Array<[number, number, number]>) {
+      pushManhole(hx, hz, hr);
+    }
+
     // === Bus routes on the road surface — painted bus lane markings
     // along Main St and the cross streets. (Yellow dashes for bus lanes.)
     const busLaneStripes = (cx: number, cz: number, isNS: boolean, roadWidth: number) => {
@@ -607,6 +682,15 @@ function Trees() {
     { x: -30, z: -10 }, { x: -32, z: 0 }, { x: -29, z: 8 },
     // Inner scatter
     { x: -14, z: -14 }, { x: 14, z: -14 }, { x: -14, z: 8 }, { x: 14, z: 8 },
+    // === Block-interior trees — greenery in the quads between roads ===
+    // North block (between North St z=-12 and the north buildings at z=-20)
+    { x: -22, z: -16 }, { x: -14, z: -18 }, { x: -4, z: -16 }, { x:  4, z: -18 }, { x: 14, z: -16 }, { x: 22, z: -17 },
+    // Center-north block (between Main St z=0 and North St z=-12)
+    { x: -24, z: -6 }, { x: -16, z: -8 }, { x: -8, z: -6 }, { x:  2, z: -8 }, { x: 10, z: -6 }, { x: 20, z: -8 },
+    // Center-south block (between Main St z=0 and South St z=12)
+    { x: -24, z: 6 }, { x: -16, z: 8 }, { x: -8, z: 6 }, { x:  2, z: 8 }, { x: 10, z: 6 }, { x: 20, z: 8 },
+    // South block (between South St z=12 and the south buildings at z=20)
+    { x: -22, z: 16 }, { x: -14, z: 18 }, { x: -4, z: 16 }, { x:  4, z: 18 }, { x: 14, z: 16 }, { x: 22, z: 17 },
     // === Street trees — lining the road grid like a downtown ===
     // Along Main St (z=0)
     { x: -26, z: -2 }, { x: -22, z: -2 }, { x: -18, z: -2 }, { x: -14, z: -2 }, { x: -10, z: -2 },
