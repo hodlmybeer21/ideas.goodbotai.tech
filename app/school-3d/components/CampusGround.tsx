@@ -473,6 +473,9 @@ export default function CampusGround() {
       {/* Lake feature (NW campus) */}
       <Lake />
 
+      {/* Stadium feature (NE campus — grandstands around a sports field) */}
+      <Stadium />
+
       {/* Flower beds near plaza */}
       <FlowerBed position={[ 4,  4]} colors={['#FF6B9D', '#FFD93D', '#C084FC']} />
       <FlowerBed position={[-4,  4]} colors={['#6BCBFF', '#6BCB77', '#FF9F43']} />
@@ -500,6 +503,28 @@ function Trees() {
     { x: -30, z: -10 }, { x: -32, z: 0 }, { x: -29, z: 8 },
     // Inner scatter
     { x: -14, z: -14 }, { x: 14, z: -14 }, { x: -14, z: 8 }, { x: 14, z: 8 },
+    // === Street trees — lining the road grid like a downtown ===
+    // Along Main St (z=0)
+    { x: -26, z: -2 }, { x: -22, z: -2 }, { x: -18, z: -2 }, { x: -14, z: -2 }, { x: -10, z: -2 },
+    { x: -6, z: -2 },  { x: -2, z: -2 },  { x:  2, z: -2 },  { x:  6, z: -2 },  { x: 10, z: -2 },
+    { x: 14, z: -2 },  { x: 18, z: -2 }, { x: 22, z: -2 }, { x: 26, z: -2 },
+    { x: -26, z: 2 },  { x: -22, z: 2 },  { x: -18, z: 2 },  { x: -14, z: 2 },  { x: -10, z: 2 },
+    { x: -6, z: 2 },   { x: -2, z: 2 },   { x:  2, z: 2 },  { x:  6, z: 2 },  { x: 10, z: 2 },
+    { x: 14, z: 2 },   { x: 18, z: 2 },  { x: 22, z: 2 },  { x: 26, z: 2 },
+    // Along West Side St (x=-11)
+    { x: -12.5, z: -16 }, { x: -12.5, z: -12 }, { x: -12.5, z: -8 }, { x: -12.5, z: -4 },
+    { x: -9.5, z: -16 },  { x: -9.5, z: -12 },  { x: -9.5, z: -8 },  { x: -9.5, z: -4 },
+    { x: -12.5, z: 4 },  { x: -12.5, z: 8 },  { x: -12.5, z: 12 }, { x: -12.5, z: 16 },
+    { x: -9.5, z: 4 },   { x: -9.5, z: 8 },   { x: -9.5, z: 12 },  { x: -9.5, z: 16 },
+    // Along East Side St (x=11)
+    { x: 8.5, z: -16 },   { x: 8.5, z: -12 },   { x: 8.5, z: -8 },   { x: 8.5, z: -4 },
+    { x: 11.5, z: -16 }, { x: 11.5, z: -12 }, { x: 11.5, z: -8 }, { x: 11.5, z: -4 },
+    { x: 8.5, z: 4 },    { x: 8.5, z: 8 },    { x: 8.5, z: 12 },  { x: 8.5, z: 16 },
+    { x: 11.5, z: 4 },  { x: 11.5, z: 8 },  { x: 11.5, z: 12 }, { x: 11.5, z: 16 },
+    // Around the lake (NW campus)
+    { x: -23, z: -28 }, { x: -19, z: -29 }, { x: -16, z: -26 }, { x: -22, z: -24 }, { x: -17, z: -23 },
+    // Around the clock tower / plaza
+    { x: 5, z: 5 },    { x: -5, z: 5 },  { x: 5, z: -5 },  { x: -5, z: -5 },
   ];
   // Stable seeded assignment (Mulberry32) so tree types don't shuffle between renders.
   const rng = (() => {
@@ -972,6 +997,47 @@ function Lake() {
         <sphereGeometry args={[0.18, 12, 12]} />
         <meshStandardMaterial color="#B3E5FC" emissive="#B3E5FC" emissiveIntensity={0.4} transparent opacity={0.8} />
       </mesh>
+    </group>
+  );
+}
+
+function Stadium() {
+  // Stadium feature in the NE corner of campus — green sports field
+  // with grandstands on two long sides (matching the downtown college reference).
+  return (
+    <group position={[18, 0, -24]}>
+      {/* Sports field — green rectangle */}
+      <mesh receiveShadow position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[8, 5]} />
+        <meshStandardMaterial color="#66BB6A" roughness={0.85} />
+      </mesh>
+      {/* Center stripe */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.1, 5]} />
+        <meshStandardMaterial color="#FAFAFA" />
+      </mesh>
+      {/* Center circle */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.8, 0.85, 32]} />
+        <meshStandardMaterial color="#FAFAFA" />
+      </mesh>
+      {/* Grandstand - north side */}
+      <mesh castShadow position={[0, 0.8, -3]}>
+        <boxGeometry args={[8, 1.6, 1.2]} />
+        <meshStandardMaterial color="#A1887F" roughness={0.7} />
+      </mesh>
+      {/* Grandstand - south side */}
+      <mesh castShadow position={[0, 0.8, 3]}>
+        <boxGeometry args={[8, 1.6, 1.2]} />
+        <meshStandardMaterial color="#A1887F" roughness={0.7} />
+      </mesh>
+      {/* Stadium lights (small lamp posts at corners) */}
+      {[[-4, -3.5], [4, -3.5], [-4, 3.5], [4, 3.5]].map(([x, z], i) => (
+        <mesh key={i} position={[x, 1.8, z]}>
+          <cylinderGeometry args={[0.04, 0.04, 1.2, 6]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+      ))}
     </group>
   );
 }
