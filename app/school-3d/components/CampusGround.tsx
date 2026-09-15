@@ -2,6 +2,7 @@
 
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { BUILDINGS, COURTYARD_CENTER } from '../buildings.config';
 
@@ -460,14 +461,17 @@ export default function CampusGround() {
       {/* Lamp posts on the plaza */}
       <Lamps />
 
-      {/* School flagpole — center of the plaza */}
-      <Flagpole />
+      {/* Clock tower — center of the plaza */}
+      <ClockTower />
 
       {/* Playground equipment inside the Playground building */}
       <PlaygroundEquipment />
 
-      {/* School entrance marker (south entry) */}
-      <EntranceMarker />
+      {/* Grand entrance arch with "UNIVERSITY" sign (south entry) */}
+      <EntranceArch />
+
+      {/* Lake feature (NW campus) */}
+      <Lake />
 
       {/* Flower beds near plaza */}
       <FlowerBed position={[ 4,  4]} colors={['#FF6B9D', '#FFD93D', '#C084FC']} />
@@ -799,75 +803,174 @@ function PlaygroundEquipment() {
 }
 
 function Flagpole() {
-  // Tall flagpole at the center of the plaza with a triangular flag.
-  const flagRef = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    if (flagRef.current) {
-      // Subtle wave by rotating flag around its pole edge
-      flagRef.current.rotation.y = Math.sin(clock.elapsedTime * 2) * 0.18;
-    }
-  });
+  // (deprecated — replaced by ClockTower below)
+  return null;
+}
+
+function ClockTower() {
+  // Tall stone clock tower at the center of the plaza.
+  // Stone base + lower column with door + clock section (4 faces) + pyramidal roof + spire.
   return (
     <group position={[0, 0, 0]}>
-      {/* base */}
-      <mesh castShadow position={[0, 0.15, 0]}>
-        <cylinderGeometry args={[0.3, 0.4, 0.3, 8]} />
+      {/* Wide stone base */}
+      <mesh castShadow position={[0, 0.3, 0]}>
+        <boxGeometry args={[1.6, 0.6, 1.6]} />
+        <meshStandardMaterial color="#8D6E63" roughness={0.7} />
+      </mesh>
+      {/* Plinth */}
+      <mesh castShadow position={[0, 0.75, 0]}>
+        <boxGeometry args={[1.2, 0.3, 1.2]} />
+        <meshStandardMaterial color="#A1887F" roughness={0.7} />
+      </mesh>
+      {/* Lower column (square, with door on +Z face) */}
+      <mesh castShadow position={[0, 1.8, 0]}>
+        <boxGeometry args={[1.0, 1.7, 1.0]} />
+        <meshStandardMaterial color="#BCAAA4" roughness={0.7} />
+      </mesh>
+      {/* Door (south-facing, +Z side) */}
+      <mesh castShadow position={[0, 1.3, 0.51]}>
+        <boxGeometry args={[0.3, 0.8, 0.02]} />
         <meshStandardMaterial color="#5D4037" />
       </mesh>
-      {/* pole */}
-      <mesh castShadow position={[0, 4.5, 0]}>
-        <cylinderGeometry args={[0.08, 0.1, 8.5, 8]} />
-        <meshStandardMaterial color="#BDBDBD" metalness={0.6} roughness={0.3} />
+      {/* Clock section (wider) */}
+      <mesh castShadow position={[0, 3.0, 0]}>
+        <boxGeometry args={[1.3, 0.9, 1.3]} />
+        <meshStandardMaterial color="#D7CCC8" roughness={0.7} />
       </mesh>
-      {/* gold ball on top */}
-      <mesh castShadow position={[0, 9, 0]}>
-        <sphereGeometry args={[0.18, 12, 12]} />
+      {/* Clock faces on 4 sides */}
+      <mesh position={[0, 3.0, 0.66]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.02, 32]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0.66, 3.0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.02, 32]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0, 3.0, -0.66]} rotation={[0, Math.PI, 0]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.02, 32]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[-0.66, 3.0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.02, 32]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      {/* Clock hands on front (+Z) face */}
+      <mesh position={[0, 3.0, 0.67]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[0.04, 0.22, 0.02]} />
+        <meshStandardMaterial color="#2D1B00" />
+      </mesh>
+      <mesh position={[0.12, 3.0, 0.67]} rotation={[0, 0, -Math.PI / 6]}>
+        <boxGeometry args={[0.03, 0.26, 0.02]} />
+        <meshStandardMaterial color="#2D1B00" />
+      </mesh>
+      {/* Pyramidal roof */}
+      <mesh castShadow position={[0, 3.9, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <coneGeometry args={[0.85, 0.9, 4]} />
+        <meshStandardMaterial color="#6D4C41" roughness={0.6} />
+      </mesh>
+      {/* Spire */}
+      <mesh castShadow position={[0, 4.85, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.5, 8]} />
+        <meshStandardMaterial color="#BDBDBD" />
+      </mesh>
+      {/* Gold ball on spire */}
+      <mesh position={[0, 5.15, 0]}>
+        <sphereGeometry args={[0.12, 12, 12]} />
         <meshStandardMaterial color="#FFD700" metalness={0.8} roughness={0.2} />
-      </mesh>
-      {/* flag (triangular plane that rotates for wave effect) */}
-      <mesh ref={flagRef} position={[0.45, 7.5, 0]}>
-        <planeGeometry args={[1.2, 0.8]} />
-        <meshStandardMaterial color="#FF6B9D" side={2} />
       </mesh>
     </group>
   );
 }
 
 function EntranceMarker() {
-  // Wooden signpost at the south entry path, greeting visitors.
+  // (deprecated — replaced by EntranceArch below)
+  return null;
+}
+
+function EntranceArch() {
+  // Grand brick archway at the south entry with "UNIVERSITY" text on the lintel.
   return (
-    <group position={[0, 0, 9]}>
-      {/* two posts */}
-      <mesh castShadow position={[-0.7, 1.2, 0]}>
-        <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
-        <meshStandardMaterial color="#5D4037" />
+    <group position={[0, 0, 11]}>
+      {/* Left column base */}
+      <mesh castShadow position={[-1.4, 0.15, 0]}>
+        <boxGeometry args={[0.8, 0.3, 0.8]} />
+        <meshStandardMaterial color="#6D4C41" roughness={0.7} />
       </mesh>
-      <mesh castShadow position={[0.7, 1.2, 0]}>
-        <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
-        <meshStandardMaterial color="#5D4037" />
+      {/* Left column */}
+      <mesh castShadow position={[-1.4, 1.65, 0]}>
+        <boxGeometry args={[0.6, 3.0, 0.6]} />
+        <meshStandardMaterial color="#8D6E63" roughness={0.7} />
       </mesh>
-      {/* horizontal beam (top) */}
-      <mesh castShadow position={[0, 2.45, 0]}>
-        <boxGeometry args={[2.2, 0.3, 0.3]} />
-        <meshStandardMaterial color="#3E2723" />
+      {/* Left column capital */}
+      <mesh castShadow position={[-1.4, 3.2, 0]}>
+        <boxGeometry args={[0.8, 0.2, 0.8]} />
+        <meshStandardMaterial color="#A1887F" roughness={0.7} />
       </mesh>
-      {/* hanging sign */}
-      <mesh castShadow position={[0, 1.9, 0]}>
-        <boxGeometry args={[1.4, 0.7, 0.08]} />
-        <meshStandardMaterial color="#FF6B9D" />
+      {/* Right column base */}
+      <mesh castShadow position={[1.4, 0.15, 0]}>
+        <boxGeometry args={[0.8, 0.3, 0.8]} />
+        <meshStandardMaterial color="#6D4C41" roughness={0.7} />
       </mesh>
-      <mesh castShadow position={[0, 1.9, 0.05]}>
-        <boxGeometry args={[1.2, 0.5, 0.02]} />
-        <meshStandardMaterial color="white" />
+      {/* Right column */}
+      <mesh castShadow position={[1.4, 1.65, 0]}>
+        <boxGeometry args={[0.6, 3.0, 0.6]} />
+        <meshStandardMaterial color="#8D6E63" roughness={0.7} />
       </mesh>
-      {/* chains */}
-      <mesh position={[-0.55, 2.15, 0.04]}>
-        <cylinderGeometry args={[0.02, 0.02, 0.3, 4]} />
-        <meshStandardMaterial color="#212121" />
+      {/* Right column capital */}
+      <mesh castShadow position={[1.4, 3.2, 0]}>
+        <boxGeometry args={[0.8, 0.2, 0.8]} />
+        <meshStandardMaterial color="#A1887F" roughness={0.7} />
       </mesh>
-      <mesh position={[0.55, 2.15, 0.04]}>
-        <cylinderGeometry args={[0.02, 0.02, 0.3, 4]} />
-        <meshStandardMaterial color="#212121" />
+      {/* Curved arch (half torus) between columns */}
+      <mesh castShadow position={[0, 3.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.4, 0.3, 12, 8, Math.PI]} />
+        <meshStandardMaterial color="#8D6E63" roughness={0.7} />
+      </mesh>
+      {/* Top lintel with "UNIVERSITY" text */}
+      <mesh castShadow position={[0, 3.75, 0]}>
+        <boxGeometry args={[3.6, 0.5, 0.7]} />
+        <meshStandardMaterial color="#5D4037" roughness={0.7} />
+      </mesh>
+      <Billboard position={[0, 3.75, 0.36]}>
+        <Text fontSize={0.35} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#2D1B00" fontWeight={700}>
+          UNIVERSITY
+        </Text>
+      </Billboard>
+      {/* Lanterns on each column */}
+      <mesh position={[-1.4, 2.5, 0.31]}>
+        <sphereGeometry args={[0.18, 12, 12]} />
+        <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.7} />
+      </mesh>
+      <mesh position={[1.4, 2.5, 0.31]}>
+        <sphereGeometry args={[0.18, 12, 12]} />
+        <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+function Lake() {
+  // Lake / water feature in the NW corner of the campus.
+  return (
+    <group position={[-20, 0, -26]}>
+      {/* Lake water surface */}
+      <mesh receiveShadow position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[3.5, 32]} />
+        <meshStandardMaterial color="#3B7CB8" roughness={0.3} metalness={0.4} transparent opacity={0.85} />
+      </mesh>
+      {/* Lake edge — lighter blue ring */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[3.5, 4.0, 32]} />
+        <meshStandardMaterial color="#5D9CC9" roughness={0.4} transparent opacity={0.7} />
+      </mesh>
+      {/* Small fountain in center */}
+      <mesh position={[0, 0.4, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.5, 8]} />
+        <meshStandardMaterial color="#9E9E9E" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.7, 0]}>
+        <sphereGeometry args={[0.18, 12, 12]} />
+        <meshStandardMaterial color="#B3E5FC" emissive="#B3E5FC" emissiveIntensity={0.4} transparent opacity={0.8} />
       </mesh>
     </group>
   );
