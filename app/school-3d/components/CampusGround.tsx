@@ -208,6 +208,9 @@ export default function CampusGround() {
       {/* Lamp posts on the plaza */}
       <Lamps />
 
+      {/* Playground equipment inside the Playground building */}
+      <PlaygroundEquipment />
+
       {/* School entrance marker (south entry) */}
       <EntranceMarker />
 
@@ -433,6 +436,109 @@ function Lamps() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+function PlaygroundEquipment() {
+  // Swings + slide + seesaw, positioned inside the Playground building
+  // footprint (centered around world position [18, 0, 12]).
+  return (
+    <group position={[18, 0, 12]}>
+      {/* Swings — A-frame + 2 chains + 2 seats */}
+      <group position={[-2.4, 0, 0]}>
+        {/* A-frame left leg */}
+        <mesh castShadow position={[-0.05, 1.5, -0.8]} rotation={[0, 0, -0.15]}>
+          <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* A-frame right leg */}
+        <mesh castShadow position={[0.05, 1.5, -0.8]} rotation={[0, 0, 0.15]}>
+          <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* top beam */}
+        <mesh castShadow position={[0, 3, -0.8]}>
+          <cylinderGeometry args={[0.08, 0.08, 2.2, 8]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* chains */}
+        <mesh position={[-0.7, 2.2, -0.8]}>
+          <cylinderGeometry args={[0.02, 0.02, 1.4, 4]} />
+          <meshStandardMaterial color="#424242" />
+        </mesh>
+        <mesh position={[0.7, 2.2, -0.8]}>
+          <cylinderGeometry args={[0.02, 0.02, 1.4, 4]} />
+          <meshStandardMaterial color="#424242" />
+        </mesh>
+        {/* seats */}
+        <mesh castShadow position={[-0.7, 1.5, -0.8]}>
+          <boxGeometry args={[0.5, 0.06, 0.3]} />
+          <meshStandardMaterial color="#FF6B9D" />
+        </mesh>
+        <mesh castShadow position={[0.7, 1.5, -0.8]}>
+          <boxGeometry args={[0.5, 0.06, 0.3]} />
+          <meshStandardMaterial color="#FFD54F" />
+        </mesh>
+      </group>
+
+      {/* Slide — ladder + slide ramp */}
+      <group position={[0, 0, 0.5]}>
+        {/* ladder */}
+        <mesh castShadow position={[-0.8, 0.9, -0.6]} rotation={[Math.PI / 8, 0, 0]}>
+          <boxGeometry args={[0.5, 0.05, 1.6]} />
+          <meshStandardMaterial color="#3E2723" />
+        </mesh>
+        {/* ladder rungs */}
+        {[0, 0.3, 0.6, 0.9].map((y, i) => (
+          <mesh key={i} castShadow position={[-0.8, 0.3 + y, -0.5 + y * 0.18]}>
+            <boxGeometry args={[0.5, 0.05, 0.05]} />
+            <meshStandardMaterial color="#3E2723" />
+          </mesh>
+        ))}
+        {/* platform */}
+        <mesh castShadow position={[-0.8, 1.4, -0.4]}>
+          <boxGeometry args={[0.8, 0.08, 0.8]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* slide ramp */}
+        <mesh castShadow position={[0.1, 0.7, 0.3]} rotation={[-0.45, 0, 0]}>
+          <boxGeometry args={[0.5, 0.04, 1.8]} />
+          <meshStandardMaterial color="#FFD54F" />
+        </mesh>
+        {/* slide side rails */}
+        <mesh position={[-0.18, 0.85, 0.3]} rotation={[-0.45, 0, 0]}>
+          <boxGeometry args={[0.04, 0.18, 1.8]} />
+          <meshStandardMaterial color="#FF6B9D" />
+        </mesh>
+        <mesh position={[0.38, 0.85, 0.3]} rotation={[-0.45, 0, 0]}>
+          <boxGeometry args={[0.04, 0.18, 1.8]} />
+          <meshStandardMaterial color="#FF6B9D" />
+        </mesh>
+      </group>
+
+      {/* Seesaw */}
+      <group position={[2.4, 0, 0]}>
+        {/* fulcrum */}
+        <mesh castShadow position={[0, 0.4, 0]}>
+          <boxGeometry args={[0.3, 0.8, 0.5]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* plank */}
+        <mesh castShadow position={[0, 0.9, 0]} rotation={[0.08, 0, 0]}>
+          <boxGeometry args={[2.2, 0.08, 0.3]} />
+          <meshStandardMaterial color="#FF6B9D" />
+        </mesh>
+        {/* handles */}
+        <mesh position={[-1, 1.2, 0]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.5, 6]} />
+          <meshStandardMaterial color="#3E2723" />
+        </mesh>
+        <mesh position={[1, 1.2, 0]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.5, 6]} />
+          <meshStandardMaterial color="#3E2723" />
+        </mesh>
+      </group>
     </group>
   );
 }
