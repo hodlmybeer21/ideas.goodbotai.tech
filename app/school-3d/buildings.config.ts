@@ -15,22 +15,32 @@ export type Building = {
   wallColor?: string;      // override cream
   position: [number, number, number];   // x, y, z
   size: [number, number];                // width, depth
+  height?: number;        // number of floors (default 1 = single story, 2 = two-story, etc.)
   roofStyle: 'gable' | 'flat' | 'dome' | 'peaked' | 'open' | 'pagoda';
   roofColor?: string;
   stations: Station[];
 };
 
 /**
- * Full campus layout — 12 buildings arranged in a downtown block pattern
- * (modeled on the Morgantown near Oglebay Hall reference). Buildings line
- * the streets on BOTH sides of each road:
- *   - North St (z=-12): artroom/auditorium on the outer (north) side,
- *     library/sciceng on the inner (south) side
- *   - South St (z=+12): office on the outer (south) side,
- *     mathroom/musicrm on the inner (north) side
- *   - West St (x=-11): gym/cafetria/nurse on the outer (west) side
- *   - East St (x=+11): playground on the outer (east) side
- *   - Far South St (z=+22): greenhouse on the outer (south) side
+ * Full campus layout — 12 buildings spread out as a proper downtown college
+ * (modeled on the Morgantown near Oglebay Hall reference). Buildings are
+ * spaced well apart with wide green quads between streets. All 12 buildings
+ * line the OUTER side of the 4-road grid:
+ *   - North row (z=-20): artroom / library / sciceng / auditorium spread
+ *     across x from -28 to +28, with ~10 units of green space between each
+ *   - West column (x=-20): gym / cafetria / nurse spread along z from
+ *     -12 to +14, with ~12 units of green space between each
+ *   - South row (z=+20): office / mathroom / musicrm spread across x
+ *     from -14 to +14, with ~14 units between each
+ *   - East single (x=+22): playground
+ *   - Far South (z=+28): greenhouse
+ * The "inner" blocks (between Main St and North/South St, between West/East
+ * Side St) are open green quads with trees, paths, and the central plaza
+ * / clock tower / entrance arch / lake / stadium.
+ *
+ * Buildings with `height: 2` are multi-story (taller walls + door + roof);
+ * those with columns (library, office, auditorium) get decorative columned
+ * porticos on their front face, matching the reference image.
  *
  * Doors auto-orient toward the plaza, so all buildings face the central
  * road grid from their respective sides.
@@ -39,14 +49,15 @@ export type Building = {
  * StationPicker → ActivityModal handoff stays identical to the proven 2D path.
  */
 export const BUILDINGS: Building[] = [
-  // ── NORTH ROW OUTER (just north of North St at z=-12) ──────────────
+  // ── NORTH row (outer, z=-20, 4 buildings spread across x) ──────────────
   {
     id: 'artroom',
     label: 'Art Studio',
     sublabel: 'Creative Corner',
     color: '#F06292',
-    position: [-22, 0, -18],
+    position: [-28, 0, -20],
     size: [7, 5.5],
+    height: 1,
     roofStyle: 'pagoda',
     roofColor: '#EC407A',
     stations: [
@@ -55,14 +66,14 @@ export const BUILDINGS: Building[] = [
       { id: 'drawingcanvas',  name: 'Magic Canvas',   icon: '🖌️', ready: true },
     ],
   },
-  // ── NORTH ROW INNER (between Main St z=0 and North St z=-12) ─────
   {
     id: 'library',
     label: 'Library',
     sublabel: 'Story Hall',
     color: '#4FC3F7',
-    position: [-9, 0, -7],
+    position: [-10, 0, -20],
     size: [7, 5.5],
+    height: 2,                  // ← multi-story with columned portico (downtown library look)
     roofStyle: 'gable',
     roofColor: '#5D4037',
     stations: [
@@ -76,8 +87,9 @@ export const BUILDINGS: Building[] = [
     label: 'Science Lab',
     sublabel: 'Experiments',
     color: '#81C784',
-    position: [9, 0, -7],
+    position: [10, 0, -20],
     size: [7, 5.5],
+    height: 1,
     roofStyle: 'dome',
     roofColor: '#66BB6A',
     stations: [
@@ -86,14 +98,14 @@ export const BUILDINGS: Building[] = [
       { id: 'mattermixer',name: 'Matter Mixer',     icon: '🧪', ready: true },
     ],
   },
-  // ── NORTH ROW OUTER (NE corner) ─────────────────────────────
   {
     id: 'auditorium',
     label: 'Auditorium',
     sublabel: 'Stage',
     color: '#CE93D8',
-    position: [22, 0, -18],
+    position: [28, 0, -20],
     size: [7, 5.5],
+    height: 2,                  // ← multi-story (grand theater building)
     roofStyle: 'peaked',
     roofColor: '#BA68C8',
     stations: [
@@ -103,14 +115,15 @@ export const BUILDINGS: Building[] = [
     ],
   },
 
-  // ── WEST COLUMN OUTER (just west of West St at x=-11) ──────────
+  // ── WEST column (x=-20, 3 buildings spread along z) ──────────
   {
     id: 'gym',
     label: 'Gymnasium',
     sublabel: 'Fitness',
     color: '#7E57C2',
-    position: [-16, 0, -10],
+    position: [-20, 0, -12],
     size: [7, 5.5],
+    height: 1,
     roofStyle: 'dome',
     roofColor: '#5E35B1',
     stations: [
@@ -123,8 +136,9 @@ export const BUILDINGS: Building[] = [
     label: 'Cafeteria',
     sublabel: 'Healthy Fun',
     color: '#FFB74D',
-    position: [-16, 0, 2],
+    position: [-20, 0, 2],
     size: [7, 5.5],
+    height: 1,
     roofStyle: 'flat',
     roofColor: '#FFA726',
     stations: [
@@ -137,8 +151,9 @@ export const BUILDINGS: Building[] = [
     label: "Nurse's Office",
     sublabel: 'Health Hub',
     color: '#4DB6AC',
-    position: [-16, 0, 14],
+    position: [-20, 0, 14],
     size: [6, 5],
+    height: 1,
     roofStyle: 'flat',
     roofColor: '#26A69A',
     stations: [
@@ -146,14 +161,15 @@ export const BUILDINGS: Building[] = [
     ],
   },
 
-  // ── SOUTH ROW OUTER (just south of South St at z=+12) ──────────
+  // ── SOUTH row (outer, z=+20, 3 buildings spread along x) ─────────────
   {
     id: 'office',
     label: 'Main Office',
     sublabel: 'HQ',
     color: '#A1887F',
-    position: [-13, 0, 16],
+    position: [-14, 0, 20],
     size: [6, 5],
+    height: 2,                  // ← multi-story (campus HQ with columned portico)
     roofStyle: 'peaked',
     roofColor: '#8D6E63',
     stations: [
@@ -161,14 +177,14 @@ export const BUILDINGS: Building[] = [
       { id: 'istherobotright',  name: 'Is the Robot Right?', icon: '🤖', ready: true },
     ],
   },
-  // ── SOUTH ROW INNER (between Main St z=0 and South St z=+12) ─────
   {
     id: 'mathroom',
     label: 'Math Den',
     sublabel: 'Numbers',
     color: '#FFD54F',
-    position: [-4, 0, 7],
+    position: [0, 0, 20],
     size: [6, 5],
+    height: 1,
     roofStyle: 'gable',
     roofColor: '#FFB300',
     stations: [
@@ -182,8 +198,9 @@ export const BUILDINGS: Building[] = [
     label: 'Music Room',
     sublabel: 'Sounds',
     color: '#FF8A65',
-    position: [5, 0, 7],
+    position: [14, 0, 20],
     size: [6, 5],
+    height: 1,
     roofStyle: 'gable',
     roofColor: '#FF7043',
     stations: [
@@ -193,14 +210,15 @@ export const BUILDINGS: Building[] = [
     ],
   },
 
-  // ── EAST single (just east of East St at x=+11) ─────────────
+  // ── EAST single (x=+22, between East St x=11 and outer edge) ───────────
   {
     id: 'playground',
     label: 'Playground',
     sublabel: 'Outdoor Fun',
     color: '#64B5F6',
-    position: [16, 0, 12],
+    position: [22, 0, 8],
     size: [8, 7],
+    height: 1,
     roofStyle: 'open',
     stations: [
       { id: 'statefinder',  name: 'State Finder',     icon: '🗺️', ready: true },
@@ -215,8 +233,9 @@ export const BUILDINGS: Building[] = [
     label: 'Greenhouse',
     sublabel: 'Nature Walk',
     color: '#AED581',
-    position: [-6, 0, 27],
+    position: [-4, 0, 28],
     size: [10, 4],
+    height: 1,
     roofStyle: 'peaked',
     roofColor: '#7CB342',
     stations: [

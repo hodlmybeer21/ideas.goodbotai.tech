@@ -37,11 +37,19 @@ function SignTexturePlane({ id, w, h, z }: { id: string; w: number; h: number; z
   );
 }
 
+// Buildings that get columned porticos (Greek/Roman style) on their front face,
+// matching the reference image's library / office / auditorium look.
+const COLUMNS_BUILDINGS = new Set(['library', 'office', 'auditorium']);
+
 /**
  * Building — reusable procedural 3D building with door trigger.
  * Roofs: flat (single slab), dome (half-sphere), peaked/gable (proper triangular
  * prism via ExtrudeGeometry — no more X-shape cross), pagoda (2-tier + cone).
  * Sign hangs in front of the door (so it never gets occluded by any roof).
+ * Multi-story: wall height scales with `building.height` (floors), and a
+ * row of upper-floor windows gets added on the front face.
+ * Decorative columns: library / office / auditorium get a row of white
+ * columns + header beam across their front, matching the reference image.
  */
 export default function Building({ building, playerPosRef, onPlayerNear }: {
   building: Building;
@@ -66,10 +74,12 @@ export default function Building({ building, playerPosRef, onPlayerNear }: {
   });
 
   const [w, d] = building.size;
-  const h = 3.0;
+  const floors = building.height ?? 1;
+  const h = 3.0 * floors;              // wall height scales with floor count
   const wallColor  = building.wallColor ?? '#F5F0E8';
   const roofColor  = building.roofColor ?? '#5D4037';
   const trimColor  = building.color;
+  const hasColumns = COLUMNS_BUILDINGS.has(building.id);
 
   // Sign dimensions — larger so the wood plaque + emoji + label are readable
   const signW = Math.min(w * 0.65, 3.6);
@@ -106,7 +116,7 @@ export default function Building({ building, playerPosRef, onPlayerNear }: {
         <meshStandardMaterial color="#D4C4A8" roughness={0.85} />
       </mesh>
 
-      {/* Door frame (brown surround) */}
+      {/* Door frame (brown surround) — at the bottom (ground level) */}
       <mesh castShadow position={[0, 1.1, d / 2 + 0.02]}>
         <boxGeometry args={[1.2, 2.2, 0.05]} />
         <meshStandardMaterial color="#5D4037" roughness={0.7} />
@@ -130,7 +140,7 @@ export default function Building({ building, playerPosRef, onPlayerNear }: {
       {/* SIGN — hangs in front of the door at eye-level so every roof shape
           leaves it readable. Larger + clearer text than the old above-the-roof
           version, which was tiny and got occluded by peaked/gable peaks. */}
-      <group position={[0, 2.55, d / 2 + 0.85]} rotation={[0.08, 0, 0]}>
+      <group position={[0, h - 0.5, d / 2 + 0.85]} rotation={[0.08, 0, 0]}>
         {/* Two chains holding the sign */}
         <mesh position={[-signW / 2 + 0.18, signH / 2 + 0.25, 0]}>
           <cylinderGeometry args={[0.02, 0.02, 0.55, 4]} />
@@ -180,12 +190,50 @@ export default function Building({ building, playerPosRef, onPlayerNear }: {
         </Text>
       </group>
 
-      {/* Windows — front (on +Z face) */}
+      {/* Windows — front (on +Z face). For multi-story buildings, add a row of
+          upper-floor windows at y = h - 1.2. For single-story, just the ground
+          floor windows at y = 2.0. */}
       <Window position={[-w * 0.28, 2.0, d / 2 + 0.01]} />
       <Window position={[ w * 0.28, 2.0, d / 2 + 0.01]} />
+      {floors >= 2 && (
+        <>
+          <Window position={[-w * 0.28, h - 1.2, d / 2 + 0.01]} />
+          <Window position={[ w * 0.28, h - 1.2, d / 2 + 0.01]} />
+        </>
+      )}
       {/* Side windows */}
       <Window position={[-w / 2 - 0.01, 2.0, 0]} side="left" />
       <Window position={[ w / 2 + 0.01, 2.0, 0]} side="right" />
+      {floors >= 2 && (
+        <>
+          <Window position={[-w / 2 - 0.01, h - 1.2, 0]} side="left" />
+          <Window position={[ w / 2 + 0.01, h - 1.2, 0]} side="right" />
+        </>
+      )}
+
+      {/* Decorative columns on the front face (Greek/Roman portico style) for
+          library / office / auditorium. 5 white columns across the front,
+          header beam across the top, all on the +Z (door-facing) side. */}
+      {hasColumns && (
+        <group position={[0, 0, d / 2 + 0.2]}>
+          {[-w * 0.32, -w * 0.16, 0, w * 0.16, w * 0.32].map((cx, i) => (
+            <mesh key={`col-${i}`} castShadow position={[cx, h / 2, 0]}>
+              <cylinderGeometry args={[0.12, 0.14, h - 0.3, 12]} />
+              <meshStandardMaterial color="#F5F5F5" roughness={0.5} />
+            </mesh>
+          ))}
+          {/* Header beam across the top of the columns */}
+          <mesh castShadow position={[0, h - 0.15, 0]}>
+            <boxGeometry args={[w * 0.7 + 0.3, 0.3, 0.25]} />
+            <meshStandardMaterial color="#EFEBE9" roughness={0.6} />
+          </mesh>
+          {/* Pediment (low triangle above the beam) */}
+          <mesh castShadow position={[0, h + 0.05, 0]} rotation={[0, 0, 0]}>
+            <coneGeometry args={[w * 0.4, 0.5, 3]} />
+            <meshStandardMaterial color="#EFEBE9" roughness={0.6} />
+          </mesh>
+        </group>
+      )}
 
       {/* Glowing yellow trigger disc on the front step */}
       <mesh position={[0, 0.05, d / 2 + 0.65]} rotation={[-Math.PI / 2, 0, 0]}>
