@@ -13,6 +13,7 @@ import ActivityModal from './components/ActivityModal';
 import StationPicker from './components/StationPicker';
 import TouchJoystick from './components/TouchJoystick';
 import BGMPlayer from './components/BGMPlayer';
+import SkyExtras from './components/Sky';
 import { BUILDINGS, type Building as BuildingT } from './buildings.config';
 
 const PLAYER_COLORS = [
@@ -78,6 +79,7 @@ export default function School3DPage() {
       >
         <Suspense fallback={null}>
           <Sky sunPosition={[80, 50, 60]} turbidity={5} rayleigh={2} />
+          <SkyExtras />
           <ambientLight intensity={0.55} />
           <hemisphereLight args={['#FFF8F0', '#7CB342', 0.45]} />
           <directionalLight
