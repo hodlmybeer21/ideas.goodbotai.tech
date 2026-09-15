@@ -128,10 +128,47 @@ export default function CampusGround() {
     []
   );
 
-  // Asphalt material for roads (Main St + side streets)
+  // Procedural asphalt texture with baked-in lane markings (yellow center
+  // dashes + white edge lines) so the road reads as a proper downtown street
+  // without needing dozens of separate stripe meshes.
+  const asphaltRoadTex = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 128;
+    const g = c.getContext('2d')!;
+    // Base asphalt
+    g.fillStyle = '#3A3A3A';
+    g.fillRect(0, 0, 512, 128);
+    // Subtle wear speckles
+    for (let i = 0; i < 700; i++) {
+      g.fillStyle = `rgba(${45 + Math.random() * 35},${45 + Math.random() * 35},${45 + Math.random() * 35},0.5)`;
+      g.fillRect(Math.random() * 512, Math.random() * 128, 2, 2);
+    }
+    // Center yellow dashes (every ~12 units at repeat 8x)
+    for (let x = 24; x < 512; x += 96) {
+      g.fillStyle = '#FFD54F';
+      g.fillRect(x, 60, 48, 5);
+    }
+    // White edge lines
+    g.fillStyle = 'rgba(250,250,250,0.85)';
+    g.fillRect(0, 16, 512, 2);
+    g.fillRect(0, 110, 512, 2);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+
+  // Asphalt material for roads (Main St + side streets) — with baked-in
+  // lane markings from the procedural texture above.
   const asphaltMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#3C3C3C', roughness: 0.75, metalness: 0.05 }),
-    []
+    () => {
+      const m = new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.85, metalness: 0.05 });
+      if (asphaltRoadTex) { m.map = asphaltRoadTex; m.needsUpdate = true; }
+      return m;
+    },
+    [asphaltRoadTex]
   );
   // White road-marking material (center dashes + crosswalks)
   const stripeMat = useMemo(
@@ -326,31 +363,89 @@ export default function CampusGround() {
     out.push({ position: [0, 0.006, 12 - sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
     out.push({ position: [0, 0.006, 12 + sideSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
 
-    // Center stripes (white dashes) along Main St
-    for (let x = -29; x <= 29; x += STRIPE_LEN + STRIPE_GAP) {
-      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, 0], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
-    }
-    // Center stripes along side streets
-    for (let z = -29; z <= 29; z += STRIPE_LEN + STRIPE_GAP) {
-      out.push({ position: [-11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
-      out.push({ position: [11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
-    }
-    // Center stripes along North St and South St (along X)
-    for (let x = -29; x <= 29; x += STRIPE_LEN + STRIPE_GAP) {
-      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, -12], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
-      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, 12], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
-    }
-    // Crosswalks at each intersection
-    out.push({ position: [-11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
-    out.push({ position: [11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
-    // North St × West Side St intersection
-    out.push({ position: [-11, 0.009, -12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
-    // North St × East Side St intersection
-    out.push({ position: [11, 0.009, -12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
-    // South St × West Side St intersection
-    out.push({ position: [-11, 0.009, 12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
-    // South St × East Side St intersection
-    out.push({ position: [11, 0.009, 12], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    // === Proper zebra crosswalks at each intersection (multiple thin white
+    // bars per intersection) + curb edges between roads and sidewalks.
+    const zebraStrips = (cx: number, cz: number, isNS: boolean, roadWidth: number) => {
+      const numStripes = 6;
+      const totalSpan = roadWidth + 1.0;
+      const stripeW = 0.3;
+      const stripeGap = (totalSpan - numStripes * stripeW) / (numStripes - 1);
+      const startOff = -totalSpan / 2 + stripeW / 2;
+      for (let i = 0; i < numStripes; i++) {
+        const off = startOff + i * (stripeW + stripeGap);
+        if (isNS) {
+          out.push({
+            position: [cx + off, 0.009, cz],
+            rotation: Math.PI / 2,
+            length: 1.2,
+            width: stripeW,
+            type: 'crosswalk',
+          });
+        } else {
+          out.push({
+            position: [cx, 0.009, cz + off],
+            rotation: 0,
+            length: 1.2,
+            width: stripeW,
+            type: 'crosswalk',
+          });
+        }
+      }
+    };
+    // 6 intersections × 2 zebra crosswalks (one per direction of traffic)
+    zebraStrips(-11, 0, true, SIDE_W);
+    zebraStrips(11, 0, true, SIDE_W);
+    zebraStrips(-11, -12, true, SIDE_W);
+    zebraStrips(11, -12, true, SIDE_W);
+    zebraStrips(-11, 12, true, SIDE_W);
+    zebraStrips(11, 12, true, SIDE_W);
+
+    // === Bus routes on the road surface — painted bus lane markings
+    // along Main St and the cross streets. (Yellow dashes for bus lanes.)
+    const busLaneStripes = (cx: number, cz: number, isNS: boolean, roadWidth: number) => {
+      for (let i = -29; i <= 29; i += 2.5) {
+        if (isNS) {
+          out.push({
+            position: [cx + roadWidth / 2 + 0.15, 0.0085, cz + i],
+            rotation: Math.PI / 2,
+            length: 1.2,
+            width: 0.18,
+            type: 'crosswalk',
+          });
+        } else {
+          out.push({
+            position: [cx + i, 0.0085, cz + roadWidth / 2 + 0.15],
+            rotation: 0,
+            length: 1.2,
+            width: 0.18,
+            type: 'crosswalk',
+          });
+        }
+      }
+    };
+    // Bus lane on Main St (one on each side of the road)
+    busLaneStripes(0, 0, false, ROAD_W);
+    busLaneStripes(0, 0, false, ROAD_W);
+    // Bus lane on the NS cross streets
+    busLaneStripes(-11, 0, true, SIDE_W);
+    busLaneStripes(11, 0, true, SIDE_W);
+
+    // === Curb edges — small raised strips between roads and sidewalks for
+    // a more realistic downtown street feel.
+    const pushCurb = (x: number, z: number, rot: number, len: number, sideOff: number) => {
+      if (rot === 0) {
+        out.push({ position: [x, 0.04, z - sideOff], rotation: 0, length: len, width: 0.15, type: 'crosswalk' });
+        out.push({ position: [x, 0.04, z + sideOff], rotation: 0, length: len, width: 0.15, type: 'crosswalk' });
+      } else {
+        out.push({ position: [x - sideOff, 0.04, z], rotation: Math.PI / 2, length: len, width: 0.15, type: 'crosswalk' });
+        out.push({ position: [x + sideOff, 0.04, z], rotation: Math.PI / 2, length: len, width: 0.15, type: 'crosswalk' });
+      }
+    };
+    pushCurb(0, 0, 0, 60, ROAD_W / 2 + 0.1);     // Main St curbs
+    pushCurb(-11, 0, Math.PI / 2, 60, SIDE_W / 2 + 0.1); // West side curbs
+    pushCurb(11, 0, Math.PI / 2, 60, SIDE_W / 2 + 0.1);  // East side curbs
+    pushCurb(0, -12, 0, 60, SIDE_W / 2 + 0.1);  // North St curbs
+    pushCurb(0, 12, 0, 60, SIDE_W / 2 + 0.1);   // South St curbs
 
     return out;
   }, []);
@@ -463,6 +558,12 @@ export default function CampusGround() {
 
       {/* Clock tower — center of the plaza */}
       <ClockTower />
+
+      {/* Streetlights along every road (beyond the plaza) */}
+      <StreetLights />
+
+      {/* Outdoor amphitheater between the south buildings */}
+      <Amphitheater />
 
       {/* Playground equipment inside the Playground building */}
       <PlaygroundEquipment />
@@ -767,6 +868,113 @@ function Lamps() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+/**
+ * StreetLights — lamp posts lining EVERY road (beyond the plaza). Same
+ * post + arm + glowing bulb design as the plaza lamps, positioned every
+ * ~10 units along each street.
+ */
+function StreetLights() {
+  type Lamp = { x: number; z: number; rot: number };
+  const streetLamps: Lamp[] = [];
+  // Main St (EW at z=0) — lamps at x = -25, -15, -5, 5, 15, 25 (both sides)
+  for (const x of [-25, -15, -5, 5, 15, 25]) {
+    streetLamps.push({ x, z: -2.6, rot: Math.PI });
+    streetLamps.push({ x, z:  2.6, rot: 0 });
+  }
+  // West Side St (NS at x=-11) — lamps at z = -25, -15, -5, 5, 15, 25
+  for (const z of [-25, -15, -5, 5, 15, 25]) {
+    streetLamps.push({ x: -11 - 2.1, z, rot: -Math.PI / 2 });
+    streetLamps.push({ x: -11 + 2.1, z, rot:  Math.PI / 2 });
+  }
+  // East Side St (NS at x=11) — lamps at z = -25, -15, -5, 5, 15, 25
+  for (const z of [-25, -15, -5, 5, 15, 25]) {
+    streetLamps.push({ x: 11 - 2.1, z, rot:  Math.PI / 2 });
+    streetLamps.push({ x: 11 + 2.1, z, rot: -Math.PI / 2 });
+  }
+  // North St (EW at z=-12)
+  for (const x of [-25, -15, -5, 5, 15, 25]) {
+    streetLamps.push({ x, z: -12 - 2.1, rot: Math.PI });
+    streetLamps.push({ x, z: -12 + 2.1, rot: 0 });
+  }
+  // South St (EW at z=12)
+  for (const x of [-25, -15, -5, 5, 15, 25]) {
+    streetLamps.push({ x, z: 12 - 2.1, rot: Math.PI });
+    streetLamps.push({ x, z: 12 + 2.1, rot: 0 });
+  }
+  return (
+    <group>
+      {streetLamps.map((l, i) => (
+        <group key={i} position={[l.x, 0, l.z]} rotation={[0, l.rot, 0]}>
+          {/* base */}
+          <mesh castShadow position={[0, 0.1, 0]}>
+            <cylinderGeometry args={[0.15, 0.18, 0.2, 8]} />
+            <meshStandardMaterial color="#3E2723" />
+          </mesh>
+          {/* post */}
+          <mesh castShadow position={[0, 1.0, 0]}>
+            <cylinderGeometry args={[0.05, 0.07, 1.8, 8]} />
+            <meshStandardMaterial color="#212121" />
+          </mesh>
+          {/* arm (pointing toward the road / outward from the sidewalk) */}
+          <mesh castShadow position={[0.25, 1.8, 0]}>
+            <boxGeometry args={[0.4, 0.05, 0.05]} />
+            <meshStandardMaterial color="#212121" />
+          </mesh>
+          {/* bulb */}
+          <mesh position={[0.42, 1.65, 0]}>
+            <sphereGeometry args={[0.15, 12, 12]} />
+            <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.6} />
+          </mesh>
+          {/* halo */}
+          <mesh position={[0.42, 1.65, 0]}>
+            <sphereGeometry args={[0.32, 12, 12]} />
+            <meshBasicMaterial color="#FFE680" transparent opacity={0.22} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Amphitheater — semi-circular stone seating arrangement in the green quad
+ * between buildings. 5 concentric rows of stone benches facing a small
+ * performance space at the center. Suggests the campus is "designed
+ * properly like a town" with public gathering space.
+ */
+function Amphitheater() {
+  const rows = 5;
+  return (
+    <group position={[0, 0, -22]}>
+      {/* Performance space (small flat plaza) */}
+      <mesh receiveShadow position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.8, 32]} />
+        <meshStandardMaterial color="#D7CCC8" roughness={0.85} />
+      </mesh>
+      {/* Performance space center marker */}
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.1, 0.15, 0.3, 8]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+      {/* Seating rows — 5 concentric semi-circles */}
+      {Array.from({ length: rows }, (_, i) => {
+        const radius = 2.5 + i * 0.6;
+        return (
+          <mesh
+            key={`row-${i}`}
+            castShadow
+            position={[0, 0.15 + i * 0.3, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <ringGeometry args={[radius - 0.2, radius, 32, 1, 0, Math.PI]} />
+            <meshStandardMaterial color={i % 2 === 0 ? '#9E9E9E' : '#757575'} roughness={0.7} />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
