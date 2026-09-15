@@ -199,6 +199,12 @@ export default function CampusGround() {
       {/* Trees — scattered along the perimeter */}
       <Trees />
 
+      {/* Bushes — small round shrubs around plaza edges */}
+      <Bushes />
+
+      {/* Benches — wooden seats facing the plaza */}
+      <Benches />
+
       {/* Flower beds near plaza */}
       <FlowerBed position={[ 4,  4]} colors={['#FF6B9D', '#FFD93D', '#C084FC']} />
       <FlowerBed position={[-4,  4]} colors={['#6BCBFF', '#6BCB77', '#FF9F43']} />
@@ -212,7 +218,9 @@ export default function CampusGround() {
 }
 
 function Trees() {
-  // Hand-placed trees for visual variety
+  // Hand-placed trees for visual variety. Three types: pine (tall cones),
+  // oak (round foliage), bushy (cluster of spheres). Stable seeded RNG so
+  // tree types don't shuffle between renders.
   const trees = [
     // North perimeter
     { x: -28, z: -22 }, { x: -18, z: -25 }, { x: -8, z: -24 }, { x:  6, z: -25 }, { x: 16, z: -23 }, { x: 26, z: -22 },
@@ -225,21 +233,153 @@ function Trees() {
     // Inner scatter
     { x: -14, z: -14 }, { x: 14, z: -14 }, { x: -14, z: 8 }, { x: 14, z: 8 },
   ];
+  // Stable seeded assignment (Mulberry32) so tree types don't shuffle between renders.
+  const rng = (() => {
+    let s = 0x9e3779b9;
+    return () => {
+      s = (s + 0x6d2b79f5) | 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  })();
   return (
     <group>
-      {trees.map((t, i) => (
-        <group key={i} position={[t.x, 0, t.z]}>
-          <mesh castShadow position={[0, 0.6, 0]}>
-            <cylinderGeometry args={[0.18, 0.22, 1.2, 8]} />
-            <meshStandardMaterial color="#6D4C41" />
+      {trees.map((t, i) => {
+        const type = rng() < 0.45 ? 'pine' : rng() < 0.65 ? 'oak' : 'bushy';
+        return (
+          <group key={i} position={[t.x, 0, t.z]}>
+            <Tree type={type} />
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
+  if (type === 'pine') {
+    return (
+      <>
+        <mesh castShadow position={[0, 0.7, 0]}>
+          <cylinderGeometry args={[0.18, 0.22, 1.4, 8]} />
+          <meshStandardMaterial color="#6D4C41" />
+        </mesh>
+        <mesh castShadow position={[0, 1.9, 0]}>
+          <coneGeometry args={[1.0, 1.6, 8]} />
+          <meshStandardMaterial color="#2E7D32" />
+        </mesh>
+        <mesh castShadow position={[0, 2.7, 0]}>
+          <coneGeometry args={[0.72, 1.2, 8]} />
+          <meshStandardMaterial color="#43A047" />
+        </mesh>
+      </>
+    );
+  }
+  if (type === 'oak') {
+    return (
+      <>
+        <mesh castShadow position={[0, 0.7, 0]}>
+          <cylinderGeometry args={[0.22, 0.28, 1.4, 8]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        <mesh castShadow position={[0, 1.9, 0]}>
+          <sphereGeometry args={[1.0, 10, 8]} />
+          <meshStandardMaterial color="#558B2F" roughness={0.9} />
+        </mesh>
+        <mesh castShadow position={[-0.4, 2.4, 0.2]}>
+          <sphereGeometry args={[0.7, 10, 8]} />
+          <meshStandardMaterial color="#689F38" roughness={0.9} />
+        </mesh>
+        <mesh castShadow position={[0.5, 2.2, -0.3]}>
+          <sphereGeometry args={[0.6, 10, 8]} />
+          <meshStandardMaterial color="#7CB342" roughness={0.9} />
+        </mesh>
+      </>
+    );
+  }
+  // bushy
+  return (
+    <>
+      <mesh castShadow position={[0, 0.4, 0]}>
+        <cylinderGeometry args={[0.14, 0.18, 0.8, 8]} />
+        <meshStandardMaterial color="#6D4C41" />
+      </mesh>
+      <mesh castShadow position={[0, 1.1, 0]}>
+        <sphereGeometry args={[0.7, 10, 8]} />
+        <meshStandardMaterial color="#558B2F" roughness={0.9} />
+      </mesh>
+      <mesh castShadow position={[-0.4, 1.3, 0.1]}>
+        <sphereGeometry args={[0.45, 10, 8]} />
+        <meshStandardMaterial color="#689F38" roughness={0.9} />
+      </mesh>
+      <mesh castShadow position={[0.4, 1.4, -0.2]}>
+        <sphereGeometry args={[0.4, 10, 8]} />
+        <meshStandardMaterial color="#7CB342" roughness={0.9} />
+        </mesh>
+      <mesh castShadow position={[0, 1.7, 0.3]}>
+        <sphereGeometry args={[0.35, 10, 8]} />
+        <meshStandardMaterial color="#43A047" roughness={0.9} />
+      </mesh>
+    </>
+  );
+}
+
+function Bushes() {
+  // Small round bushes scattered around the plaza and path edges.
+  const positions: Array<[number, number]> = [
+    [-7, 7], [7, 7], [-7, -7], [7, -7],
+    [-11, 3], [11, 3], [-3, 11], [3, 11],
+    [-9, -3], [9, -3], [-3, -11], [3, -11],
+    [-15, -11], [15, -11], [-15, 11], [15, 11],
+  ];
+  return (
+    <group>
+      {positions.map(([x, z], i) => {
+        const r = 0.45 + (i % 3) * 0.1;
+        return (
+          <mesh key={i} castShadow position={[x, r * 0.6, z]}>
+            <sphereGeometry args={[r, 10, 8]} />
+            <meshStandardMaterial color={i % 2 === 0 ? '#558B2F' : '#689F38'} roughness={0.95} />
           </mesh>
-          <mesh castShadow position={[0, 1.7, 0]}>
-            <coneGeometry args={[0.95, 1.6, 8]} />
-            <meshStandardMaterial color="#388E3C" />
+        );
+      })}
+    </group>
+  );
+}
+
+function Benches() {
+  // Simple wooden benches near the plaza — seat + 2 back posts.
+  const benches = [
+    { x:  6, z: -5, rot:  0 },
+    { x: -6, z: -5, rot:  0 },
+    { x:  6, z:  5, rot: Math.PI },
+    { x: -6, z:  5, rot: Math.PI },
+  ];
+  return (
+    <group>
+      {benches.map((b, i) => (
+        <group key={i} position={[b.x, 0, b.z]} rotation={[0, b.rot, 0]}>
+          {/* seat */}
+          <mesh castShadow position={[0, 0.45, 0]}>
+            <boxGeometry args={[1.8, 0.12, 0.6]} />
+            <meshStandardMaterial color="#5D4037" roughness={0.7} />
           </mesh>
-          <mesh castShadow position={[0, 2.5, 0]}>
-            <coneGeometry args={[0.7, 1.2, 8]} />
-            <meshStandardMaterial color="#43A047" />
+          {/* left back post */}
+          <mesh castShadow position={[-0.7, 0.7, -0.25]}>
+            <boxGeometry args={[0.1, 0.7, 0.1]} />
+            <meshStandardMaterial color="#3E2723" />
+          </mesh>
+          {/* right back post */}
+          <mesh castShadow position={[0.7, 0.7, -0.25]}>
+            <boxGeometry args={[0.1, 0.7, 0.1]} />
+            <meshStandardMaterial color="#3E2723" />
+          </mesh>
+          {/* back rail */}
+          <mesh castShadow position={[0, 1.0, -0.25]}>
+            <boxGeometry args={[1.6, 0.12, 0.08]} />
+            <meshStandardMaterial color="#5D4037" roughness={0.7} />
           </mesh>
         </group>
       ))}
