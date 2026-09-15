@@ -32,7 +32,9 @@ export default function School3DPage() {
   const [pickerBuilding, setPickerBuilding] = useState<BuildingT | null>(null);
   const [activeStation, setActiveStation] = useState<string | null>(null);
   const [joystickVec, setJoystickVec]     = useState<{ x: number; z: number }>({ x: 0, z: 0 });
+  const [cameraJoystickVec, setCameraJoystickVec] = useState<number>(0);
   const playerPosRef                      = useRef(new THREE.Vector3(0, 0, 8));
+  const cameraYawRef                      = useRef(0);
 
   // E-to-enter handler (keyboard)
   useEffect(() => {
@@ -48,6 +50,34 @@ export default function School3DPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [nearBuildingId, pickerBuilding, activeStation]);
+
+  // Mouse-drag camera rotation. Right mouse button drag (or two-finger drag
+  // on touchpads) anywhere on the canvas rotates the camera. Default left
+  // drag is left alone so future click-to-select features keep working.
+  useEffect(() => {
+    if (phase !== 'game') return;
+    const onDown = (e: MouseEvent) => {
+      // Right click OR shift+left click = camera drag
+      if (e.button !== 2 && !(e.button === 0 && e.shiftKey)) return;
+      e.preventDefault();
+      const onMove = (ev: MouseEvent) => {
+        cameraYawRef.current -= ev.movementX * 0.005;
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    };
+    const onContext = (e: MouseEvent) => e.preventDefault();
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('contextmenu', onContext);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('contextmenu', onContext);
+    };
+  }, [phase]);
 
   const handlePlayerNear = useCallback((buildingId: string, near: boolean) => {
     setNearBuildingId(near ? buildingId : (id) => (id === buildingId ? null : id));
@@ -106,7 +136,13 @@ export default function School3DPage() {
             />
           ))}
           <NPCs />
-          <Player color={playerColor} joystick={joystickVec} positionRef={playerPosRef} />
+          <Player
+            color={playerColor}
+            joystick={joystickVec}
+            cameraJoystick={cameraJoystickVec}
+            yawRef={cameraYawRef}
+            positionRef={playerPosRef}
+          />
         </Suspense>
       </Canvas>
 
@@ -118,7 +154,8 @@ export default function School3DPage() {
       </div>
 
       <div style={hudStyles.controls}>
-        <strong>Move:</strong> WASD / Arrows / Joystick &nbsp;·&nbsp;
+        <strong>Move:</strong> WASD / Arrows / Left Joystick &nbsp;·&nbsp;
+        <strong>Turn:</strong> Right Joystick / Right-Drag-Mouse &nbsp;·&nbsp;
         <strong>Enter:</strong> <kbd style={kbd}>E</kbd> &nbsp;·&nbsp;
         <strong>Close:</strong> <kbd style={kbd}>Esc</kbd>
       </div>
@@ -148,7 +185,16 @@ export default function School3DPage() {
         <ActivityModal stationId={activeStation} onClose={handleCloseActivity} />
       )}
 
-      <TouchJoystick onMove={setJoystickVec} />
+      <TouchJoystick
+        onMove={(v) => setJoystickVec({ x: v.x, z: v.z })}
+        position={{ bottom: 24, left: 24 }}
+        mode="move"
+      />
+      <TouchJoystick
+        onMove={(v) => setCameraJoystickVec(v.x)}
+        position={{ bottom: 24, right: 24 }}
+        mode="camera"
+      />
 
       <BGMPlayer audioUrl="/school-3d/bgm.mp3" />
     </div>
