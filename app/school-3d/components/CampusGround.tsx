@@ -127,6 +127,23 @@ export default function CampusGround() {
     []
   );
 
+  // Asphalt material for roads (Main St + side streets)
+  const asphaltMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#3C3C3C', roughness: 0.75, metalness: 0.05 }),
+    []
+  );
+  // White road-marking material (center dashes + crosswalks)
+  const stripeMat = useMemo(
+    () => new THREE.MeshStandardMaterial({
+      color: '#FFFFFF',
+      emissive: '#FFFFFF',
+      emissiveIntensity: 0.15,
+      transparent: true,
+      opacity: 0.95,
+    }),
+    []
+  );
+
   // Paths from the plaza to each building's door.
   //
   // The previous two attempts (12 radial spokes, then 9 cluster-by-angle
@@ -264,6 +281,56 @@ export default function CampusGround() {
     return { avenues, branches, spokes };
   }, []);
 
+  // Town road grid — asphalt streets + sidewalks + road markings.
+  // Modeled on downtown Morgantown near Oglebay Hall: a real paved Main St
+  // with cross streets, cobblestone sidewalks on both sides, white center
+  // dashes, and crosswalks at intersections. Buildings sit on each side
+  // of Main St (existing positions work — they all already face the plaza
+  // which is now the Main St × side-streets intersection).
+  type RoadSeg = { position: [number, number, number]; rotation: number; length: number; width: number; type: 'road' | 'sidewalk' | 'stripe' | 'crosswalk' };
+  const ROAD_W = 4.0;
+  const SIDE_W = 3.0;
+  const SIDEWALK_W = 1.2;
+  const CROSSWALK_W = 1.5;
+  const STRIPE_LEN = 0.8;
+  const STRIPE_GAP = 0.7;
+  const roads = useMemo(() => {
+    const out: RoadSeg[] = [];
+    // Main St — EW through the plaza
+    out.push({ position: [0, 0.005, 0], rotation: 0, length: 60, width: ROAD_W, type: 'road' });
+    // West side street (NS at x=-11, between west buildings and Main St)
+    out.push({ position: [-11, 0.005, 0], rotation: Math.PI / 2, length: 60, width: SIDE_W, type: 'road' });
+    // East side street (NS at x=11)
+    out.push({ position: [11, 0.005, 0], rotation: Math.PI / 2, length: 60, width: SIDE_W, type: 'road' });
+    // Far south connector (EW at z=22, for greenhouse)
+    out.push({ position: [-6, 0.005, 22], rotation: 0, length: 18, width: SIDE_W, type: 'road' });
+
+    // Sidewalks — cobblestone strips parallel to each road
+    const mainSideOff = ROAD_W / 2 + SIDEWALK_W / 2;
+    out.push({ position: [0, 0.006, -mainSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [0, 0.006, +mainSideOff], rotation: 0, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    const sideSideOff = SIDE_W / 2 + SIDEWALK_W / 2;
+    out.push({ position: [-11 - sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [-11 + sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [11 - sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+    out.push({ position: [11 + sideSideOff, 0.006, 0], rotation: Math.PI / 2, length: 60, width: SIDEWALK_W, type: 'sidewalk' });
+
+    // Center stripes (white dashes) along Main St
+    for (let x = -29; x <= 29; x += STRIPE_LEN + STRIPE_GAP) {
+      out.push({ position: [x + (STRIPE_LEN + STRIPE_GAP) / 2, 0.008, 0], rotation: 0, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
+    }
+    // Center stripes along side streets
+    for (let z = -29; z <= 29; z += STRIPE_LEN + STRIPE_GAP) {
+      out.push({ position: [-11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
+      out.push({ position: [11, 0.008, z + (STRIPE_LEN + STRIPE_GAP) / 2], rotation: Math.PI / 2, length: STRIPE_LEN, width: 0.15, type: 'stripe' });
+    }
+    // Crosswalks at each intersection
+    out.push({ position: [-11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+    out.push({ position: [11, 0.009, 0], rotation: Math.PI / 2, length: SIDE_W + 2.4, width: CROSSWALK_W, type: 'crosswalk' });
+
+    return out;
+  }, []);
+
   // Decorative grass patches scattered around
   const grassPatches = useMemo(() => {
     const seeds = [
@@ -339,6 +406,24 @@ export default function CampusGround() {
           <primitive object={pathMat} attach="material" />
         </mesh>
       ))}
+
+      {/* Town road grid — asphalt Main St + side streets + sidewalks + road markings */}
+      {roads.map((r, i) => {
+        const mat = r.type === 'road' ? asphaltMat :
+                    r.type === 'sidewalk' ? pathMat :
+                    stripeMat;
+        return (
+          <mesh
+            key={`road-${i}`}
+            receiveShadow
+            rotation={[-Math.PI / 2, 0, -r.rotation]}
+            position={r.position}
+          >
+            <planeGeometry args={[r.width, r.length]} />
+            <primitive object={mat} attach="material" />
+          </mesh>
+        );
+      })}
 
       {/* Trees — scattered along the perimeter */}
       <Trees />
