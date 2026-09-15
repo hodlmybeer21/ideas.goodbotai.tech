@@ -38,29 +38,33 @@ export default function SkyExtras() {
   }, []);
 
   // Hand-placed clouds — large puffy billboards high in the sky.
+  // Positioned lower + more centered so they catch the player's eye from
+  // the default third-person camera.
   const clouds = [
-    { x: -40, y: 28, z: -20, scale: 6 },
-    { x:  20, y: 32, z: -30, scale: 7 },
-    { x:  35, y: 26, z:  10, scale: 5 },
-    { x: -30, y: 30, z:  18, scale: 5.5 },
-    { x:   0, y: 34, z:  40, scale: 7 },
-    { x: -10, y: 27, z: -38, scale: 4.5 },
+    { x: -28, y: 18, z: -12, scale: 5.5 },
+    { x:  20, y: 22, z: -20, scale: 6.5 },
+    { x:  32, y: 16, z:   8, scale: 4.5 },
+    { x: -22, y: 20, z:  14, scale: 5.0 },
+    { x:   0, y: 24, z:  30, scale: 6.0 },
+    { x: -10, y: 17, z: -28, scale: 4.0 },
+    { x:  16, y: 14, z: -10, scale: 4.0 },
   ];
 
   return (
     <group>
-      {/* Sun — emissive disc + soft glow halo */}
-      <group position={[55, 60, -40]}>
+      {/* Sun — emissive disc + soft glow halo. Lowered so it's visible from
+          the player's default camera angle (not directly overhead). */}
+      <group position={[30, 32, -22]}>
         <mesh>
-          <sphereGeometry args={[3.5, 24, 24]} />
+          <sphereGeometry args={[3.0, 24, 24]} />
           <meshBasicMaterial color="#FFF6BD" toneMapped={false} />
         </mesh>
         <mesh>
-          <sphereGeometry args={[6, 24, 24]} />
+          <sphereGeometry args={[5, 24, 24]} />
           <meshBasicMaterial color="#FFEB99" transparent opacity={0.35} toneMapped={false} />
         </mesh>
         <mesh>
-          <sphereGeometry args={[10, 24, 24]} />
+          <sphereGeometry args={[8, 24, 24]} />
           <meshBasicMaterial color="#FFE680" transparent opacity={0.15} toneMapped={false} />
         </mesh>
       </group>

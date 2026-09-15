@@ -96,6 +96,9 @@ export default function Building({ building, playerPosRef, onPlayerNear }: Props
       {/* Roof — varies by style */}
       <Roof style={building.roofStyle} width={w} depth={d} height={h} color={roofColor} accent={trimColor} />
 
+      {/* Architectural flourishes: chimney on gable roofs, weathervane on peaked, clock on Main Office */}
+      <RoofDetails buildingId={building.id} style={building.roofStyle} w={w} d={d} h={h} roofColor={roofColor} />
+
       {/* Front step (small lip on +Z face) */}
       <mesh castShadow receiveShadow position={[0, 0.06, d / 2 + 0.3]}>
         <boxGeometry args={[w * 0.35, 0.12, 0.6]} />
@@ -203,6 +206,76 @@ function Window({ position, side }: { position: [number, number, number]; side?:
       </mesh>
     </group>
   );
+}
+
+function RoofDetails({
+  buildingId, style, w, d, h, roofColor,
+}: {
+  buildingId: string;
+  style: Building['roofStyle'];
+  w: number;
+  d: number;
+  h: number;
+  roofColor: string;
+}) {
+  // Chimney smoke wisps for gable/pagoda roofs
+  const hasChimney = style === 'gable' || style === 'pagoda';
+  if (hasChimney) {
+    return (
+      <group position={[w * 0.32, h + 1.6, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.35, 0.8, 0.35]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        {/* chimney cap */}
+        <mesh position={[0, 0.45, 0]}>
+          <boxGeometry args={[0.45, 0.08, 0.45]} />
+          <meshStandardMaterial color="#3E2723" />
+        </mesh>
+      </group>
+    );
+  }
+  // Weathervane for peaked roofs (small flag-like detail)
+  if (style === 'peaked') {
+    return (
+      <group position={[0, h + 1.8, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 1.4, 6]} />
+          <meshStandardMaterial color="#5D4037" />
+        </mesh>
+        <mesh position={[0.35, 0.5, 0]}>
+          <planeGeometry args={[0.4, 0.25]} />
+          <meshStandardMaterial color="#FF6B9D" side={2} />
+        </mesh>
+      </group>
+    );
+  }
+  // Clock on Main Office
+  if (buildingId === 'office') {
+    return (
+      <group position={[0, h + 0.5, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.5, 0.5, 0.1, 24]} />
+          <meshStandardMaterial color="#FFFFFF" />
+        </mesh>
+        <mesh position={[0, 0, 0.06]}>
+          <cylinderGeometry args={[0.4, 0.4, 0.02, 24]} />
+          <meshStandardMaterial color="#FFD54F" />
+        </mesh>
+        {/* hour hand */}
+        <mesh position={[0, 0.15, 0.07]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[0.04, 0.3, 0.02]} />
+          <meshStandardMaterial color="#2D1B00" />
+        </mesh>
+        {/* minute hand */}
+        <mesh position={[0.18, 0, 0.07]} rotation={[0, 0, -Math.PI / 2]}>
+          <boxGeometry args={[0.03, 0.35, 0.02]} />
+          <meshStandardMaterial color="#2D1B00" />
+        </mesh>
+      </group>
+    );
+  }
+  return null;
 }
 
 function Roof({
