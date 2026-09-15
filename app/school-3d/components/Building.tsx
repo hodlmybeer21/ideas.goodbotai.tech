@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, Suspense } from 'react';
+import { useRef, useEffect, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -23,8 +23,6 @@ const SIGN_TEXTURE: Record<string, string> = {
   mathroom:   '/school-3d/signs/mathroom.png',
   greenhouse: '/school-3d/signs/greenhouse.png',
 };
-// 1×1 transparent PNG — guarantees useTexture always resolves so musicrm
-// (which has no image) doesn't break Suspense.
 const SIGN_FALLBACK = '/school-3d/signs/_blank.png';
 
 function SignTexturePlane({ id, w, h, z }: { id: string; w: number; h: number; z: number }) {
@@ -33,24 +31,23 @@ function SignTexturePlane({ id, w, h, z }: { id: string; w: number; h: number; z
   if (!SIGN_TEXTURE[id]) return null;
   return (
     <mesh position={[0, 0, z]}>
-      <planeGeometry args={[w * 0.94, h * 0.92]} />
+      <planeGeometry args={[w * 0.94, h * 0.94]} />
       <meshBasicMaterial map={tex} transparent toneMapped={false} />
     </mesh>
   );
 }
 
-type Props = {
+/**
+ * Building — reusable procedural 3D building with door trigger.
+ * Roofs: flat (single slab), dome (half-sphere), peaked/gable (proper triangular
+ * prism via ExtrudeGeometry — no more X-shape cross), pagoda (2-tier + cone).
+ * Sign hangs in front of the door (so it never gets occluded by any roof).
+ */
+export default function Building({ building, playerPosRef, onPlayerNear }: {
   building: Building;
   playerPosRef: React.MutableRefObject<THREE.Vector3>;
   onPlayerNear: (buildingId: string, near: boolean) => void;
-};
-
-/**
- * Building — reusable procedural 3D building with door trigger.
- * The whole building auto-orients toward the courtyard (origin), so the
- * door always faces the player approach direction.
- */
-export default function Building({ building, playerPosRef, onPlayerNear }: Props) {
+}) {
   const wasNearRef = useRef(false);
 
   // Orientation: angle from building to courtyard (door on +Z face)
@@ -74,6 +71,10 @@ export default function Building({ building, playerPosRef, onPlayerNear }: Props
   const roofColor  = building.roofColor ?? '#5D4037';
   const trimColor  = building.color;
 
+  // Sign dimensions — larger so the wood plaque + emoji + label are readable
+  const signW = Math.min(w * 0.65, 3.6);
+  const signH = 1.05;
+
   return (
     <group position={building.position} rotation={[0, angle, 0]}>
       {/* Wall base */}
@@ -93,7 +94,7 @@ export default function Building({ building, playerPosRef, onPlayerNear }: Props
         <meshStandardMaterial color={trimColor} roughness={0.6} />
       </mesh>
 
-      {/* Roof — varies by style */}
+      {/* Roof — varies by style. All non-X variants. */}
       <Roof style={building.roofStyle} width={w} depth={d} height={h} color={roofColor} accent={trimColor} />
 
       {/* Architectural flourishes: chimney on gable roofs, weathervane on peaked, clock on Main Office */}
@@ -105,12 +106,12 @@ export default function Building({ building, playerPosRef, onPlayerNear }: Props
         <meshStandardMaterial color="#D4C4A8" roughness={0.85} />
       </mesh>
 
-      {/* Door frame */}
+      {/* Door frame (brown surround) */}
       <mesh castShadow position={[0, 1.1, d / 2 + 0.02]}>
         <boxGeometry args={[1.2, 2.2, 0.05]} />
         <meshStandardMaterial color="#5D4037" roughness={0.7} />
       </mesh>
-      {/* Door */}
+      {/* Door (slightly inset) */}
       <mesh castShadow position={[0, 1.1, d / 2 + 0.05]}>
         <boxGeometry args={[0.95, 2.0, 0.04]} />
         <meshStandardMaterial color="#8D6E63" roughness={0.6} />
@@ -126,36 +127,53 @@ export default function Building({ building, playerPosRef, onPlayerNear }: Props
         <meshStandardMaterial color="#FFD54F" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* Sign above door — wood-framed plaque with image texture + emoji/label overlay */}
-      <group position={[0, h + 0.45, d / 2 + 0.02]}>
+      {/* SIGN — hangs in front of the door at eye-level so every roof shape
+          leaves it readable. Larger + clearer text than the old above-the-roof
+          version, which was tiny and got occluded by peaked/gable peaks. */}
+      <group position={[0, 2.55, d / 2 + 0.85]} rotation={[0.08, 0, 0]}>
+        {/* Two chains holding the sign */}
+        <mesh position={[-signW / 2 + 0.18, signH / 2 + 0.25, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.55, 4]} />
+          <meshStandardMaterial color="#212121" />
+        </mesh>
+        <mesh position={[signW / 2 - 0.18, signH / 2 + 0.25, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.55, 4]} />
+          <meshStandardMaterial color="#212121" />
+        </mesh>
+
+        {/* Sign background (wood-framed plaque) */}
         <mesh castShadow>
-          <boxGeometry args={[w * 0.65, 0.55, 0.06]} />
+          <boxGeometry args={[signW, signH, 0.1]} />
           <meshStandardMaterial color="white" />
         </mesh>
+
+        {/* Image texture overlay (wood-plaque sign generated by minimax/image-01) */}
         <Suspense fallback={null}>
-          <SignTexturePlane id={building.id} w={w * 0.65} h={0.55} z={d / 2 + 0.025} />
+          <SignTexturePlane id={building.id} w={signW} h={signH} z={0.055} />
         </Suspense>
+
         {/* Emoji on top */}
         <Text
-          position={[0, 0.32, 0.045]}
-          fontSize={0.24}
+          position={[0, 0.42, 0.07]}
+          fontSize={0.5}
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.012}
+          outlineWidth={0.025}
           outlineColor="#2D1B00"
         >
           {building.stations[0]?.icon ?? '🏫'}
         </Text>
+
         {/* Label below emoji */}
         <Text
-          position={[0, -0.06, 0.045]}
-          fontSize={0.22}
+          position={[0, -0.2, 0.07]}
+          fontSize={0.3}
           color={trimColor}
           anchorX="center"
           anchorY="middle"
           fontWeight={700}
-          maxWidth={w * 0.55}
-          outlineWidth={0.01}
+          maxWidth={signW * 0.92}
+          outlineWidth={0.015}
           outlineColor="white"
         >
           {building.label.toUpperCase()}
@@ -208,6 +226,107 @@ function Window({ position, side }: { position: [number, number, number]; side?:
   );
 }
 
+/**
+ * Roof — single component that emits the right shape per `style`. No more
+ * crossed-box X shape for peaked/gable: those now use an ExtrudeGeometry
+ * triangular prism (proper gable, single solid roof).
+ */
+function Roof({
+  style, width, depth, height, color, accent,
+}: {
+  style: Building['roofStyle'];
+  width: number;
+  depth: number;
+  height: number;
+  color: string;
+  accent: string;
+}) {
+  if (style === 'open') return null; // Playground — no roof
+
+  if (style === 'flat') {
+    return (
+      <mesh castShadow position={[0, height + 0.05, 0]}>
+        <boxGeometry args={[width + 0.3, 0.25, depth + 0.3]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+    );
+  }
+
+  if (style === 'dome') {
+    return (
+      <mesh castShadow position={[0, height + 0.5, 0]}>
+        <sphereGeometry args={[Math.min(width, depth) * 0.55, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color={color} roughness={0.65} />
+      </mesh>
+    );
+  }
+
+  // Triangular prism (gable / peaked) — proper roof, no X-shape cross.
+  // Triangle base spans building width (X), apex up (Y), prism length along depth (Z).
+  const gableShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    const w = width + 0.3;
+    const h = 1.05;
+    shape.moveTo(-w / 2, 0);
+    shape.lineTo(w / 2, 0);
+    shape.lineTo(0, h);
+    shape.closePath();
+    return new THREE.ExtrudeGeometry(shape, {
+      depth: depth + 0.3,
+      bevelEnabled: false,
+    });
+  }, [width, depth]);
+
+  // Center the prism along Z so it spans [-depth/2, +depth/2]
+  const gableZ = -(depth + 0.3) / 2;
+
+  if (style === 'peaked') {
+    return (
+      <group position={[0, height + 0.05, 0]}>
+        <mesh castShadow geometry={gableShape} position={[0, 0, gableZ]}>
+          <meshStandardMaterial color={color} roughness={0.7} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (style === 'pagoda') {
+    return (
+      <group position={[0, height + 0.05, 0]}>
+        {/* Bottom eave */}
+        <mesh castShadow>
+          <boxGeometry args={[width + 0.3, 0.2, depth + 0.3]} />
+          <meshStandardMaterial color={color} roughness={0.7} />
+        </mesh>
+        {/* Middle ridge layer (slightly smaller) */}
+        <mesh castShadow position={[0, 0.55, 0]}>
+          <boxGeometry args={[width + 0.05, 0.18, depth + 0.05]} />
+          <meshStandardMaterial color={accent} roughness={0.7} />
+        </mesh>
+        {/* Top conical finial */}
+        <mesh castShadow position={[0, 1.1, 0]}>
+          <coneGeometry args={[Math.min(width, depth) * 0.45, 0.7, 8]} />
+          <meshStandardMaterial color={color} roughness={0.7} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // gable — default
+  return (
+    <group position={[0, height + 0.05, 0]}>
+      <mesh castShadow geometry={gableShape} position={[0, 0, gableZ]}>
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </mesh>
+      {/* Chimney on the slope */}
+      <mesh castShadow position={[width * 0.32, 0.95, 0]}>
+        <boxGeometry args={[0.35, 0.55, 0.35]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+    </group>
+  );
+}
+
 function RoofDetails({
   buildingId, style, w, d, h, roofColor,
 }: {
@@ -238,7 +357,7 @@ function RoofDetails({
   // Weathervane for peaked roofs (small flag-like detail)
   if (style === 'peaked') {
     return (
-      <group position={[0, h + 1.8, 0]}>
+      <group position={[0, h + 1.85, 0]}>
         <mesh castShadow>
           <cylinderGeometry args={[0.04, 0.04, 1.4, 6]} />
           <meshStandardMaterial color="#5D4037" />
@@ -276,95 +395,4 @@ function RoofDetails({
     );
   }
   return null;
-}
-
-function Roof({
-  style, width, depth, height, color, accent,
-}: {
-  style: Building['roofStyle'];
-  width: number;
-  depth: number;
-  height: number;
-  color: string;
-  accent: string;
-}) {
-  if (style === 'open') {
-    return null; // Playground — no roof
-  }
-  if (style === 'flat') {
-    return (
-      <mesh castShadow position={[0, height + 0.05, 0]}>
-        <boxGeometry args={[width + 0.3, 0.25, depth + 0.3]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-    );
-  }
-  if (style === 'dome') {
-    return (
-      <mesh castShadow position={[0, height + 0.5, 0]}>
-        <sphereGeometry args={[Math.min(width, depth) * 0.55, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color={color} roughness={0.65} />
-      </mesh>
-    );
-  }
-  if (style === 'peaked') {
-    // Triangular prism running along X axis
-    return (
-      <group position={[0, height + 0.05, 0]}>
-        <mesh castShadow rotation={[0, 0, 0]}>
-          <boxGeometry args={[width + 0.3, 0.2, depth + 0.3]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh castShadow position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[depth * 1.2, 0.18, width + 0.35]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh castShadow position={[0, 0.6, 0]} rotation={[0, 0, -Math.PI / 4]}>
-          <boxGeometry args={[depth * 1.2, 0.18, width + 0.35]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-      </group>
-    );
-  }
-  if (style === 'pagoda') {
-    // Two-tier stylized roof
-    return (
-      <group position={[0, height + 0.05, 0]}>
-        <mesh castShadow>
-          <boxGeometry args={[width + 0.3, 0.2, depth + 0.3]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh castShadow position={[0, 0.5, 0]}>
-          <boxGeometry args={[width + 0.1, 0.2, depth + 0.1]} />
-          <meshStandardMaterial color={accent} roughness={0.7} />
-        </mesh>
-        <mesh castShadow position={[0, 0.95, 0]}>
-          <coneGeometry args={[Math.min(width, depth) * 0.55, 0.9, 4]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-      </group>
-    );
-  }
-  // gable — default
-  return (
-    <group position={[0, height + 0.05, 0]}>
-      <mesh castShadow>
-        <boxGeometry args={[width + 0.3, 0.2, depth + 0.3]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-      <mesh castShadow position={[0, 0.65, 0]} rotation={[0, 0, Math.PI / 4]}>
-        <boxGeometry args={[depth * 1.2, 0.18, width + 0.35]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <mesh castShadow position={[0, 0.65, 0]} rotation={[0, 0, -Math.PI / 4]}>
-        <boxGeometry args={[depth * 1.2, 0.18, width + 0.35]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      {/* Chimney */}
-      <mesh castShadow position={[width * 0.35, 1.1, 0]}>
-        <boxGeometry args={[0.35, 0.6, 0.35]} />
-        <meshStandardMaterial color="#795548" />
-      </mesh>
-    </group>
-  );
 }
