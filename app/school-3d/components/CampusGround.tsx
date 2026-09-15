@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BUILDINGS, COURTYARD_CENTER } from '../buildings.config';
 
@@ -207,6 +208,9 @@ export default function CampusGround() {
 
       {/* Lamp posts on the plaza */}
       <Lamps />
+
+      {/* School flagpole — center of the plaza */}
+      <Flagpole />
 
       {/* Playground equipment inside the Playground building */}
       <PlaygroundEquipment />
@@ -539,6 +543,41 @@ function PlaygroundEquipment() {
           <meshStandardMaterial color="#3E2723" />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+function Flagpole() {
+  // Tall flagpole at the center of the plaza with a triangular flag.
+  const flagRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (flagRef.current) {
+      // Subtle wave by rotating flag around its pole edge
+      flagRef.current.rotation.y = Math.sin(clock.elapsedTime * 2) * 0.18;
+    }
+  });
+  return (
+    <group position={[0, 0, 0]}>
+      {/* base */}
+      <mesh castShadow position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.3, 0.4, 0.3, 8]} />
+        <meshStandardMaterial color="#5D4037" />
+      </mesh>
+      {/* pole */}
+      <mesh castShadow position={[0, 4.5, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 8.5, 8]} />
+        <meshStandardMaterial color="#BDBDBD" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* gold ball on top */}
+      <mesh castShadow position={[0, 9, 0]}>
+        <sphereGeometry args={[0.18, 12, 12]} />
+        <meshStandardMaterial color="#FFD700" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* flag (triangular plane that rotates for wave effect) */}
+      <mesh ref={flagRef} position={[0.45, 7.5, 0]}>
+        <planeGeometry args={[1.2, 0.8]} />
+        <meshStandardMaterial color="#FF6B9D" side={2} />
+      </mesh>
     </group>
   );
 }
