@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useRef } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Billboard, Text, useGLTF } from '@react-three/drei';
+import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 type Props = {
@@ -17,10 +17,9 @@ type Props = {
 };
 
 /**
- * Humanoid — stylized college-student character. Procedural geometry so
- * it ships with the build (no external model file needed). Reads as
- * "low-poly stylized student" — backpack, baseball cap, hoodie torso,
- * jeans, sneakers. Walking animation: opposite-pair leg/arm swing.
+ * Humanoid — stylized college-student character (procedural geometry).
+ * Reads as "low-poly stylized student" — backpack, baseball cap, hoodie
+ * torso, jeans, sneakers. Walking animation: opposite-pair leg/arm swing.
  */
 export default function Humanoid({
   color,
@@ -215,79 +214,6 @@ export default function Humanoid({
           </Text>
         </Billboard>
       )}
-
-      {/* CC0 GLB character model (Quaternius-derived college-student) —
-          loaded via useGLTF, replaces the procedural humanoid when ready.
-          The procedural geometry above acts as the Suspense fallback. */}
-      <Suspense fallback={null}>
-        <HumanoidModel color={color} height={height} facing={facing} />
-      </Suspense>
     </group>
   );
-}
-
-/**
- * HumanoidModel — loads the CC0 GLB character and renders it with the
- * same parent transform as the procedural fallback (so the fallback and
- * the GLB align in world space). The GLB is centered at y=0 and roughly
- * 1.7 units tall (legs + torso + head + cap). Scale and offset are
- * tuned to match the procedural fallback proportions.
- */
-function HumanoidModel({
-  color,
-  height,
-  facing,
-}: {
-  color: string;
-  height: number;
-  facing: number;
-}) {
-  const gltf = useGLTF('/models/students/character.glb');
-  // The procedural fallback is ~1.7 units tall (legs 0.75 + torso 0.7 + head offset ~0.24 + cap ~0.18 ≈ 1.87
-  // but visually anchored to y=0). The GLB was authored at a similar scale.
-  // Apply a uniform scale + Y offset to roughly align the GLB with the
-  // fallback's ground plane and height.
-  const s = height;
-  return (
-    <group
-      // GLB y=0 is roughly the bottom of the feet; place at y=0.
-      // Apply a height-uniform scale so characters of different heights
-      // stay proportional.
-      rotation={[0, facing, 0]}
-    >
-      <primitive
-        object={gltf.scene}
-        scale={[s, s, s]}
-        // Slight Y lift so feet sit on the ground plane at y=0.
-        position={[0, 0, 0]}
-      />
-      {/* The procedural body was the source of color (the hoodie color
-          prop). tint the GLB with the same color via material traversal
-          if the GLB exposes materials (no-op for meshes without
-          materials). */}
-      <GLTBTint color={color} object={gltf.scene} />
-    </group>
-  );
-}
-
-/**
- * GLTBTint — traverse the GLB scene and tint each material's color by
- * blending the source color into it. Cheap CC0 tweak to make the GLB
- * match the per-character color prop.
- */
-function GLTBTint({ color, object }: { color: string; object: THREE.Object3D }) {
-  if (!object) return null;
-  const base = new THREE.Color(color);
-  object.traverse((node: any) => {
-    if (node.isMesh && node.material) {
-      const mats = Array.isArray(node.material) ? node.material : [node.material];
-      mats.forEach((m: any) => {
-        if (m.color) {
-          m.color.lerp(base, 0.35);
-          m.needsUpdate = true;
-        }
-      });
-    }
-  });
-  return null;
 }
