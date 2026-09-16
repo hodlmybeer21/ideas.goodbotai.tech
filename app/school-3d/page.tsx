@@ -102,6 +102,15 @@ export default function School3DPage() {
   // ── Game ─────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#87CEEB' }}>
+      <CanvasErrorBoundary
+        fallback={
+          <>
+            <ambientLight intensity={0.55} />
+            <directionalLight position={[30, 35, 20]} intensity={1.1} />
+            <CampusGround />
+          </>
+        }
+      >
       <Canvas
         shadows
         camera={{ position: [0, 10, 18], fov: 55 }}
@@ -155,6 +164,7 @@ export default function School3DPage() {
           </CanvasErrorBoundary>
         </Suspense>
       </Canvas>
+      </CanvasErrorBoundary>
 
       {/* HUD */}
       <div style={hudStyles.header}>

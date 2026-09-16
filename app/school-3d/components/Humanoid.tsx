@@ -143,23 +143,41 @@ export default function Humanoid({
           <sphereGeometry args={[headR, 16, 16]} />
           <meshStandardMaterial color={skin} roughness={0.75} />
         </mesh>
-        {/* Eyes (whites) */}
+        {/* Eyes (whites — sclera) */}
         <mesh position={[-0.10 * s, 0.03 * s, headR * 0.85]}>
-          <sphereGeometry args={[0.045 * s, 8, 8]} />
-          <meshStandardMaterial color={accent} />
+          <sphereGeometry args={[0.045 * s, 10, 10]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.4} />
         </mesh>
         <mesh position={[0.10 * s, 0.03 * s, headR * 0.85]}>
-          <sphereGeometry args={[0.045 * s, 8, 8]} />
-          <meshStandardMaterial color={accent} />
+          <sphereGeometry args={[0.045 * s, 10, 10]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.4} />
         </mesh>
-        {/* Pupils — small white highlight in each eye */}
-        <mesh position={[-0.10 * s, 0.04 * s, headR * 0.91]}>
-          <sphereGeometry args={[0.018 * s, 8, 8]} />
-          <meshStandardMaterial color="#FFFFFF" />
+        {/* Iris — colored ring on each eye */}
+        <mesh position={[-0.10 * s, 0.03 * s, headR * 0.90]}>
+          <sphereGeometry args={[0.026 * s, 10, 10]} />
+          <meshStandardMaterial color={accent} roughness={0.5} />
         </mesh>
-        <mesh position={[0.10 * s, 0.04 * s, headR * 0.91]}>
-          <sphereGeometry args={[0.018 * s, 8, 8]} />
-          <meshStandardMaterial color="#FFFFFF" />
+        <mesh position={[0.10 * s, 0.03 * s, headR * 0.90]}>
+          <sphereGeometry args={[0.026 * s, 10, 10]} />
+          <meshStandardMaterial color={accent} roughness={0.5} />
+        </mesh>
+        {/* Pupil — small black dot at the center of each iris */}
+        <mesh position={[-0.10 * s, 0.03 * s, headR * 0.93]}>
+          <sphereGeometry args={[0.013 * s, 8, 8]} />
+          <meshStandardMaterial color="#000000" />
+        </mesh>
+        <mesh position={[0.10 * s, 0.03 * s, headR * 0.93]}>
+          <sphereGeometry args={[0.013 * s, 8, 8]} />
+          <meshStandardMaterial color="#000000" />
+        </mesh>
+        {/* Eye highlight — tiny white glint on each pupil for a bit of life */}
+        <mesh position={[-0.09 * s, 0.045 * s, headR * 0.94]}>
+          <sphereGeometry args={[0.005 * s, 6, 6]} />
+          <meshBasicMaterial color="#FFFFFF" />
+        </mesh>
+        <mesh position={[0.11 * s, 0.045 * s, headR * 0.94]}>
+          <sphereGeometry args={[0.005 * s, 6, 6]} />
+          <meshBasicMaterial color="#FFFFFF" />
         </mesh>
         {/* Eyebrows — thin boxes tilted slightly inward */}
         <mesh position={[-0.10 * s, 0.12 * s, headR * 0.87]} rotation={[0, 0, 0.20]}>
@@ -175,10 +193,11 @@ export default function Humanoid({
           <sphereGeometry args={[0.035 * s, 8, 8]} />
           <meshStandardMaterial color={skin} roughness={0.75} />
         </mesh>
-        {/* Mouth — small subtle arc (replaces the giant smile) */}
-        <mesh position={[0, -0.08 * s, headR * 0.88]}>
-          <torusGeometry args={[0.06 * s, 0.012 * s, 8, 12, Math.PI]} />
-          <meshStandardMaterial color="#3E2723" />
+        {/* Mouth — subtle closed-mouth arc (half-torus) facing the camera.
+            Sits at the same z-depth as the eyes so the face reads as a face. */}
+        <mesh position={[0, -0.10 * s, headR * 0.88]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.055 * s, 0.011 * s, 8, 14, Math.PI]} />
+          <meshStandardMaterial color="#5D4037" roughness={0.6} />
         </mesh>
       </group>
 
