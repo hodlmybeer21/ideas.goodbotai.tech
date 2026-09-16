@@ -10,6 +10,8 @@ type Props = {
   skin?: string;       // skin tone for head/hands/feet
   height?: number;     // overall height scale, default 1
   moving?: boolean;    // whether to animate walk cycle
+  sprinting?: boolean; // held Shift — bigger swing + faster cadence
+  strafing?: boolean;  // held Alt — small body lean to the side of motion
   facing?: number;     // radians Y rotation
   showName?: string;   // floating name label
   bounce?: boolean;    // gentle idle bounce
@@ -19,13 +21,16 @@ type Props = {
 /**
  * Humanoid — stylized college-student character (procedural geometry).
  * Reads as "low-poly stylized student" — backpack, baseball cap, hoodie
- * torso, jeans, sneakers. Walking animation: opposite-pair leg/arm swing.
+ * torso, jeans, sneakers. Walking animation: opposite-pair leg/arm swing,
+ * idle breathing on the torso, optional forward/side body lean while moving.
  */
 export default function Humanoid({
   color,
   skin = '#FFE0B2',
   height = 1.0,
   moving = false,
+  sprinting = false,
+  strafing = false,
   facing = 0,
   showName,
   bounce = false,
@@ -36,29 +41,52 @@ export default function Humanoid({
   const rightArm    = useRef<THREE.Group>(null);
   const leftLeg     = useRef<THREE.Group>(null);
   const rightLeg    = useRef<THREE.Group>(null);
+  const torso       = useRef<THREE.Group>(null);
   const walkPhase   = useRef(0);
+  const swayX       = useRef(0);
 
   useFrame((state, delta) => {
-    if (bounce && root.current) {
-      root.current.position.y = Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18;
-    }
-    if (moving) {
-      walkPhase.current += delta * 8;
-    } else {
-      walkPhase.current += delta * 2;
-    }
+    const cadence = moving ? (sprinting ? 12 : 8) : 2;
+    walkPhase.current += delta * cadence;
     const t = walkPhase.current;
-    const swing = Math.sin(t) * (moving ? 0.9 : 0.15);
+
+    // Leg / arm swing — opposite pair (diagonal coordination).
+    const swingAmp = moving ? (sprinting ? 1.25 : 0.9) : 0.15;
+    const swing = Math.sin(t) * swingAmp;
     if (leftArm.current)  leftArm.current.rotation.x =  swing;
     if (rightArm.current) rightArm.current.rotation.x = -swing;
     if (leftLeg.current)  leftLeg.current.rotation.x = -swing;
     if (rightLeg.current) rightLeg.current.rotation.x =  swing;
+
     if (root.current) {
-      const bob = moving ? Math.abs(Math.sin(t * 2)) * 0.05 : 0;
-      root.current.position.y = (bounce ? Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18 : 0) + bob;
-      // Subtle horizontal sway on top of vertical bob — body sways side to side
-      // slightly with each step so the walk doesn't look perfectly stiff.
-      root.current.position.x += Math.cos(t) * 0.01 * (moving ? 1 : 0);
+      // Vertical bob — slightly bigger when sprinting so the gait reads
+      // as more athletic.
+      const bobAmp = moving ? (sprinting ? 0.08 : 0.05) : 0;
+      const bob = Math.abs(Math.sin(t * 2)) * bobAmp;
+      const idleBounce = bounce
+        ? Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18
+        : 0;
+      root.current.position.y = idleBounce + bob;
+
+      // Body lean — slight forward pitch when accelerating, small roll when
+      // strafing. Lerps toward the target so the lean doesn't snap.
+      const targetPitch = moving ? (sprinting ? -0.10 : -0.05) : 0;
+      const targetRoll  = strafing ? 0.08 : 0;
+      // Smooth the lean so transitions are gentle.
+      swayX.current = THREE.MathUtils.lerp(swayX.current, targetRoll, Math.min(1, delta * 6));
+      root.current.rotation.x = THREE.MathUtils.lerp(
+        root.current.rotation.x,
+        targetPitch,
+        Math.min(1, delta * 6),
+      );
+      root.current.rotation.z = swayX.current;
+    }
+
+    if (torso.current) {
+      // Idle breathing — torso subtly scales while standing still so the
+      // character doesn't read as a frozen mannequin.
+      const breathe = 1 + Math.sin(state.clock.elapsedTime * 1.6) * 0.012;
+      torso.current.scale.set(breathe, 1 / Math.sqrt(breathe), breathe);
     }
   });
 
@@ -108,33 +136,36 @@ export default function Humanoid({
         </mesh>
       </group>
 
-      {/* Hoodie torso (the color prop) */}
-      <mesh castShadow position={[0, legLen + torsoH / 2, 0]}>
-        <boxGeometry args={[torsoW, torsoH, torsoD]} />
-        <meshStandardMaterial color={color} roughness={0.65} />
-      </mesh>
+      {/* Torso group — wraps hoodie + hood + backpack so the breathing
+          scale on `torso` subtly inflates the whole upper body. */}
+      <group ref={torso}>
+        <mesh castShadow position={[0, legLen + torsoH / 2, 0]}>
+          <boxGeometry args={[torsoW, torsoH, torsoD]} />
+          <meshStandardMaterial color={color} roughness={0.65} />
+        </mesh>
 
-      {/* Hood (small bump at the top of the hoodie) */}
-      <mesh castShadow position={[0, legLen + torsoH + 0.05 * s, 0.08 * s]}>
-        <sphereGeometry args={[torsoW * 0.4, 12, 12, 0, Math.PI, 0, Math.PI * 0.5]} />
-        <meshStandardMaterial color={color} roughness={0.65} />
-      </mesh>
+        {/* Hood (small bump at the top of the hoodie) */}
+        <mesh castShadow position={[0, legLen + torsoH + 0.05 * s, 0.08 * s]}>
+          <sphereGeometry args={[torsoW * 0.4, 12, 12, 0, Math.PI, 0, Math.PI * 0.5]} />
+          <meshStandardMaterial color={color} roughness={0.65} />
+        </mesh>
 
-      {/* Backpack on the back */}
-      <group position={[0, legLen + torsoH * 0.6, -torsoD / 2 - 0.10 * s]}>
-        <mesh castShadow>
-          <boxGeometry args={[torsoW * 0.7, torsoH * 0.85, 0.20 * s]} />
-          <meshStandardMaterial color="#1565C0" roughness={0.7} />
-        </mesh>
-        {/* straps */}
-        <mesh position={[-torsoW * 0.22, 0, 0.10 * s]}>
-          <boxGeometry args={[0.04 * s, torsoH * 0.7, 0.02 * s]} />
-          <meshStandardMaterial color="#0D47A1" roughness={0.7} />
-        </mesh>
-        <mesh position={[torsoW * 0.22, 0, 0.10 * s]}>
-          <boxGeometry args={[0.04 * s, torsoH * 0.7, 0.02 * s]} />
-          <meshStandardMaterial color="#0D47A1" roughness={0.7} />
-        </mesh>
+        {/* Backpack on the back */}
+        <group position={[0, legLen + torsoH * 0.6, -torsoD / 2 - 0.10 * s]}>
+          <mesh castShadow>
+            <boxGeometry args={[torsoW * 0.7, torsoH * 0.85, 0.20 * s]} />
+            <meshStandardMaterial color="#1565C0" roughness={0.7} />
+          </mesh>
+          {/* straps */}
+          <mesh position={[-torsoW * 0.22, 0, 0.10 * s]}>
+            <boxGeometry args={[0.04 * s, torsoH * 0.7, 0.02 * s]} />
+            <meshStandardMaterial color="#0D47A1" roughness={0.7} />
+          </mesh>
+          <mesh position={[torsoW * 0.22, 0, 0.10 * s]}>
+            <boxGeometry args={[0.04 * s, torsoH * 0.7, 0.02 * s]} />
+            <meshStandardMaterial color="#0D47A1" roughness={0.7} />
+          </mesh>
+        </group>
       </group>
 
       {/* Head */}

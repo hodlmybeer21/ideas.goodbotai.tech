@@ -4,10 +4,12 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import Humanoid from './Humanoid';
+import FootstepParticles from './FootstepParticles';
 
 const SPEED = 6;
+const SPRINT_MULT = 1.7;          // Shift held → 1.7× walking speed
 const BOUNDS = 28;
-const YAW_RATE = 2.4; // radians/sec when joystick fully deflected
+const YAW_RATE = 2.4;             // radians/sec when joystick fully deflected
 
 type Props = {
   color: string;
@@ -22,12 +24,18 @@ type Props = {
  * Movement is CAMERA-RELATIVE: W always moves "away from the camera" regardless
  * of which way the camera is facing. The camera yaw is in `yawRef` and is
  * owned by page.tsx so mouse-drag and the camera joystick can both write it.
+ *
+ * Hold Shift to sprint — speed jumps to 1.7× and the walk-cycle amplitude in
+ * Humanoid.tsx reads as "longer strides" through the moving prop.
  */
 export default function Player({ color, joystick, cameraJoystick, yawRef, positionRef }: Props) {
   const keysRef = useRef({
     w: false, a: false, s: false, d: false,
     up: false, down: false, left: false, right: false,
+    shift: false,
+    alt: false,
   });
+  const sprintRef = useRef(false);
   const facingRef = useRef(0);
   const movingRef = useRef(false);
   // Imperative ref to the rendered group — updated each frame to mirror
@@ -43,6 +51,8 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
         case 'KeyS': case 'ArrowDown':  keysRef.current.s = down; keysRef.current.down = down; break;
         case 'KeyA': case 'ArrowLeft':  keysRef.current.a = down; keysRef.current.left = down; break;
         case 'KeyD': case 'ArrowRight': keysRef.current.d = down; keysRef.current.right = down; break;
+        case 'ShiftLeft': case 'ShiftRight': keysRef.current.shift = down; break;
+        case 'AltLeft': case 'AltRight': keysRef.current.alt = down; break;
       }
     };
     const dn = (e: KeyboardEvent) => {
@@ -97,8 +107,10 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
     const wz = -ix * sinY + iz * cosY;
 
     // 3. Move in world space
-    positionRef.current.x += wx * SPEED * delta;
-    positionRef.current.z += wz * SPEED * delta;
+    const sprinting = keys.shift || sprintRef.current;
+    const speed = SPEED * (sprinting ? SPRINT_MULT : 1);
+    positionRef.current.x += wx * speed * delta;
+    positionRef.current.z += wz * speed * delta;
     positionRef.current.x = Math.max(-BOUNDS, Math.min(BOUNDS, positionRef.current.x));
     positionRef.current.z = Math.max(-BOUNDS, Math.min(BOUNDS, positionRef.current.z));
 
@@ -127,13 +139,22 @@ export default function Player({ color, joystick, cameraJoystick, yawRef, positi
     cam.lookAt(positionRef.current.x, positionRef.current.y + 1, positionRef.current.z);
   });
 
+  const sprintingNow = keysRef.current.shift || sprintRef.current;
+  const strafingNow  = keysRef.current.alt;
+
   return (
     <group ref={meshRef} position={[0, 0, 8]}>
       <Humanoid
         color={color}
         height={1.0}
         moving={movingRef.current}
+        sprinting={sprintingNow}
+        strafing={strafingNow}
         facing={facingRef.current}
+      />
+      <FootstepParticles
+        positionRef={positionRef}
+        sprinting={sprintingNow}
       />
     </group>
   );

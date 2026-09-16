@@ -153,7 +153,7 @@ export default function School3DPage() {
                 onPlayerNear={handlePlayerNear}
               />
             ))}
-            <NPCs />
+            <NPCs playerPosRef={playerPosRef} />
             <Player
               color={playerColor}
               joystick={joystickVec}
