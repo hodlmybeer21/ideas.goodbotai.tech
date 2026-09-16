@@ -56,6 +56,9 @@ export default function Humanoid({
     if (root.current) {
       const bob = moving ? Math.abs(Math.sin(t * 2)) * 0.05 : 0;
       root.current.position.y = (bounce ? Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18 : 0) + bob;
+      // Subtle horizontal sway on top of vertical bob — body sways side to side
+      // slightly with each step so the walk doesn't look perfectly stiff.
+      root.current.position.x += Math.cos(t) * 0.01 * (moving ? 1 : 0);
     }
   });
 
@@ -140,7 +143,7 @@ export default function Humanoid({
           <sphereGeometry args={[headR, 16, 16]} />
           <meshStandardMaterial color={skin} roughness={0.75} />
         </mesh>
-        {/* Eyes */}
+        {/* Eyes (whites) */}
         <mesh position={[-0.10 * s, 0.03 * s, headR * 0.85]}>
           <sphereGeometry args={[0.045 * s, 8, 8]} />
           <meshStandardMaterial color={accent} />
@@ -149,10 +152,33 @@ export default function Humanoid({
           <sphereGeometry args={[0.045 * s, 8, 8]} />
           <meshStandardMaterial color={accent} />
         </mesh>
-        {/* Smile */}
-        <mesh position={[0, -0.10 * s, headR * 0.85]}>
-          <torusGeometry args={[0.10 * s, 0.022 * s, 8, 12, Math.PI]} />
-          <meshStandardMaterial color={accent} />
+        {/* Pupils — small white highlight in each eye */}
+        <mesh position={[-0.10 * s, 0.04 * s, headR * 0.91]}>
+          <sphereGeometry args={[0.018 * s, 8, 8]} />
+          <meshStandardMaterial color="#FFFFFF" />
+        </mesh>
+        <mesh position={[0.10 * s, 0.04 * s, headR * 0.91]}>
+          <sphereGeometry args={[0.018 * s, 8, 8]} />
+          <meshStandardMaterial color="#FFFFFF" />
+        </mesh>
+        {/* Eyebrows — thin boxes tilted slightly inward */}
+        <mesh position={[-0.10 * s, 0.12 * s, headR * 0.87]} rotation={[0, 0, 0.20]}>
+          <boxGeometry args={[0.08 * s, 0.018 * s, 0.012 * s]} />
+          <meshStandardMaterial color="#3E2723" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.10 * s, 0.12 * s, headR * 0.87]} rotation={[0, 0, -0.20]}>
+          <boxGeometry args={[0.08 * s, 0.018 * s, 0.012 * s]} />
+          <meshStandardMaterial color="#3E2723" roughness={0.8} />
+        </mesh>
+        {/* Nose — small sphere protruding from face center */}
+        <mesh position={[0, -0.02 * s, headR + 0.03 * s]}>
+          <sphereGeometry args={[0.035 * s, 8, 8]} />
+          <meshStandardMaterial color={skin} roughness={0.75} />
+        </mesh>
+        {/* Mouth — small subtle arc (replaces the giant smile) */}
+        <mesh position={[0, -0.08 * s, headR * 0.88]}>
+          <torusGeometry args={[0.06 * s, 0.012 * s, 8, 12, Math.PI]} />
+          <meshStandardMaterial color="#3E2723" />
         </mesh>
       </group>
 
