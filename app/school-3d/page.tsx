@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useRef, useCallback, useEffect } from 'react';
+import React, { Suspense, useState, useRef, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Sky } from '@react-three/drei';
 import Link from 'next/link';
@@ -108,41 +108,51 @@ export default function School3DPage() {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         <Suspense fallback={null}>
-          <Sky sunPosition={[80, 50, 60]} turbidity={5} rayleigh={2} />
-          <SkyExtras />
-          <ambientLight intensity={0.55} />
-          <hemisphereLight args={['#FFF8F0', '#7CB342', 0.45]} />
-          <directionalLight
-            position={[30, 35, 20]}
-            intensity={1.1}
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-35}
-            shadow-camera-right={35}
-            shadow-camera-top={35}
-            shadow-camera-bottom={-35}
-            shadow-camera-near={0.5}
-            shadow-camera-far={100}
-          />
-
-          <CampusGround />
-          {BUILDINGS.map((b) => (
-            <Building
-              key={b.id}
-              building={b}
-              playerPosRef={playerPosRef}
-              onPlayerNear={handlePlayerNear}
+          <CanvasErrorBoundary
+            fallback={
+              <>
+                <ambientLight intensity={0.55} />
+                <directionalLight position={[30, 35, 20]} intensity={1.1} />
+                <CampusGround />
+              </>
+            }
+          >
+            <Sky sunPosition={[80, 50, 60]} turbidity={5} rayleigh={2} />
+            <SkyExtras />
+            <ambientLight intensity={0.55} />
+            <hemisphereLight args={['#FFF8F0', '#7CB342', 0.45]} />
+            <directionalLight
+              position={[30, 35, 20]}
+              intensity={1.1}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-left={-35}
+              shadow-camera-right={35}
+              shadow-camera-top={35}
+              shadow-camera-bottom={-35}
+              shadow-camera-near={0.5}
+              shadow-camera-far={100}
             />
-          ))}
-          <NPCs />
-          <Player
-            color={playerColor}
-            joystick={joystickVec}
-            cameraJoystick={cameraJoystickVec}
-            yawRef={cameraYawRef}
-            positionRef={playerPosRef}
-          />
+
+            <CampusGround />
+            {BUILDINGS.map((b) => (
+              <Building
+                key={b.id}
+                building={b}
+                playerPosRef={playerPosRef}
+                onPlayerNear={handlePlayerNear}
+              />
+            ))}
+            <NPCs />
+            <Player
+              color={playerColor}
+              joystick={joystickVec}
+              cameraJoystick={cameraJoystickVec}
+              yawRef={cameraYawRef}
+              positionRef={playerPosRef}
+            />
+          </CanvasErrorBoundary>
         </Suspense>
       </Canvas>
 
@@ -242,6 +252,32 @@ function CharacterPicker({ onStart, colors }: { onStart: (c: string) => void; co
       </div>
     </div>
   );
+}
+
+/* ── Tiny inline error boundary ─────────────────────────
+   Some drei components (Sky, useTexture, troika Text) can throw
+   synchronously during render when their CDN assets fail to load. Without
+   a boundary, one thrown component takes the whole /school-3d route
+   down into Next.js's error.tsx fallback. This wrapper catches render-time
+   exceptions inside the Canvas tree and falls back to a stub, so the rest
+   of the campus (ground, buildings, player, NPCs, HUD) still renders. */
+class CanvasErrorBoundary extends React.Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    if (typeof console !== 'undefined') {
+      console.warn('[CanvasErrorBoundary] caught:', error.message, info.componentStack);
+    }
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
 }
 
 const kbd = {
