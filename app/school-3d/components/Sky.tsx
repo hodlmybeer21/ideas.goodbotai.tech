@@ -1,45 +1,20 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Billboard, Text } from '@react-three/drei';
+import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
+import { makeCloudTexture } from '../textures';
 
 /**
- * SkyExtras — clouds + sun layered on top of drei's <Sky>.
- * Sun is a soft emissive disc with a billboard label. Clouds are flat
- * puffy shapes with a procedural CanvasTexture so they look soft without
- * needing any external asset.
+ * SkyExtras — sun + clouds layered on top of drei's <Sky>.
+ *
+ * Golden-hour positioning to match the warm lighting in page.tsx. Clouds
+ * use the warm-cream CanvasTexture so they pick up the sunset tint.
  */
 export default function SkyExtras() {
-  const cloudTex = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 128;
-    const g = c.getContext('2d')!;
-    g.clearRect(0, 0, 256, 128);
-    // Soft puffy cloud: overlapping circles with radial gradient
-    const puffs = [
-      [60, 70, 38], [100, 60, 42], [140, 70, 40], [180, 60, 36], [210, 75, 32],
-      [85, 80, 28], [155, 80, 28], [125, 70, 35], [195, 70, 28],
-    ];
-    for (const [x, y, r] of puffs) {
-      const grad = g.createRadialGradient(x, y, 0, x, y, r);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-      grad.addColorStop(0.6, 'rgba(255, 255, 255, 0.7)');
-      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      g.fillStyle = grad;
-      g.beginPath();
-      g.arc(x, y, r, 0, Math.PI * 2);
-      g.fill();
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
+  const cloudTex = useMemo(() => makeCloudTexture(), []);
 
-  // Hand-placed clouds — large puffy billboards high in the sky.
-  // Positioned lower + more centered so they catch the player's eye from
-  // the default third-person camera.
+  // Hand-placed clouds — drifting across the warm sky.
   const clouds = [
     { x: -28, y: 18, z: -12, scale: 5.5 },
     { x:  20, y: 22, z: -20, scale: 6.5 },
@@ -52,24 +27,23 @@ export default function SkyExtras() {
 
   return (
     <group>
-      {/* Sun — emissive disc + soft glow halo. Lowered so it's visible from
-          the player's default camera angle (not directly overhead). */}
-      <group position={[30, 32, -22]}>
+      {/* Sun — low golden-hour disc with concentric warm halos. */}
+      <group position={[55, 18, -45]}>
         <mesh>
-          <sphereGeometry args={[3.0, 24, 24]} />
-          <meshBasicMaterial color="#FFF6BD" toneMapped={false} />
+          <sphereGeometry args={[3.2, 24, 24]} />
+          <meshBasicMaterial color="#FFEBC2" toneMapped={false} />
         </mesh>
         <mesh>
-          <sphereGeometry args={[5, 24, 24]} />
-          <meshBasicMaterial color="#FFEB99" transparent opacity={0.35} toneMapped={false} />
+          <sphereGeometry args={[5.5, 24, 24]} />
+          <meshBasicMaterial color="#FFD89B" transparent opacity={0.32} toneMapped={false} />
         </mesh>
         <mesh>
-          <sphereGeometry args={[8, 24, 24]} />
-          <meshBasicMaterial color="#FFE680" transparent opacity={0.15} toneMapped={false} />
+          <sphereGeometry args={[9, 24, 24]} />
+          <meshBasicMaterial color="#FFC585" transparent opacity={0.14} toneMapped={false} />
         </mesh>
       </group>
 
-      {/* Clouds */}
+      {/* Clouds — warm cream, billboarded so they always face the camera */}
       {cloudTex && clouds.map((c, i) => (
         <Billboard key={i} position={[c.x, c.y, c.z]} follow={false}>
           <mesh>

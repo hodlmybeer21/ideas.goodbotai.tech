@@ -14,11 +14,17 @@ type Props = {
   showName?: string;   // floating name label
   bounce?: boolean;    // gentle idle bounce
   emissive?: boolean;  // for hover/active state
+  hairColor?: string;  // override default brown hair
 };
 
 /**
- * Humanoid — kid-sized blocky character with head, torso, arms, legs.
- * Used for both the player and the courtyard NPCs.
+ * Humanoid — chibi-proportioned kid character used for the player and NPCs.
+ *
+ * Ghibli-pastoral adjustments:
+ *   - Bigger head relative to body (chibi / Ghibli signature)
+ *   - Rosy cheek dots instead of stark smile torus
+ *   - Warmer skin tones, gentler eye proportions
+ *   - Round, simple shapes (no harsh box edges)
  *
  * Walk animation: when `moving` is true, legs/arms swing in opposite
  * pairs (L-arm with R-leg, R-arm with L-leg) using a sine wave on
@@ -26,13 +32,14 @@ type Props = {
  */
 export default function Humanoid({
   color,
-  skin = '#FFE0B2',
+  skin = '#FFD7A8',
   height = 1.0,
   moving = false,
   facing = 0,
   showName,
   bounce = false,
   emissive = false,
+  hairColor = '#5C4128',
 }: Props) {
   const root        = useRef<THREE.Group>(null);
   const leftArm     = useRef<THREE.Group>(null);
@@ -42,15 +49,13 @@ export default function Humanoid({
   const walkPhase   = useRef(0);
 
   useFrame((state, delta) => {
-    // Idle bounce
     if (bounce && root.current) {
       root.current.position.y = Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18;
     }
-    // Walk cycle
     if (moving) {
-      walkPhase.current += delta * 8; // swing speed
+      walkPhase.current += delta * 8;
     } else {
-      walkPhase.current += delta * 2; // slow decay
+      walkPhase.current += delta * 2;
     }
     const t = walkPhase.current;
     const swing = Math.sin(t) * (moving ? 0.9 : 0.15);
@@ -58,103 +63,109 @@ export default function Humanoid({
     if (rightArm.current) rightArm.current.rotation.x = -swing;
     if (leftLeg.current)  leftLeg.current.rotation.x = -swing;
     if (rightLeg.current) rightLeg.current.rotation.x =  swing;
-    // Subtle torso bob
     if (root.current) {
       const bob = moving ? Math.abs(Math.sin(t * 2)) * 0.05 : 0;
       root.current.position.y = (bounce ? Math.abs(Math.sin(state.clock.elapsedTime * 2.5)) * 0.18 : 0) + bob;
     }
   });
 
-  // Proportions (all multiplied by height for scale)
+  // Chibi proportions — bigger head, shorter torso, rounder overall.
   const s = height;
-  const torsoH = 0.6 * s;
+  const torsoH = 0.5 * s;   // was 0.6
   const torsoW = 0.55 * s;
   const torsoD = 0.32 * s;
-  const headR = 0.28 * s;
+  const headR = 0.36 * s;   // was 0.28 — chibi head/body ratio
   const limbR = 0.10 * s;
-  const armLen = 0.6 * s;
-  const legLen = 0.6 * s;
-  const shoeH = 0.12 * s;
-  const handR = 0.11 * s;
+  const armLen = 0.55 * s;
+  const legLen = 0.55 * s;  // was 0.6
+  const shoeH = 0.10 * s;
+  const handR = 0.12 * s;
 
-  const accent = emissive ? '#FFFFFF' : '#1A237E';
+  const eyeColor = emissive ? '#FFFFFF' : '#2D1B00';
 
   return (
     <group ref={root} rotation={[0, facing, 0]}>
-      {/* shadow */}
+      {/* Soft ground shadow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.42 * s, 16]} />
-        <meshBasicMaterial color="#000" transparent opacity={0.28} />
+        <circleGeometry args={[0.4 * s, 16]} />
+        <meshBasicMaterial color="#3E2723" transparent opacity={0.22} />
       </mesh>
 
-      {/* Torso */}
+      {/* Torso (rounded box via higher segments on a regular box still reads as soft in this scale) */}
       <mesh castShadow position={[0, legLen + torsoH / 2, 0]}>
         <boxGeometry args={[torsoW, torsoH, torsoD]} />
-        <meshStandardMaterial color={color} roughness={0.65} />
+        <meshStandardMaterial color={color} roughness={0.85} />
       </mesh>
 
-      {/* Head (slightly above torso) */}
-      <group position={[0, legLen + torsoH + headR * 0.6, 0]}>
+      {/* Head — bigger, with rosy cheeks and small dot eyes (Ghibli tot look) */}
+      <group position={[0, legLen + torsoH + headR * 0.55, 0]}>
         <mesh castShadow>
-          <sphereGeometry args={[headR, 16, 16]} />
-          <meshStandardMaterial color={skin} roughness={0.75} />
+          <sphereGeometry args={[headR, 18, 18]} />
+          <meshStandardMaterial color={skin} roughness={0.85} />
         </mesh>
-        {/* Eyes */}
-        <mesh position={[-0.10 * s, 0.03 * s, headR * 0.85]}>
-          <sphereGeometry args={[0.045 * s, 8, 8]} />
-          <meshStandardMaterial color={accent} />
+        {/* Hair — larger fluff cap that hugs the top half of the head */}
+        <mesh castShadow position={[0, headR * 0.45, 0]}>
+          <sphereGeometry args={[headR * 1.02, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+          <meshStandardMaterial color={hairColor} roughness={0.95} />
         </mesh>
-        <mesh position={[0.10 * s, 0.03 * s, headR * 0.85]}>
-          <sphereGeometry args={[0.045 * s, 8, 8]} />
-          <meshStandardMaterial color={accent} />
+        {/* Tiny dot eyes */}
+        <mesh position={[-0.12 * s, 0.02 * s, headR * 0.88]}>
+          <sphereGeometry args={[0.04 * s, 8, 8]} />
+          <meshStandardMaterial color={eyeColor} />
         </mesh>
-        {/* Smile */}
-        <mesh position={[0, -0.10 * s, headR * 0.85]} rotation={[0, 0, 0]}>
-          <torusGeometry args={[0.10 * s, 0.022 * s, 8, 12, Math.PI]} />
-          <meshStandardMaterial color={accent} />
+        <mesh position={[0.12 * s, 0.02 * s, headR * 0.88]}>
+          <sphereGeometry args={[0.04 * s, 8, 8]} />
+          <meshStandardMaterial color={eyeColor} />
         </mesh>
-        {/* Tiny hair tuft */}
-        <mesh position={[0, headR * 0.85, 0]} castShadow>
-          <coneGeometry args={[0.10 * s, 0.18 * s, 6]} />
-          <meshStandardMaterial color="#3E2723" roughness={0.8} />
+        {/* Rosy cheeks — soft pink dots */}
+        <mesh position={[-0.18 * s, -0.08 * s, headR * 0.7]}>
+          <sphereGeometry args={[0.06 * s, 8, 8]} />
+          <meshBasicMaterial color="#E8B4A0" transparent opacity={0.55} />
+        </mesh>
+        <mesh position={[0.18 * s, -0.08 * s, headR * 0.7]}>
+          <sphereGeometry args={[0.06 * s, 8, 8]} />
+          <meshBasicMaterial color="#E8B4A0" transparent opacity={0.55} />
+        </mesh>
+        {/* Tiny smile — subtle curve via small dark line */}
+        <mesh position={[0, -0.14 * s, headR * 0.88]} rotation={[0, 0, 0]}>
+          <torusGeometry args={[0.07 * s, 0.018 * s, 6, 10, Math.PI]} />
+          <meshStandardMaterial color="#7A3E2A" roughness={0.7} />
         </mesh>
       </group>
 
-      {/* Left arm — pivot at shoulder */}
+      {/* Left arm */}
       <group ref={leftArm} position={[-torsoW / 2 - limbR * 0.4, legLen + torsoH - 0.05 * s, 0]}>
         <mesh castShadow position={[0, -armLen / 2, 0]}>
           <cylinderGeometry args={[limbR, limbR * 0.95, armLen, 8]} />
-          <meshStandardMaterial color={color} roughness={0.6} />
+          <meshStandardMaterial color={color} roughness={0.8} />
         </mesh>
-        {/* hand */}
         <mesh castShadow position={[0, -armLen, 0]}>
-          <sphereGeometry args={[handR, 8, 8]} />
-          <meshStandardMaterial color={skin} roughness={0.75} />
+          <sphereGeometry args={[handR, 10, 10]} />
+          <meshStandardMaterial color={skin} roughness={0.85} />
         </mesh>
       </group>
 
-      {/* Right arm — pivot at shoulder */}
+      {/* Right arm */}
       <group ref={rightArm} position={[torsoW / 2 + limbR * 0.4, legLen + torsoH - 0.05 * s, 0]}>
         <mesh castShadow position={[0, -armLen / 2, 0]}>
           <cylinderGeometry args={[limbR, limbR * 0.95, armLen, 8]} />
-          <meshStandardMaterial color={color} roughness={0.6} />
+          <meshStandardMaterial color={color} roughness={0.8} />
         </mesh>
         <mesh castShadow position={[0, -armLen, 0]}>
-          <sphereGeometry args={[handR, 8, 8]} />
-          <meshStandardMaterial color={skin} roughness={0.75} />
+          <sphereGeometry args={[handR, 10, 10]} />
+          <meshStandardMaterial color={skin} roughness={0.85} />
         </mesh>
       </group>
 
-      {/* Left leg — pivot at hip */}
+      {/* Left leg — warm brown pants */}
       <group ref={leftLeg} position={[-torsoW * 0.22, legLen, 0]}>
         <mesh castShadow position={[0, -legLen / 2, 0]}>
           <cylinderGeometry args={[limbR * 1.05, limbR * 0.95, legLen, 8]} />
-          <meshStandardMaterial color="#37474F" roughness={0.7} />
+          <meshStandardMaterial color="#6B4631" roughness={0.85} />
         </mesh>
-        {/* shoe */}
         <mesh castShadow position={[0, -legLen - shoeH / 2, 0.04 * s]}>
           <boxGeometry args={[limbR * 2.2, shoeH, legLen * 0.6]} />
-          <meshStandardMaterial color="#212121" roughness={0.5} />
+          <meshStandardMaterial color="#5C4128" roughness={0.7} />
         </mesh>
       </group>
 
@@ -162,24 +173,24 @@ export default function Humanoid({
       <group ref={rightLeg} position={[torsoW * 0.22, legLen, 0]}>
         <mesh castShadow position={[0, -legLen / 2, 0]}>
           <cylinderGeometry args={[limbR * 1.05, limbR * 0.95, legLen, 8]} />
-          <meshStandardMaterial color="#37474F" roughness={0.7} />
+          <meshStandardMaterial color="#6B4631" roughness={0.85} />
         </mesh>
         <mesh castShadow position={[0, -legLen - shoeH / 2, 0.04 * s]}>
           <boxGeometry args={[limbR * 2.2, shoeH, legLen * 0.6]} />
-          <meshStandardMaterial color="#212121" roughness={0.5} />
+          <meshStandardMaterial color="#5C4128" roughness={0.7} />
         </mesh>
       </group>
 
       {/* Floating name label */}
       {showName && (
-        <Billboard position={[0, legLen + torsoH + headR * 2 + 0.5, 0]}>
+        <Billboard position={[0, legLen + torsoH + headR * 2.1 + 0.4, 0]}>
           <Text
             fontSize={0.32 * s}
             color="#2D1B00"
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.04 * s}
-            outlineColor="white"
+            outlineColor="#F5E6CA"
           >
             {showName}
           </Text>

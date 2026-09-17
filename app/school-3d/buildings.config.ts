@@ -11,7 +11,7 @@ export type Building = {
   id: string;
   label: string;
   sublabel: string;
-  color: string;          // trim/door accent color
+  color: string;          // trim/door accent color (warm Ghibli pastels)
   wallColor?: string;      // override cream
   position: [number, number, number];   // x, y, z
   size: [number, number];                // width, depth
@@ -22,11 +22,14 @@ export type Building = {
 
 /**
  * Full campus layout — 12 buildings arranged around a central courtyard.
- * Positions were redesigned from the Phaser 2D map (2000x1600) to a cleaner
- * 3D-friendly grid. Doors auto-orient toward the courtyard.
  *
- * Stations use the same activity ids as the existing /school game.js so the
- * StationPicker → ActivityModal handoff stays identical to the proven 2D path.
+ * Ghibli pastel palette (replaces the bright candy primaries):
+ *   - dusty rose / mauve / sage / lavender / warm sand / golden wheat / terracotta
+ *   - cream walls (`#EFE3D0`) shared across all buildings
+ *   - thatched roof tints: deep brown `#5C4128` – `#7B4F36`
+ *
+ * Positions / sizes / stations / IDs are unchanged so the rest of the
+ * gameplay wiring keeps working.
  */
 export const BUILDINGS: Building[] = [
   // ── NORTH ROW (z = -20) ─────────────────────────────────────────
@@ -34,11 +37,12 @@ export const BUILDINGS: Building[] = [
     id: 'artroom',
     label: 'Art Studio',
     sublabel: 'Creative Corner',
-    color: '#F06292',
+    color: '#C99B96',            // dusty rose
+    wallColor: '#EFE3D0',
+    roofColor: '#6B4631',
     position: [-22, 0, -20],
     size: [7, 5.5],
     roofStyle: 'pagoda',
-    roofColor: '#EC407A',
     stations: [
       { id: 'colorlab',       name: 'Color Lab',      icon: '🎨', ready: true },
       { id: 'pixelcanvas_b',  name: 'Pixel Canvas',   icon: '🎮', ready: true },
@@ -49,11 +53,12 @@ export const BUILDINGS: Building[] = [
     id: 'library',
     label: 'Library',
     sublabel: 'Story Hall',
-    color: '#4FC3F7',
+    color: '#9DB6C9',            // dusty sky blue
+    wallColor: '#F0E6D2',
+    roofColor: '#8B5A3C',
     position: [-9, 0, -20],
     size: [7, 5.5],
     roofStyle: 'gable',
-    roofColor: '#5D4037',
     stations: [
       { id: 'storymachine', name: 'Story Machine', icon: '📖', ready: true },
       { id: 'readalong',    name: 'Read Along',    icon: '📖', ready: true },
@@ -64,11 +69,12 @@ export const BUILDINGS: Building[] = [
     id: 'sciceng',
     label: 'Science Lab',
     sublabel: 'Experiments',
-    color: '#81C784',
+    color: '#8FA77E',            // sage green
+    wallColor: '#EFE3D0',
+    roofColor: '#5E4A35',
     position: [9, 0, -20],
     size: [7, 5.5],
     roofStyle: 'dome',
-    roofColor: '#66BB6A',
     stations: [
       { id: 'plantcycle', name: 'Plant Life Cycle', icon: '🌱', ready: true },
       { id: 'soundlab',   name: 'Sound Lab',        icon: '🎵', ready: true },
@@ -79,11 +85,12 @@ export const BUILDINGS: Building[] = [
     id: 'auditorium',
     label: 'Auditorium',
     sublabel: 'Stage',
-    color: '#CE93D8',
+    color: '#B89AAD',            // mauve
+    wallColor: '#F0E6D2',
+    roofColor: '#7B4F36',
     position: [22, 0, -20],
     size: [7, 5.5],
     roofStyle: 'peaked',
-    roofColor: '#BA68C8',
     stations: [
       { id: 'animatch',        name: 'Animal Match',      icon: '🧩', ready: true },
       { id: 'characterraits',  name: 'Character Traits',  icon: '🎭', ready: true },
@@ -96,11 +103,12 @@ export const BUILDINGS: Building[] = [
     id: 'gym',
     label: 'Gymnasium',
     sublabel: 'Fitness',
-    color: '#7E57C2',
+    color: '#9D8AB8',            // lavender
+    wallColor: '#EFE3D0',
+    roofColor: '#5E4A35',
     position: [-22, 0, -10],
     size: [7, 5.5],
     roofStyle: 'dome',
-    roofColor: '#5E35B1',
     stations: [
       { id: 'bossyr',   name: 'Bossy R Racer', icon: '🏎️', ready: true },
       { id: 'mathrace', name: 'Math Race',     icon: '🏃', ready: false },
@@ -112,11 +120,12 @@ export const BUILDINGS: Building[] = [
     id: 'cafetria',
     label: 'Cafeteria',
     sublabel: 'Healthy Fun',
-    color: '#FFB74D',
+    color: '#D9B082',            // warm sand
+    wallColor: '#F0E6D2',
+    roofColor: '#7B4F36',
     position: [-22, 0, 2],
     size: [7, 5.5],
     roofStyle: 'flat',
-    roofColor: '#FFA726',
     stations: [
       { id: 'equalparts',    name: 'Equal Parts',    icon: '🔴', ready: true },
       { id: 'coinchallenge', name: 'Coin Challenge', icon: '🪙', ready: true },
@@ -128,11 +137,12 @@ export const BUILDINGS: Building[] = [
     id: 'nurse',
     label: "Nurse's Office",
     sublabel: 'Health Hub',
-    color: '#4DB6AC',
+    color: '#A0B8A6',            // soft mint
+    wallColor: '#EFE3D0',
+    roofColor: '#6B5840',
     position: [-22, 0, 14],
     size: [6, 5],
     roofStyle: 'flat',
-    roofColor: '#26A69A',
     stations: [
       { id: 'telltime', name: 'Tell Time', icon: '🕐', ready: true },
     ],
@@ -141,11 +151,12 @@ export const BUILDINGS: Building[] = [
     id: 'office',
     label: 'Main Office',
     sublabel: 'HQ',
-    color: '#A1887F',
+    color: '#A89177',            // warm wood
+    wallColor: '#EFE3D0',
+    roofColor: '#5C4128',
     position: [-13, 0, 14],
     size: [6, 5],
     roofStyle: 'peaked',
-    roofColor: '#8D6E63',
     stations: [
       { id: 'codebots',         name: 'CodeBots',          icon: '🤖', ready: true },
       { id: 'istherobotright',  name: 'Is the Robot Right?', icon: '🤖', ready: true },
@@ -155,11 +166,12 @@ export const BUILDINGS: Building[] = [
     id: 'mathroom',
     label: 'Math Den',
     sublabel: 'Numbers',
-    color: '#FFD54F',
+    color: '#D8B26E',            // golden wheat
+    wallColor: '#F0E6D2',
+    roofColor: '#7B4F36',
     position: [-4, 0, 14],
     size: [6, 5],
     roofStyle: 'gable',
-    roofColor: '#FFB300',
     stations: [
       { id: 'mathlab',          name: 'Math Lab',          icon: '🧮', ready: true },
       { id: 'tensonesexplorer', name: 'Tens & Ones',       icon: '🔢', ready: true },
@@ -170,11 +182,12 @@ export const BUILDINGS: Building[] = [
     id: 'musicrm',
     label: 'Music Room',
     sublabel: 'Sounds',
-    color: '#FF8A65',
+    color: '#C99979',            // dusty terracotta
+    wallColor: '#EFE3D0',
+    roofColor: '#5C4128',
     position: [5, 0, 14],
     size: [6, 5],
     roofStyle: 'gable',
-    roofColor: '#FF7043',
     stations: [
       { id: 'syllable_b', name: 'Syllable Scooper', icon: '🔤', ready: true },
       { id: 'madlibs',    name: 'Mad Libs',         icon: '📝', ready: true },
@@ -185,7 +198,9 @@ export const BUILDINGS: Building[] = [
     id: 'playground',
     label: 'Playground',
     sublabel: 'Outdoor Fun',
-    color: '#64B5F6',
+    color: '#9DAA8B',            // moss
+    wallColor: '#F0E6D2',
+    roofColor: '#5E4A35',
     position: [18, 0, 12],
     size: [8, 7],
     roofStyle: 'open',
@@ -201,11 +216,12 @@ export const BUILDINGS: Building[] = [
     id: 'greenhouse',
     label: 'Greenhouse',
     sublabel: 'Nature Walk',
-    color: '#AED581',
+    color: '#A4B58A',
+    wallColor: '#EFE3D0',
+    roofColor: '#7B4F36',
     position: [-12, 0, 24],
     size: [10, 4],
     roofStyle: 'peaked',
-    roofColor: '#7CB342',
     stations: [
       { id: 'basewordsorter', name: 'Baseword Sorter', icon: '🔗', ready: true },
       { id: 'pluralbuilder',  name: 'Plural Builder',  icon: '🔠', ready: true },

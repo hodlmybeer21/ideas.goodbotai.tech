@@ -3,28 +3,27 @@
 import Humanoid from './Humanoid';
 
 /**
- * NPCs — courtyard guides. All use the Humanoid component so they share
- * the kid-style character look with the player. Each has a fixed position
- * and one optional bounce for visual life.
+ * NPCs — courtyard guides.
+ *
+ * Ghibli palette: dusty rose, soft sky, warm sage. Same kid-friendly
+ * Humanoid component, just retuned to harmonize with the new world.
  */
 export default function NPCs() {
   return (
     <group>
-      <NPC position={[ 3, 0, -3]} color="#6BCBFF" skin="#FFE0B2" name="Bellabot 🤖" emoji="🤖" bounce />
-      <NPC position={[-3, 0,  2]} color="#C084FC" skin="#FFE0B2" name="Book Bot 📖"  emoji="📖" />
-      <NPC position={[ 2, 0,  3]} color="#FFD54F" skin="#FFE0B2" name="Math Bot 🧮"  emoji="🧮" />
+      <NPC position={[ 3, 0, -3]} color="#9DB6C9" name="Bellabot 🤖" bounce />
+      <NPC position={[-3, 0,  2]} color="#C9A6B0" name="Book Bot 📖"  />
+      <NPC position={[ 2, 0,  3]} color="#D8B26E" name="Math Bot 🧮"  />
     </group>
   );
 }
 
 function NPC({
-  position, color, name, bounce,
+  position, color, name,
 }: {
   position: [number, number, number];
   color: string;
-  skin: string;
   name: string;
-  emoji: string;
   bounce?: boolean;
 }) {
   return (

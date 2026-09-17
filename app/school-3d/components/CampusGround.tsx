@@ -2,128 +2,50 @@
 
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { BUILDINGS, COURTYARD_CENTER } from '../buildings.config';
+import { makeGrassTexture, makeDirtTexture, makeWoodTexture, makeHillTexture } from '../textures';
 
 /**
- * CampusGround — grass + central plaza + spoke paths to each building + decoration.
- * Computes paths programmatically from the BUILDINGS config so adding a new
- * building automatically gets a stone path leading to it.
+ * CampusGround — Ghibli pastoral campus ground.
+ *
+ * Visual changes vs the prior blocky version:
+ *   - Sage grass with warm autumn-leaf speckles
+ *   - Packed-earth dirt paths instead of cobblestone
+ *   - Soft distant rolling-hill silhouettes on all 4 sides
+ *   - Wooden stake perimeter (just outside player bounds)
+ *   - Warmer lamp halos, softer fountain water, Ghibli-pastel flowers
+ *
+ * The procedural helpers live in `../textures.ts` so they can be shared
+ * without re-generating.
  */
 export default function CampusGround() {
-  // Procedural grass texture — green base + scattered specks for variation.
-  // Wrapped in typeof document guard so it can never run during SSR.
-  const grassTex = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d')!;
-    g.fillStyle = '#7CB342';
-    g.fillRect(0, 0, 256, 256);
-    // Darker green specks
-    for (let i = 0; i < 600; i++) {
-      g.fillStyle = Math.random() > 0.5 ? '#689F38' : '#8BC34A';
-      const x = Math.random() * 256;
-      const y = Math.random() * 256;
-      const w = 1 + Math.random() * 2;
-      g.fillRect(x, y, w, w);
-    }
-    // Lighter highlights
-    for (let i = 0; i < 200; i++) {
-      g.fillStyle = 'rgba(174, 213, 129, 0.6)';
-      g.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(20, 20);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
+  const grassTex   = useMemo(() => makeGrassTexture(),  []);
+  const dirtTex    = useMemo(() => makeDirtTexture(),   []);
+  const woodTex    = useMemo(() => makeWoodTexture(),   []);
+  const hillTex    = useMemo(() => makeHillTexture(),   []);
 
-  // Procedural cobblestone texture — rounded shapes with darker outlines + highlights.
-  const cobbleTex = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d')!;
-    g.fillStyle = '#C8B89A';
-    g.fillRect(0, 0, 256, 256);
-    // Cobblestone pattern: rounded shapes with darker outlines + highlights
-    const cobbles: Array<[number, number, number]> = [
-      [40, 40, 30], [110, 35, 35], [180, 50, 28],
-      [60, 100, 32], [140, 110, 30], [200, 100, 28],
-      [30, 170, 28], [100, 180, 30], [170, 170, 32],
-      [210, 200, 26], [70, 230, 24], [150, 230, 28],
-    ];
-    for (const [x, y, r] of cobbles) {
-      // Darker outline (groove between cobbles)
-      g.fillStyle = '#8B7355';
-      g.beginPath();
-      g.ellipse(x, y, r + 2, r * 0.9 + 2, 0, 0, Math.PI * 2);
-      g.fill();
-      // Main cobble face
-      g.fillStyle = '#D4C4A8';
-      g.beginPath();
-      g.ellipse(x, y, r, r * 0.9, 0, 0, Math.PI * 2);
-      g.fill();
-      // Highlight
-      g.fillStyle = '#E8DBBE';
-      g.beginPath();
-      g.ellipse(x - r * 0.3, y - r * 0.3, r * 0.4, r * 0.3, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(4, 4);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
+  const grassMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color: '#7A9B6E', roughness: 0.95, metalness: 0 });
+    if (grassTex) { m.map = grassTex; m.needsUpdate = true; }
+    return m;
+  }, [grassTex]);
 
-  // Procedural grass alt texture — slightly different pattern for patches
-  const grassAltTex = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d')!;
-    g.fillStyle = '#689F38';
-    g.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 300; i++) {
-      g.fillStyle = Math.random() > 0.5 ? '#7CB342' : '#558B2F';
-      g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(8, 8);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
+  const pathMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color: '#A88E70', roughness: 0.9, metalness: 0 });
+    if (dirtTex) { m.map = dirtTex; m.needsUpdate = true; }
+    return m;
+  }, [dirtTex]);
 
-  const grassMat = useMemo(
-    () => {
-      const m = new THREE.MeshStandardMaterial({ color: '#7CB342', roughness: 0.95, metalness: 0 });
-      if (grassTex) { m.map = grassTex; m.needsUpdate = true; }
-      return m;
-    },
-    [grassTex]
-  );
-  const grassAltMat = useMemo(
-    () => {
-      const m = new THREE.MeshStandardMaterial({ color: '#689F38', roughness: 0.95 });
-      if (grassAltTex) { m.map = grassAltTex; m.needsUpdate = true; }
-      return m;
-    },
-    [grassAltTex]
-  );
-  const pathMat = useMemo(
-    () => {
-      const m = new THREE.MeshStandardMaterial({ color: '#D4C4A8', roughness: 0.85 });
-      if (cobbleTex) { m.map = cobbleTex; m.needsUpdate = true; }
-      return m;
-    },
-    [cobbleTex]
-  );
+  const woodMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color: '#7A5235', roughness: 0.85, metalness: 0 });
+    if (woodTex) { m.map = woodTex; m.needsUpdate = true; }
+    return m;
+  }, [woodTex]);
+
   const plazaMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#E0CDA8', roughness: 0.85 }),
+    () => new THREE.MeshStandardMaterial({ color: '#C9A982', roughness: 0.85 }),
     []
   );
 
@@ -135,9 +57,7 @@ export default function CampusGround() {
       const dx = b.position[0] - cx;
       const dz = b.position[2] - cz;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      // Stop path short of the building footprint (so it doesn't intersect)
       const stopDist = dist - Math.max(b.size[0], b.size[1]) / 2 - 0.6;
-      // Start past the plaza edge
       const startDist = 4.5;
       const len = Math.max(0.5, stopDist - startDist);
       const midX = cx + (dx / dist) * (startDist + len / 2);
@@ -169,16 +89,16 @@ export default function CampusGround() {
       {grassPatches.map((p, i) => (
         <mesh key={i} receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={p.position}>
           <circleGeometry args={[p.radius, 16]} />
-          <primitive object={grassAltMat} attach="material" />
+          <primitive object={grassMat} attach="material" />
         </mesh>
       ))}
 
-      {/* Central plaza — circle of stone */}
+      {/* Central plaza — packed earth circle */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[4.5, 32]} />
         <primitive object={plazaMat} attach="material" />
       </mesh>
-      {/* Plaza inner ring */}
+      {/* Plaza inner ring — darker dirt */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
         <ringGeometry args={[3.6, 3.9, 32]} />
         <primitive object={pathMat} attach="material" />
@@ -197,56 +117,37 @@ export default function CampusGround() {
         </mesh>
       ))}
 
-      {/* Trees — scattered along the perimeter */}
       <Trees />
-
-      {/* Bushes — small round shrubs around plaza edges */}
       <Bushes />
-
-      {/* Benches — wooden seats facing the plaza */}
       <Benches />
-
-      {/* Lamp posts on the plaza */}
       <Lamps />
-
-      {/* School flagpole — center of the plaza */}
       <Flagpole />
+      <PlaygroundEquipment woodMat={woodMat} />
+      <EntranceMarker woodMat={woodMat} />
+      <PerimeterStakes />
 
-      {/* Playground equipment inside the Playground building */}
-      <PlaygroundEquipment />
+      {/* Ghibli-pastel flower beds */}
+      <FlowerBed position={[ 4,  4]} colors={['#E8B4A0', '#E8C788', '#C9A6B0']} />
+      <FlowerBed position={[-4,  4]} colors={['#A8C9D8', '#A4B58A', '#D9B082']} />
+      <FlowerBed position={[ 4, -4]} colors={['#C9A6B0', '#E8B4A0', '#E8C788']} />
+      <FlowerBed position={[-4, -4]} colors={['#E8C788', '#E8B4A0', '#A8C9D8']} />
 
-      {/* School entrance marker (south entry) */}
-      <EntranceMarker />
+      <Fountain woodMat={woodMat} />
 
-      {/* Flower beds near plaza */}
-      <FlowerBed position={[ 4,  4]} colors={['#FF6B9D', '#FFD93D', '#C084FC']} />
-      <FlowerBed position={[-4,  4]} colors={['#6BCBFF', '#6BCB77', '#FF9F43']} />
-      <FlowerBed position={[ 4, -4]} colors={['#C084FC', '#FF6B9D', '#FFD93D']} />
-      <FlowerBed position={[-4, -4]} colors={['#FFD93D', '#FF6B9D', '#6BCBFF']} />
-
-      {/* Central feature: fountain / sundial */}
-      <Fountain />
+      {/* Distant rolling hills — billboarded silhouettes on 4 sides */}
+      <DistantHills hillTex={hillTex} />
     </group>
   );
 }
 
 function Trees() {
-  // Hand-placed trees for visual variety. Three types: pine (tall cones),
-  // oak (round foliage), bushy (cluster of spheres). Stable seeded RNG so
-  // tree types don't shuffle between renders.
   const trees = [
-    // North perimeter
     { x: -28, z: -22 }, { x: -18, z: -25 }, { x: -8, z: -24 }, { x:  6, z: -25 }, { x: 16, z: -23 }, { x: 26, z: -22 },
-    // South perimeter
     { x: -28, z: 22 },  { x: -20, z: 26 }, { x: -10, z: 28 }, { x:  0, z: 29 }, { x: 10, z: 27 }, { x: 22, z: 25 }, { x: 28, z: 22 },
-    // East
     { x: 28, z: -10 }, { x: 30, z: 0 }, { x: 29, z: 8 },
-    // West
     { x: -30, z: -10 }, { x: -32, z: 0 }, { x: -29, z: 8 },
-    // Inner scatter
     { x: -14, z: -14 }, { x: 14, z: -14 }, { x: -14, z: 8 }, { x: 14, z: 8 },
   ];
-  // Stable seeded assignment (Mulberry32) so tree types don't shuffle between renders.
   const rng = (() => {
     let s = 0x9e3779b9;
     return () => {
@@ -272,6 +173,7 @@ function Trees() {
 }
 
 function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
+  // Warm Ghibli sage/olive foliage instead of bright greens
   if (type === 'pine') {
     return (
       <>
@@ -281,11 +183,11 @@ function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
         </mesh>
         <mesh castShadow position={[0, 1.9, 0]}>
           <coneGeometry args={[1.0, 1.6, 8]} />
-          <meshStandardMaterial color="#2E7D32" />
+          <meshStandardMaterial color="#5E7A4D" roughness={0.95} />
         </mesh>
         <mesh castShadow position={[0, 2.7, 0]}>
           <coneGeometry args={[0.72, 1.2, 8]} />
-          <meshStandardMaterial color="#43A047" />
+          <meshStandardMaterial color="#6E8A5C" roughness={0.95} />
         </mesh>
       </>
     );
@@ -299,15 +201,15 @@ function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
         </mesh>
         <mesh castShadow position={[0, 1.9, 0]}>
           <sphereGeometry args={[1.0, 10, 8]} />
-          <meshStandardMaterial color="#558B2F" roughness={0.9} />
+          <meshStandardMaterial color="#6E8A5C" roughness={0.95} />
         </mesh>
         <mesh castShadow position={[-0.4, 2.4, 0.2]}>
           <sphereGeometry args={[0.7, 10, 8]} />
-          <meshStandardMaterial color="#689F38" roughness={0.9} />
+          <meshStandardMaterial color="#7A9B6E" roughness={0.95} />
         </mesh>
         <mesh castShadow position={[0.5, 2.2, -0.3]}>
           <sphereGeometry args={[0.6, 10, 8]} />
-          <meshStandardMaterial color="#7CB342" roughness={0.9} />
+          <meshStandardMaterial color="#8FB07F" roughness={0.95} />
         </mesh>
       </>
     );
@@ -321,26 +223,25 @@ function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
       </mesh>
       <mesh castShadow position={[0, 1.1, 0]}>
         <sphereGeometry args={[0.7, 10, 8]} />
-        <meshStandardMaterial color="#558B2F" roughness={0.9} />
+        <meshStandardMaterial color="#6E8A5C" roughness={0.95} />
       </mesh>
       <mesh castShadow position={[-0.4, 1.3, 0.1]}>
         <sphereGeometry args={[0.45, 10, 8]} />
-        <meshStandardMaterial color="#689F38" roughness={0.9} />
+        <meshStandardMaterial color="#7A9B6E" roughness={0.95} />
       </mesh>
       <mesh castShadow position={[0.4, 1.4, -0.2]}>
         <sphereGeometry args={[0.4, 10, 8]} />
-        <meshStandardMaterial color="#7CB342" roughness={0.9} />
-        </mesh>
+        <meshStandardMaterial color="#8FB07F" roughness={0.95} />
+      </mesh>
       <mesh castShadow position={[0, 1.7, 0.3]}>
         <sphereGeometry args={[0.35, 10, 8]} />
-        <meshStandardMaterial color="#43A047" roughness={0.9} />
+        <meshStandardMaterial color="#5E7A4D" roughness={0.95} />
       </mesh>
     </>
   );
 }
 
 function Bushes() {
-  // Small round bushes scattered around the plaza and path edges.
   const positions: Array<[number, number]> = [
     [-7, 7], [7, 7], [-7, -7], [7, -7],
     [-11, 3], [11, 3], [-3, 11], [3, 11],
@@ -354,7 +255,7 @@ function Bushes() {
         return (
           <mesh key={i} castShadow position={[x, r * 0.6, z]}>
             <sphereGeometry args={[r, 10, 8]} />
-            <meshStandardMaterial color={i % 2 === 0 ? '#558B2F' : '#689F38'} roughness={0.95} />
+            <meshStandardMaterial color={i % 2 === 0 ? '#6E8A5C' : '#7A9B6E'} roughness={0.95} />
           </mesh>
         );
       })}
@@ -363,7 +264,6 @@ function Bushes() {
 }
 
 function Benches() {
-  // Simple wooden benches near the plaza — seat + 2 back posts.
   const benches = [
     { x:  6, z: -5, rot:  0 },
     { x: -6, z: -5, rot:  0 },
@@ -374,25 +274,21 @@ function Benches() {
     <group>
       {benches.map((b, i) => (
         <group key={i} position={[b.x, 0, b.z]} rotation={[0, b.rot, 0]}>
-          {/* seat */}
           <mesh castShadow position={[0, 0.45, 0]}>
             <boxGeometry args={[1.8, 0.12, 0.6]} />
-            <meshStandardMaterial color="#5D4037" roughness={0.7} />
+            <meshStandardMaterial color="#7A5235" roughness={0.75} />
           </mesh>
-          {/* left back post */}
           <mesh castShadow position={[-0.7, 0.7, -0.25]}>
             <boxGeometry args={[0.1, 0.7, 0.1]} />
-            <meshStandardMaterial color="#3E2723" />
+            <meshStandardMaterial color="#5C4128" />
           </mesh>
-          {/* right back post */}
           <mesh castShadow position={[0.7, 0.7, -0.25]}>
             <boxGeometry args={[0.1, 0.7, 0.1]} />
-            <meshStandardMaterial color="#3E2723" />
+            <meshStandardMaterial color="#5C4128" />
           </mesh>
-          {/* back rail */}
           <mesh castShadow position={[0, 1.0, -0.25]}>
             <boxGeometry args={[1.6, 0.12, 0.08]} />
-            <meshStandardMaterial color="#5D4037" roughness={0.7} />
+            <meshStandardMaterial color="#7A5235" roughness={0.75} />
           </mesh>
         </group>
       ))}
@@ -401,8 +297,6 @@ function Benches() {
 }
 
 function Lamps() {
-  // Lamp posts at 4 compass points around the plaza. Post + glowing
-  // bulb + warm halo so the courtyard feels lived-in.
   const lamps = [
     { x:  4.5, z:  0 },
     { x: -4.5, z:  0 },
@@ -428,15 +322,15 @@ function Lamps() {
             <boxGeometry args={[0.4, 0.06, 0.06]} />
             <meshStandardMaterial color="#212121" />
           </mesh>
-          {/* bulb */}
+          {/* warm amber bulb */}
           <mesh position={[0.2, 1.7, 0]}>
             <sphereGeometry args={[0.18, 12, 12]} />
-            <meshStandardMaterial color="#FFD54F" emissive="#FFD54F" emissiveIntensity={0.7} />
+            <meshStandardMaterial color="#FFD89B" emissive="#FFCB85" emissiveIntensity={0.75} />
           </mesh>
-          {/* halo */}
+          {/* warm halo */}
           <mesh position={[0.2, 1.7, 0]}>
             <sphereGeometry args={[0.4, 12, 12]} />
-            <meshBasicMaterial color="#FFE680" transparent opacity={0.25} toneMapped={false} />
+            <meshBasicMaterial color="#FFE0B0" transparent opacity={0.22} toneMapped={false} />
           </mesh>
         </group>
       ))}
@@ -444,29 +338,23 @@ function Lamps() {
   );
 }
 
-function PlaygroundEquipment() {
-  // Swings + slide + seesaw, positioned inside the Playground building
-  // footprint (centered around world position [18, 0, 12]).
+function PlaygroundEquipment({ woodMat }: { woodMat: THREE.Material }) {
   return (
     <group position={[18, 0, 12]}>
       {/* Swings — A-frame + 2 chains + 2 seats */}
       <group position={[-2.4, 0, 0]}>
-        {/* A-frame left leg */}
         <mesh castShadow position={[-0.05, 1.5, -0.8]} rotation={[0, 0, -0.15]}>
           <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
-          <meshStandardMaterial color="#5D4037" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* A-frame right leg */}
         <mesh castShadow position={[0.05, 1.5, -0.8]} rotation={[0, 0, 0.15]}>
           <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
-          <meshStandardMaterial color="#5D4037" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* top beam */}
         <mesh castShadow position={[0, 3, -0.8]}>
           <cylinderGeometry args={[0.08, 0.08, 2.2, 8]} />
-          <meshStandardMaterial color="#5D4037" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* chains */}
         <mesh position={[-0.7, 2.2, -0.8]}>
           <cylinderGeometry args={[0.02, 0.02, 1.4, 4]} />
           <meshStandardMaterial color="#424242" />
@@ -475,65 +363,57 @@ function PlaygroundEquipment() {
           <cylinderGeometry args={[0.02, 0.02, 1.4, 4]} />
           <meshStandardMaterial color="#424242" />
         </mesh>
-        {/* seats */}
+        {/* dusty-rose + wheat seats */}
         <mesh castShadow position={[-0.7, 1.5, -0.8]}>
           <boxGeometry args={[0.5, 0.06, 0.3]} />
-          <meshStandardMaterial color="#FF6B9D" />
+          <meshStandardMaterial color="#C99B96" />
         </mesh>
         <mesh castShadow position={[0.7, 1.5, -0.8]}>
           <boxGeometry args={[0.5, 0.06, 0.3]} />
-          <meshStandardMaterial color="#FFD54F" />
+          <meshStandardMaterial color="#D8B26E" />
         </mesh>
       </group>
 
-      {/* Slide — ladder + slide ramp */}
+      {/* Slide — wooden ladder + wheat slide ramp + dusty-rose rails */}
       <group position={[0, 0, 0.5]}>
-        {/* ladder */}
         <mesh castShadow position={[-0.8, 0.9, -0.6]} rotation={[Math.PI / 8, 0, 0]}>
           <boxGeometry args={[0.5, 0.05, 1.6]} />
-          <meshStandardMaterial color="#3E2723" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* ladder rungs */}
         {[0, 0.3, 0.6, 0.9].map((y, i) => (
           <mesh key={i} castShadow position={[-0.8, 0.3 + y, -0.5 + y * 0.18]}>
             <boxGeometry args={[0.5, 0.05, 0.05]} />
-            <meshStandardMaterial color="#3E2723" />
+            <primitive object={woodMat} attach="material" />
           </mesh>
         ))}
-        {/* platform */}
         <mesh castShadow position={[-0.8, 1.4, -0.4]}>
           <boxGeometry args={[0.8, 0.08, 0.8]} />
-          <meshStandardMaterial color="#5D4037" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* slide ramp */}
         <mesh castShadow position={[0.1, 0.7, 0.3]} rotation={[-0.45, 0, 0]}>
           <boxGeometry args={[0.5, 0.04, 1.8]} />
-          <meshStandardMaterial color="#FFD54F" />
+          <meshStandardMaterial color="#D8B26E" />
         </mesh>
-        {/* slide side rails */}
         <mesh position={[-0.18, 0.85, 0.3]} rotation={[-0.45, 0, 0]}>
           <boxGeometry args={[0.04, 0.18, 1.8]} />
-          <meshStandardMaterial color="#FF6B9D" />
+          <meshStandardMaterial color="#C99B96" />
         </mesh>
         <mesh position={[0.38, 0.85, 0.3]} rotation={[-0.45, 0, 0]}>
           <boxGeometry args={[0.04, 0.18, 1.8]} />
-          <meshStandardMaterial color="#FF6B9D" />
+          <meshStandardMaterial color="#C99B96" />
         </mesh>
       </group>
 
       {/* Seesaw */}
       <group position={[2.4, 0, 0]}>
-        {/* fulcrum */}
         <mesh castShadow position={[0, 0.4, 0]}>
           <boxGeometry args={[0.3, 0.8, 0.5]} />
-          <meshStandardMaterial color="#5D4037" />
+          <primitive object={woodMat} attach="material" />
         </mesh>
-        {/* plank */}
         <mesh castShadow position={[0, 0.9, 0]} rotation={[0.08, 0, 0]}>
           <boxGeometry args={[2.2, 0.08, 0.3]} />
-          <meshStandardMaterial color="#FF6B9D" />
+          <meshStandardMaterial color="#C99B96" />
         </mesh>
-        {/* handles */}
         <mesh position={[-1, 1.2, 0]}>
           <cylinderGeometry args={[0.04, 0.04, 0.5, 6]} />
           <meshStandardMaterial color="#3E2723" />
@@ -548,68 +428,59 @@ function PlaygroundEquipment() {
 }
 
 function Flagpole() {
-  // Tall flagpole at the center of the plaza with a triangular flag.
   const flagRef = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
     if (flagRef.current) {
-      // Subtle wave by rotating flag around its pole edge
       flagRef.current.rotation.y = Math.sin(clock.elapsedTime * 2) * 0.18;
     }
   });
   return (
     <group position={[0, 0, 0]}>
-      {/* base */}
       <mesh castShadow position={[0, 0.15, 0]}>
         <cylinderGeometry args={[0.3, 0.4, 0.3, 8]} />
-        <meshStandardMaterial color="#5D4037" />
+        <meshStandardMaterial color="#7A5235" />
       </mesh>
-      {/* pole */}
       <mesh castShadow position={[0, 4.5, 0]}>
         <cylinderGeometry args={[0.08, 0.1, 8.5, 8]} />
         <meshStandardMaterial color="#BDBDBD" metalness={0.6} roughness={0.3} />
       </mesh>
-      {/* gold ball on top */}
       <mesh castShadow position={[0, 9, 0]}>
         <sphereGeometry args={[0.18, 12, 12]} />
-        <meshStandardMaterial color="#FFD700" metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial color="#E8C788" metalness={0.7} roughness={0.25} />
       </mesh>
-      {/* flag (triangular plane that rotates for wave effect) */}
+      {/* dusty-rose flag */}
       <mesh ref={flagRef} position={[0.45, 7.5, 0]}>
         <planeGeometry args={[1.2, 0.8]} />
-        <meshStandardMaterial color="#FF6B9D" side={2} />
+        <meshStandardMaterial color="#C99B96" side={2} />
       </mesh>
     </group>
   );
 }
 
-function EntranceMarker() {
-  // Wooden signpost at the south entry path, greeting visitors.
+function EntranceMarker({ woodMat }: { woodMat: THREE.Material }) {
   return (
     <group position={[0, 0, 9]}>
-      {/* two posts */}
       <mesh castShadow position={[-0.7, 1.2, 0]}>
         <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
-        <meshStandardMaterial color="#5D4037" />
+        <primitive object={woodMat} attach="material" />
       </mesh>
       <mesh castShadow position={[0.7, 1.2, 0]}>
         <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
-        <meshStandardMaterial color="#5D4037" />
+        <primitive object={woodMat} attach="material" />
       </mesh>
-      {/* horizontal beam (top) */}
       <mesh castShadow position={[0, 2.45, 0]}>
         <boxGeometry args={[2.2, 0.3, 0.3]} />
-        <meshStandardMaterial color="#3E2723" />
+        <meshStandardMaterial color="#5C4128" />
       </mesh>
-      {/* hanging sign */}
+      {/* wooden hanging sign (no more bright pink) */}
       <mesh castShadow position={[0, 1.9, 0]}>
         <boxGeometry args={[1.4, 0.7, 0.08]} />
-        <meshStandardMaterial color="#FF6B9D" />
+        <primitive object={woodMat} attach="material" />
       </mesh>
       <mesh castShadow position={[0, 1.9, 0.05]}>
         <boxGeometry args={[1.2, 0.5, 0.02]} />
-        <meshStandardMaterial color="white" />
+        <meshStandardMaterial color="#EFE3D0" />
       </mesh>
-      {/* chains */}
       <mesh position={[-0.55, 2.15, 0.04]}>
         <cylinderGeometry args={[0.02, 0.02, 0.3, 4]} />
         <meshStandardMaterial color="#212121" />
@@ -622,15 +493,40 @@ function EntranceMarker() {
   );
 }
 
+function PerimeterStakes() {
+  // Scattered short wooden stakes just outside the player bounds (±32),
+  // marking the edge of the cultivated campus land. Not a continuous fence.
+  const stakes = useMemo(() => {
+    const arr: Array<[number, number]> = [];
+    for (let x = -32; x <= 32; x += 4) {
+      arr.push([x, -32]);
+      arr.push([x,  32]);
+    }
+    for (let z = -28; z <= 28; z += 4) {
+      arr.push([-32, z]);
+      arr.push([ 32, z]);
+    }
+    return arr;
+  }, []);
+  return (
+    <group>
+      {stakes.map(([x, z], i) => (
+        <mesh key={i} castShadow position={[x, 0.4, z]}>
+          <cylinderGeometry args={[0.07, 0.1, 0.8, 6]} />
+          <meshStandardMaterial color="#5C4128" roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function FlowerBed({ position, colors }: { position: [number, number]; colors: string[] }) {
   return (
     <group position={[position[0], 0, position[1]]}>
-      {/* soil */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[0.7, 16]} />
-        <meshStandardMaterial color="#5D4037" roughness={0.9} />
+        <meshStandardMaterial color="#6B4631" roughness={0.9} />
       </mesh>
-      {/* flowers */}
       {colors.map((c, i) => {
         const ang = (i / colors.length) * Math.PI * 2;
         const r = 0.45;
@@ -645,29 +541,50 @@ function FlowerBed({ position, colors }: { position: [number, number]; colors: s
   );
 }
 
-function Fountain() {
+function Fountain({ woodMat }: { woodMat: THREE.Material }) {
   return (
     <group position={[0, 0, 0]}>
-      {/* base */}
       <mesh castShadow receiveShadow position={[0, 0.25, 0]}>
         <cylinderGeometry args={[1.2, 1.4, 0.5, 16]} />
-        <meshStandardMaterial color="#9E9E9E" roughness={0.7} />
+        <meshStandardMaterial color="#A89878" roughness={0.75} />
       </mesh>
-      {/* water */}
+      {/* warm water tint instead of bright cyan */}
       <mesh position={[0, 0.55, 0]}>
         <cylinderGeometry args={[1.1, 1.1, 0.1, 16]} />
-        <meshStandardMaterial color="#4FC3F7" transparent opacity={0.7} metalness={0.2} roughness={0.3} />
+        <meshStandardMaterial color="#A8C9D8" transparent opacity={0.7} metalness={0.2} roughness={0.3} />
       </mesh>
-      {/* center column */}
       <mesh castShadow position={[0, 0.95, 0]}>
         <cylinderGeometry args={[0.15, 0.15, 0.8, 8]} />
-        <meshStandardMaterial color="#9E9E9E" roughness={0.7} />
+        <primitive object={woodMat} attach="material" />
       </mesh>
-      {/* top ball */}
       <mesh castShadow position={[0, 1.5, 0]}>
         <sphereGeometry args={[0.22, 12, 12]} />
-        <meshStandardMaterial color="#B3E5FC" roughness={0.4} metalness={0.3} />
+        <meshStandardMaterial color="#E8C788" roughness={0.4} metalness={0.3} />
       </mesh>
+    </group>
+  );
+}
+
+function DistantHills({ hillTex }: { hillTex: THREE.CanvasTexture | null }) {
+  // Four billboarded hill ranges far outside the playable area. Fog
+  // (added in page.tsx) will blend them into the warm sky at the horizon.
+  if (!hillTex) return null;
+  const ranges = [
+    { pos: [0,  8, -55] as [number, number, number], w: 130, h: 35 },
+    { pos: [0,  8,  55] as [number, number, number], w: 130, h: 35 },
+    { pos: [-55, 8, 0]  as [number, number, number], w: 130, h: 35, ry: Math.PI / 2 },
+    { pos: [ 55, 8, 0]  as [number, number, number], w: 130, h: 35, ry: Math.PI / 2 },
+  ];
+  return (
+    <group>
+      {ranges.map((r, i) => (
+        <Billboard key={i} position={r.pos} follow={false}>
+          <mesh rotation={[0, r.ry ?? 0, 0]}>
+            <planeGeometry args={[r.w, r.h]} />
+            <meshBasicMaterial map={hillTex} transparent depthWrite={false} fog={true} toneMapped={false} />
+          </mesh>
+        </Billboard>
+      ))}
     </group>
   );
 }
