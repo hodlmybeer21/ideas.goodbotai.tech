@@ -8,13 +8,19 @@ import { ACTIVITY_MAP, COMING_SOON, getMeta, isAvailable } from '../activityMap'
  * Lazy-loads from ACTIVITY_MAP so the 3D world ships lean.
  * Stations in COMING_SOON (or any id not in the map) show a friendly
  * "coming soon" placeholder.
+ *
+ * Fires `onComplete(stationId)` when the activity calls its `onBack`
+ * (i.e. kid finishes). This is the hook for marking the station as
+ * completed in progress persistence.
  */
 export default function ActivityModal({
   stationId,
   onClose,
+  onComplete,
 }: {
   stationId: string;
   onClose: () => void;
+  onComplete?: (stationId: string) => void;
 }) {
   const [celebrate, setCelebrate] = useState(false);
   const meta = getMeta(stationId);
@@ -27,6 +33,7 @@ export default function ActivityModal({
   }, [stationId, available]);
 
   const handleDone = () => {
+    onComplete?.(stationId);
     setCelebrate(true);
     setTimeout(onClose, 1800);
   };
@@ -54,8 +61,8 @@ export default function ActivityModal({
         <div style={styles.celebrateOverlay}>
           <div style={styles.celebrateBanner}>
             <span style={{ fontSize: 80, display: 'block' }}>🎉</span>
-            <h2 style={{ fontSize: 36, color: '#FF6B9D', marginBottom: 4 }}>Great Job!</h2>
-            <p style={{ fontSize: 18, color: '#5C4033' }}>You finished an activity!</p>
+            <h2 style={{ fontSize: 36, color: '#A04F3F', marginBottom: 4 }}>Great Job!</h2>
+            <p style={{ fontSize: 18, color: '#5C4128' }}>You finished an activity!</p>
           </div>
         </div>
       )}
@@ -65,7 +72,7 @@ export default function ActivityModal({
 
 function LoadingActivity({ name }: { name: string }) {
   return (
-    <div style={{ padding: 48, textAlign: 'center', color: '#5C4033' }}>
+    <div style={{ padding: 48, textAlign: 'center', color: '#5C4128' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
       <p style={{ fontSize: 16 }}>Loading {name}...</p>
     </div>
@@ -74,7 +81,7 @@ function LoadingActivity({ name }: { name: string }) {
 
 function ComingSoon({ name, onBack }: { name: string; onBack: () => void }) {
   return (
-    <div style={{ padding: 48, textAlign: 'center', color: '#5C4033' }}>
+    <div style={{ padding: 48, textAlign: 'center', color: '#5C4128' }}>
       <div style={{ fontSize: 72, marginBottom: 12 }}>🚧</div>
       <h3 style={{ fontSize: 24, marginBottom: 8, color: '#2D1B00' }}>{name} — Coming soon!</h3>
       <p style={{ fontSize: 15, opacity: 0.8, maxWidth: 360, margin: '0 auto' }}>
@@ -94,35 +101,36 @@ const styles = {
     zIndex: 200, padding: 16,
   },
   modal: {
-    background: 'white', borderRadius: 24,
+    background: '#FAF1DE', borderRadius: 24,
     width: '100%', maxWidth: 720, maxHeight: '92vh',
     overflow: 'hidden',
     display: 'flex', flexDirection: 'column' as const,
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    border: '3px solid #D9B082',
   },
   header: {
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '14px 20px', borderBottom: '3px solid #FFD93D',
+    padding: '14px 20px', borderBottom: '3px solid #D9B082',
     flexShrink: 0,
   },
   icon: { fontSize: 28 },
   title: { fontSize: 20, fontWeight: 700, color: '#2D1B00', flex: 1 },
   close: {
     background: 'none', border: 'none', fontSize: 20,
-    cursor: 'pointer', color: '#5C4033', padding: 4,
+    cursor: 'pointer', color: '#5C4128', padding: 4,
     fontFamily: 'Fredoka, sans-serif',
   },
-  body: { overflowY: 'auto' as const, flex: 1, minHeight: 0 },
+  body: { overflowY: 'auto' as const, flex: 1, minHeight: 0, background: '#FAF1DE' },
   backBtn: {
     marginTop: 20,
-    background: '#E5E0D8', color: '#5C4033',
+    background: '#E8D4B0', color: '#5C4128',
     border: 'none', borderRadius: 12,
     padding: '10px 24px', fontSize: 16, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'Fredoka, sans-serif',
   },
   celebrateOverlay: {
     position: 'fixed' as const, inset: 0,
-    background: 'rgba(255,248,240,0.92)',
+    background: 'rgba(245, 230, 202, 0.94)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     zIndex: 300,
   },

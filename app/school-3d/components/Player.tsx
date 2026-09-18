@@ -4,9 +4,11 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import Humanoid from './Humanoid';
+import { armFirstGesture, playFootstep } from '../lib/audio';
 
 const SPEED = 6;
 const BOUNDS = 28;
+const FOOTSTEP_INTERVAL = 0.36; // seconds between steps while moving
 
 type Props = {
   color: string;
@@ -17,6 +19,10 @@ type Props = {
 /**
  * Player — drives the humanoid character based on keyboard + joystick input.
  * Owns position/facing, writes them to the shared positionRef each frame.
+ *
+ * Audio: arms a one-time first-gesture handler for the shared AudioContext,
+ * then triggers a procedural footstep sound every FOOTSTEP_INTERVAL while
+ * moving. Steps are skipped while idle so kids aren't bombarded with sound.
  */
 export default function Player({ color, joystick, positionRef }: Props) {
   const keysRef = useRef({
@@ -25,6 +31,12 @@ export default function Player({ color, joystick, positionRef }: Props) {
   });
   const facingRef = useRef(0);
   const movingRef = useRef(false);
+  const stepAccumulator = useRef(0);
+
+  // Arm audio on first user gesture (browser autoplay rule).
+  useEffect(() => {
+    armFirstGesture();
+  }, []);
 
   useEffect(() => {
     const map = (code: string, down: boolean) => {
@@ -75,6 +87,13 @@ export default function Player({ color, joystick, positionRef }: Props) {
 
     if (movingRef.current) {
       facingRef.current = Math.atan2(ix, iz);
+      stepAccumulator.current += delta;
+      if (stepAccumulator.current >= FOOTSTEP_INTERVAL) {
+        stepAccumulator.current = 0;
+        playFootstep();
+      }
+    } else {
+      stepAccumulator.current = FOOTSTEP_INTERVAL * 0.5;
     }
 
     // Camera follow — third-person from behind+above

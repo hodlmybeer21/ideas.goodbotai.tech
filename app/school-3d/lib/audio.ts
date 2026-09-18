@@ -1,0 +1,87 @@
+'use client';
+
+/**
+ * Shared audio context + procedural footstep synthesis.
+ *
+ * Browser autoplay rules: AudioContext must be created or resumed inside
+ * a user gesture. We arm a one-time listener on click/keydown/touchstart
+ * that resumes the context; until then playFootstep() is a no-op.
+ *
+ * Footsteps are synthesized on the fly with Web Audio (no asset shipped):
+ * short white-noise burst passed through a low-pass filter, ~120ms, with
+ * exponential gain decay. Volume kept low so it doesn't overwhelm the BGM.
+ */
+
+let ctx: AudioContext | null = null;
+let armed = true;
+
+function makeContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const Ctor = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+  if (!Ctor) return null;
+  try {
+    return new Ctor();
+  } catch {
+    return null;
+  }
+}
+
+export function getAudioContext(): AudioContext | null {
+  if (!ctx) ctx = makeContext();
+  return ctx;
+}
+
+/**
+ * Register a one-time handler that resumes the audio context on the first
+ * user gesture. Safe to call from multiple components — only the first
+ * call attaches listeners.
+ */
+export function armFirstGesture(): void {
+  if (typeof window === 'undefined' || !armed) return;
+  armed = false;
+  const start = () => {
+    const c = getAudioContext();
+    if (c && c.state === 'suspended') c.resume();
+    window.removeEventListener('click', start);
+    window.removeEventListener('keydown', start);
+    window.removeEventListener('touchstart', start);
+  };
+  window.addEventListener('click', start);
+  window.addEventListener('keydown', start);
+  window.addEventListener('touchstart', start);
+}
+
+/**
+ * Soft footstep on grass — short low-pass noise burst.
+ * No-op until the audio context is running (i.e. after first gesture).
+ */
+export function playFootstep(): void {
+  const c = getAudioContext();
+  if (!c || c.state !== 'running') return;
+
+  const dur = 0.12;
+  const sampleRate = c.sampleRate;
+  const buffer = c.createBuffer(1, Math.max(1, Math.floor(sampleRate * dur)), sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    const t = i / sampleRate;
+    // Noise * exponential decay so it dies off naturally.
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 22);
+  }
+
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 380;
+  filter.Q.value = 0.5;
+
+  const gain = c.createGain();
+  gain.gain.value = 0.14;
+
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(c.destination);
+  src.start();
+}

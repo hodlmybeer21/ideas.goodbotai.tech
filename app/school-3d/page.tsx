@@ -14,7 +14,15 @@ import StationPicker from './components/StationPicker';
 import TouchJoystick from './components/TouchJoystick';
 import BGMPlayer from './components/BGMPlayer';
 import SkyExtras from './components/Sky';
+import BuildingLabels from './components/BuildingLabels';
+import MiniMap from './components/MiniMap';
+import TutorialOverlay from './components/TutorialOverlay';
 import { BUILDINGS, type Building as BuildingT } from './buildings.config';
+import {
+  loadProgress, saveProgress,
+  markVisited, markCompleted, markOnboarded,
+  type Progress,
+} from './lib/progress';
 
 const PLAYER_COLORS = [
   { color: '#E8B4A0', label: 'Rose',    emoji: '🩷' },
@@ -32,7 +40,34 @@ export default function School3DPage() {
   const [pickerBuilding, setPickerBuilding] = useState<BuildingT | null>(null);
   const [activeStation, setActiveStation] = useState<string | null>(null);
   const [joystickVec, setJoystickVec]     = useState<{ x: number; z: number }>({ x: 0, z: 0 });
+  const [showTutorial, setShowTutorial]   = useState(false);
+  const [progress, setProgress]           = useState<Progress>({
+    visitedBuildings: [], completedStations: [], hasOnboarded: false,
+  });
+  const [playerPos, setPlayerPos]         = useState({ x: 0, z: 8 });
+
   const playerPosRef                      = useRef(new THREE.Vector3(0, 0, 8));
+
+  // Load progress on mount, decide whether to show the tutorial.
+  useEffect(() => {
+    const p = loadProgress();
+    setProgress(p);
+    setShowTutorial(!p.hasOnboarded);
+  }, []);
+
+  // Persist progress whenever it changes.
+  useEffect(() => {
+    saveProgress(progress);
+  }, [progress]);
+
+  // Poll the player position ref ~10x/sec so the mini-map can render it.
+  useEffect(() => {
+    if (phase !== 'game') return;
+    const id = setInterval(() => {
+      setPlayerPos({ x: playerPosRef.current.x, z: playerPosRef.current.z });
+    }, 100);
+    return () => clearInterval(id);
+  }, [phase]);
 
   // E-to-enter handler (keyboard)
   useEffect(() => {
@@ -51,6 +86,10 @@ export default function School3DPage() {
 
   const handlePlayerNear = useCallback((buildingId: string, near: boolean) => {
     setNearBuildingId(near ? buildingId : (id) => (id === buildingId ? null : id));
+    if (near) {
+      // Also record this building as visited.
+      setProgress((prev) => markVisited(prev, buildingId));
+    }
   }, []);
 
   const handlePickStation = useCallback((stationId: string) => {
@@ -62,7 +101,20 @@ export default function School3DPage() {
     setActiveStation(null);
   }, []);
 
+  const handleActivityComplete = useCallback((stationId: string) => {
+    setProgress((prev) => markCompleted(prev, stationId));
+  }, []);
+
+  const handleDismissTutorial = useCallback(() => {
+    setShowTutorial(false);
+    setProgress((prev) => markOnboarded(prev));
+  }, []);
+
   const nearBuilding = nearBuildingId ? BUILDINGS.find((b) => b.id === nearBuildingId) ?? null : null;
+
+  const totalBuildings = BUILDINGS.length;
+  const visitedCount = progress.visitedBuildings.length;
+  const completedCount = progress.completedStations.length;
 
   // ── Picker ──────────────────────────────────────────────
   if (phase === 'picker') {
@@ -77,17 +129,10 @@ export default function School3DPage() {
         camera={{ position: [0, 10, 18], fov: 55 }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
-        {/* Warm atmospheric fog — blends distant hills into the golden-hour sky */}
         <fog attach="fog" args={['#E8C9A8', 28, 78]} />
         <color attach="background" args={['#E8C9A8']} />
 
         <Suspense fallback={null}>
-          {/*
-            Golden-hour Sky:
-              - low sunPosition (close to horizon) for warm raking light
-              - higher turbidity for hazy warmth
-              - higher rayleigh for amber scatter
-          */}
           <Sky
             sunPosition={[60, 8, -50]}
             turbidity={10}
@@ -122,6 +167,7 @@ export default function School3DPage() {
               onPlayerNear={handlePlayerNear}
             />
           ))}
+          <BuildingLabels visitedBuildings={new Set(progress.visitedBuildings)} />
           <NPCs />
           <Player color={playerColor} joystick={joystickVec} positionRef={playerPosRef} />
         </Suspense>
@@ -130,7 +176,17 @@ export default function School3DPage() {
       {/* HUD */}
       <div style={hudStyles.header}>
         <Link href="/" style={hudStyles.backLink}>← GoodBot Kids</Link>
-        <span style={hudStyles.title}>🏫 GoodBot School 3D</span>
+        <div style={hudStyles.progressChip}>
+          <span style={hudStyles.progressItem}>
+            <span style={hudStyles.progressIcon}>🏛</span>
+            <span>{visitedCount}/{totalBuildings}</span>
+          </span>
+          <span style={hudStyles.progressSep}>·</span>
+          <span style={hudStyles.progressItem}>
+            <span style={hudStyles.progressIcon}>⭐</span>
+            <span>{completedCount} activities</span>
+          </span>
+        </div>
         <button style={hudStyles.exitBtn} onClick={() => setPhase('picker')}>🔄 New Character</button>
       </div>
 
@@ -162,12 +218,24 @@ export default function School3DPage() {
       )}
 
       {activeStation && (
-        <ActivityModal stationId={activeStation} onClose={handleCloseActivity} />
+        <ActivityModal
+          stationId={activeStation}
+          onClose={handleCloseActivity}
+          onComplete={handleActivityComplete}
+        />
       )}
 
       <TouchJoystick onMove={setJoystickVec} />
 
+      <MiniMap
+        playerPos={playerPos}
+        visitedBuildings={new Set(progress.visitedBuildings)}
+        nearBuildingId={nearBuildingId}
+      />
+
       <BGMPlayer audioUrl="/school-3d/bgm.mp3" />
+
+      {showTutorial && <TutorialOverlay onDismiss={handleDismissTutorial} />}
     </div>
   );
 }
@@ -241,6 +309,17 @@ const hudStyles = {
     zIndex: 10,
   },
   backLink: { fontSize: 14, fontWeight: 600, color: '#5C4128', textDecoration: 'none' },
+  progressChip: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    background: 'rgba(92, 65, 40, 0.08)',
+    border: '2px solid #D9B082',
+    borderRadius: 999,
+    padding: '4px 14px',
+    fontSize: 13, fontWeight: 700, color: '#5C4128',
+  },
+  progressItem: { display: 'inline-flex', alignItems: 'center', gap: 4 },
+  progressIcon: { fontSize: 14 },
+  progressSep: { opacity: 0.5, margin: '0 2px' },
   title: { fontSize: 18, fontWeight: 700, color: '#A04F3F' },
   exitBtn: {
     fontSize: 13, fontWeight: 600,
