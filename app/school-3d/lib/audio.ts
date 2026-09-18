@@ -1,15 +1,16 @@
 'use client';
 
 /**
- * Shared audio context + procedural footstep synthesis.
+ * Shared audio context + procedural sound effects.
  *
  * Browser autoplay rules: AudioContext must be created or resumed inside
  * a user gesture. We arm a one-time listener on click/keydown/touchstart
- * that resumes the context; until then playFootstep() is a no-op.
+ * that resumes the context; until then play*() functions are no-ops.
  *
- * Footsteps are synthesized on the fly with Web Audio (no asset shipped):
- * short white-noise burst passed through a low-pass filter, ~120ms, with
- * exponential gain decay. Volume kept low so it doesn't overwhelm the BGM.
+ * All sounds are synthesized on the fly with Web Audio — no assets shipped:
+ *   - playFootstep       — short low-pass noise burst (~120ms)
+ *   - playDoorChime      — two-note bell on building entry (C5 → E5)
+ *   - playStickerEarned  — C major triad (C5 + E5 + G5)
  */
 
 let ctx: AudioContext | null = null;
@@ -65,7 +66,6 @@ export function playFootstep(): void {
   const data = buffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) {
     const t = i / sampleRate;
-    // Noise * exponential decay so it dies off naturally.
     data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 22);
   }
 
@@ -84,4 +84,53 @@ export function playFootstep(): void {
   filter.connect(gain);
   gain.connect(c.destination);
   src.start();
+}
+
+/**
+ * Two-note bell — used when entering a building.
+ * C5 then E5, slightly overlapping.
+ */
+export function playDoorChime(): void {
+  const c = getAudioContext();
+  if (!c || c.state !== 'running') return;
+  playBellNote(c, 523.25, 0.00, 0.28, 0.18);
+  playBellNote(c, 659.25, 0.07, 0.32, 0.14);
+}
+
+/**
+ * Happy C major triad — used when a sticker is earned.
+ * C5 + E5 + G5 cascading in over 100ms.
+ */
+export function playStickerEarned(): void {
+  const c = getAudioContext();
+  if (!c || c.state !== 'running') return;
+  playBellNote(c, 523.25, 0.00, 0.42, 0.11);
+  playBellNote(c, 659.25, 0.05, 0.42, 0.11);
+  playBellNote(c, 783.99, 0.10, 0.42, 0.11);
+}
+
+/**
+ * Internal: schedule a single sine bell note with quick attack + exp decay.
+ */
+function playBellNote(
+  c: AudioContext,
+  freq: number,
+  delay: number,
+  duration: number,
+  peak: number,
+): void {
+  const osc = c.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  const gain = c.createGain();
+  const now = c.currentTime + delay;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(peak, now + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(gain);
+  gain.connect(c.destination);
+  osc.start(now);
+  osc.stop(now + duration + 0.05);
 }

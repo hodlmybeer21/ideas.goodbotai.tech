@@ -17,12 +17,19 @@ import SkyExtras from './components/Sky';
 import BuildingLabels from './components/BuildingLabels';
 import MiniMap from './components/MiniMap';
 import TutorialOverlay from './components/TutorialOverlay';
+import QuestTracker from './components/QuestTracker';
+import StickerBook from './components/StickerBook';
+import Cats from './components/Cats';
+import Butterflies from './components/Butterflies';
 import { BUILDINGS, type Building as BuildingT } from './buildings.config';
 import {
   loadProgress, saveProgress,
   markVisited, markCompleted, markOnboarded,
   type Progress,
 } from './lib/progress';
+import { getActiveQuest, QUESTS } from './quests';
+import { getEarnedStickerIds, diffStickerIds, getSticker } from './stickers';
+import { armFirstGesture, playDoorChime, playStickerEarned } from './lib/audio';
 
 const PLAYER_COLORS = [
   { color: '#E8B4A0', label: 'Rose',    emoji: '🩷' },
@@ -33,6 +40,13 @@ const PLAYER_COLORS = [
   { color: '#D9B082', label: 'Sand',    emoji: '🧡' },
 ];
 
+const TOAST_DURATION_MS = 3200;
+
+type StickerToast = {
+  id: number;
+  stickerId: string;
+};
+
 export default function School3DPage() {
   const [phase, setPhase]                 = useState<'picker' | 'game'>('picker');
   const [playerColor, setPlayerColor]     = useState<string>(PLAYER_COLORS[0].color);
@@ -41,12 +55,21 @@ export default function School3DPage() {
   const [activeStation, setActiveStation] = useState<string | null>(null);
   const [joystickVec, setJoystickVec]     = useState<{ x: number; z: number }>({ x: 0, z: 0 });
   const [showTutorial, setShowTutorial]   = useState(false);
+  const [showStickerBook, setShowStickerBook] = useState(false);
   const [progress, setProgress]           = useState<Progress>({
     visitedBuildings: [], completedStations: [], hasOnboarded: false,
   });
   const [playerPos, setPlayerPos]         = useState({ x: 0, z: 8 });
+  const [stickerToasts, setStickerToasts] = useState<StickerToast[]>([]);
 
   const playerPosRef                      = useRef(new THREE.Vector3(0, 0, 8));
+  const toastIdRef                       = useRef(0);
+  const prevEarnedRef                    = useRef<Set<string> | null>(null);
+
+  // Arm audio on first user gesture (browser autoplay rule).
+  useEffect(() => {
+    armFirstGesture();
+  }, []);
 
   // Load progress on mount, decide whether to show the tutorial.
   useEffect(() => {
@@ -69,6 +92,38 @@ export default function School3DPage() {
     return () => clearInterval(id);
   }, [phase]);
 
+  // Detect newly-earned stickers and fire toasts + sound.
+  useEffect(() => {
+    const after = getEarnedStickerIds(progress);
+    if (prevEarnedRef.current === null) {
+      prevEarnedRef.current = after;
+      return;
+    }
+    const newIds = diffStickerIds(prevEarnedRef.current, after);
+    prevEarnedRef.current = after;
+    if (newIds.length === 0) return;
+
+    playStickerEarned();
+    setStickerToasts((prev) => [
+      ...prev,
+      ...newIds.map((id) => ({ id: ++toastIdRef.current, stickerId: id })),
+    ]);
+
+    // Auto-remove each toast after TOAST_DURATION_MS
+    const timers = newIds.map((_, i) =>
+      setTimeout(() => {
+        setStickerToasts((prev) => prev.slice(0, prev.length - newIds.length + i + 1).slice(-prev.length));
+      }, TOAST_DURATION_MS),
+    );
+    // Simpler: schedule removals in order
+    newIds.forEach((_, i) => {
+      setTimeout(() => {
+        setStickerToasts((prev) => prev.slice(i + 1));
+      }, TOAST_DURATION_MS + i * 100);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [progress]);
+
   // E-to-enter handler (keyboard)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -78,21 +133,22 @@ export default function School3DPage() {
       } else if (e.code === 'Escape') {
         if (activeStation) setActiveStation(null);
         else if (pickerBuilding) setPickerBuilding(null);
+        else if (showStickerBook) setShowStickerBook(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [nearBuildingId, pickerBuilding, activeStation]);
+  }, [nearBuildingId, pickerBuilding, activeStation, showStickerBook]);
 
   const handlePlayerNear = useCallback((buildingId: string, near: boolean) => {
     setNearBuildingId(near ? buildingId : (id) => (id === buildingId ? null : id));
     if (near) {
-      // Also record this building as visited.
       setProgress((prev) => markVisited(prev, buildingId));
     }
   }, []);
 
   const handlePickStation = useCallback((stationId: string) => {
+    playDoorChime();
     setActiveStation(stationId);
     setPickerBuilding(null);
   }, []);
@@ -115,6 +171,12 @@ export default function School3DPage() {
   const totalBuildings = BUILDINGS.length;
   const visitedCount = progress.visitedBuildings.length;
   const completedCount = progress.completedStations.length;
+  const earnedStickerCount = getEarnedStickerIds(progress).size;
+
+  const activeQuest = getActiveQuest(progress);
+  const activeQuestIndex = activeQuest
+    ? QUESTS.findIndex((q) => q.id === activeQuest.id)
+    : QUESTS.length;
 
   // ── Picker ──────────────────────────────────────────────
   if (phase === 'picker') {
@@ -159,6 +221,8 @@ export default function School3DPage() {
           />
 
           <CampusGround />
+          <Cats />
+          <Butterflies />
           {BUILDINGS.map((b) => (
             <Building
               key={b.id}
@@ -184,11 +248,18 @@ export default function School3DPage() {
           <span style={hudStyles.progressSep}>·</span>
           <span style={hudStyles.progressItem}>
             <span style={hudStyles.progressIcon}>⭐</span>
-            <span>{completedCount} activities</span>
+            <span>{completedCount}</span>
           </span>
         </div>
-        <button style={hudStyles.exitBtn} onClick={() => setPhase('picker')}>🔄 New Character</button>
+        <div style={hudStyles.rightGroup}>
+          <button style={hudStyles.stickerBtn} onClick={() => setShowStickerBook(true)} title="Open sticker book">
+            📚 <span style={hudStyles.stickerCount}>{earnedStickerCount}</span>
+          </button>
+          <button style={hudStyles.exitBtn} onClick={() => setPhase('picker')}>🔄 New Character</button>
+        </div>
       </div>
+
+      <QuestTracker quest={activeQuest} index={activeQuestIndex} total={QUESTS.length} />
 
       <div style={hudStyles.controls}>
         <strong>Move:</strong> WASD / Arrows / Joystick &nbsp;·&nbsp;
@@ -236,6 +307,31 @@ export default function School3DPage() {
       <BGMPlayer audioUrl="/school-3d/bgm.mp3" />
 
       {showTutorial && <TutorialOverlay onDismiss={handleDismissTutorial} />}
+      {showStickerBook && <StickerBook progress={progress} onClose={() => setShowStickerBook(false)} />}
+
+      <StickerToasts toasts={stickerToasts} />
+    </div>
+  );
+}
+
+// ── Sticker toasts ─────────────────────────────────────────
+function StickerToasts({ toasts }: { toasts: StickerToast[] }) {
+  if (toasts.length === 0) return null;
+  return (
+    <div style={toastWrapStyle}>
+      {toasts.map((t, i) => {
+        const s = getSticker(t.stickerId);
+        if (!s) return null;
+        return (
+          <div key={t.id} style={{ ...toastStyle, top: 8 + i * 70 }}>
+            <div style={{ ...toastIconStyle, background: s.color }}>{s.emoji}</div>
+            <div>
+              <div style={toastTitleStyle}>+ Sticker!</div>
+              <div style={toastSubStyle}>{s.name}</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -320,7 +416,22 @@ const hudStyles = {
   progressItem: { display: 'inline-flex', alignItems: 'center', gap: 4 },
   progressIcon: { fontSize: 14 },
   progressSep: { opacity: 0.5, margin: '0 2px' },
-  title: { fontSize: 18, fontWeight: 700, color: '#A04F3F' },
+  rightGroup: { display: 'flex', alignItems: 'center', gap: 8 },
+  stickerBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    fontSize: 14, fontWeight: 700,
+    background: '#FAF1DE',
+    border: '2px solid #D9B082',
+    borderRadius: 10, padding: '4px 10px',
+    cursor: 'pointer', color: '#5C4128',
+    fontFamily: 'Fredoka, sans-serif',
+  },
+  stickerCount: {
+    fontSize: 11, fontWeight: 700,
+    background: '#7A9B6E', color: '#FAF1DE',
+    borderRadius: 999, padding: '1px 7px',
+    minWidth: 18, textAlign: 'center' as const,
+  },
   exitBtn: {
     fontSize: 13, fontWeight: 600,
     background: 'none', border: '2px solid #C9A982',
@@ -338,12 +449,13 @@ const hudStyles = {
     fontFamily: 'Fredoka, sans-serif',
     fontSize: 12,
     color: '#5C4128',
-    zIndex: 10,
-    maxWidth: 'calc(100vw - 200px)',
+    zIndex: 9,
+    maxWidth: 'calc(100vw - 220px)',
   },
+  // Door prompt pushed down so it doesn't collide with the QuestTracker strip.
   doorPrompt: {
     position: 'absolute' as const,
-    top: 80, left: '50%',
+    top: 130, left: '50%',
     transform: 'translateX(-50%)',
     background: '#F5E6CA',
     border: '3px solid #D9B082',
@@ -367,6 +479,43 @@ const hudStyles = {
     fontFamily: 'Fredoka, sans-serif',
     boxShadow: '0 3px 0 #8B5A3C',
   },
+};
+
+const toastWrapStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 64, right: 16,
+  zIndex: 220,
+  display: 'flex', flexDirection: 'column', gap: 8,
+  fontFamily: 'Fredoka, sans-serif',
+  pointerEvents: 'none',
+};
+
+const toastStyle: React.CSSProperties = {
+  position: 'absolute', right: 0,
+  display: 'flex', alignItems: 'center', gap: 10,
+  background: '#FAF1DE',
+  border: '2px solid #D9B082',
+  borderRadius: 14,
+  padding: '10px 14px',
+  boxShadow: '0 8px 24px rgba(92, 65, 40, 0.25)',
+  minWidth: 200,
+  animation: 'slideIn 0.35s ease',
+};
+
+const toastIconStyle: React.CSSProperties = {
+  width: 40, height: 40, borderRadius: '50%',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 22,
+  boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.5)',
+  flexShrink: 0,
+};
+
+const toastTitleStyle: React.CSSProperties = {
+  fontSize: 13, fontWeight: 700, color: '#A04F3F',
+};
+
+const toastSubStyle: React.CSSProperties = {
+  fontSize: 14, fontWeight: 700, color: '#2D1B00',
 };
 
 const pickerStyles = {
