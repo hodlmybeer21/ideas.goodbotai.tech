@@ -8,7 +8,16 @@ import * as THREE from 'three';
  * Cats — three procedural cats wandering the plaza.
  *
  * Each cat has its own wander state machine:
- *   walking → arrive at waypoint → sitting for a few seconds → walking
+ *   walking → arrive at waypoint → sitting for a short rest → walking
+ *
+ * v2 visibility pass:
+ *   - spawn already WALKING toward an initial waypoint (no silent sitting
+ *     on first load)
+ *   - bumped scale from 0.9–1.15 → 1.6–1.95 (~2× larger) so cats are
+ *     obvious against the Ghibli pastoral palette
+ *   - shorter sit durations so the cats move most of the time
+ *   - subtle emissive on the body so they pop in low light / against
+ *     dappled ground textures
  *
  * Geometry per cat: stretched body + head + 2 cone ears + curved tail
  * + 4 short cylinder legs. When sitting, the body lowers and the tail
@@ -33,7 +42,7 @@ type CatData = {
 
 const PLAZA_RADIUS = 9;
 const CAT_COUNT = 3;
-const WALK_SPEED = 1.4;
+const WALK_SPEED = 1.6;
 
 function randomPlazaPoint(rng: () => number): THREE.Vector3 {
   const r = Math.sqrt(rng()) * PLAZA_RADIUS;
@@ -66,15 +75,19 @@ export default function Cats() {
     ];
     catsRef.current = Array.from({ length: CAT_COUNT }).map((_, i) => {
       const start = randomPlazaPoint(rng);
+      // Spawn already walking toward an initial target so the player sees
+      // movement on first load — never "3 cats sitting motionless".
+      const firstTarget = randomPlazaPoint(rng);
       return {
         position: start.clone(),
-        target: start.clone(),
-        facing: rng() * Math.PI * 2,
-        state: 'sitting',
-        sitTimer: 1 + rng() * 3,
-        walkTimer: 0,
+        target: firstTarget.clone(),
+        facing: Math.atan2(firstTarget.x - start.x, firstTarget.z - start.z),
+        state: 'walking',
+        sitTimer: 0,
+        walkTimer: 6 + rng() * 4,
         palette: palettes[i % palettes.length],
-        scale: 0.9 + rng() * 0.25,
+        // v2: roughly 2× the v1 size so cats are obvious in the plaza.
+        scale: 1.6 + rng() * 0.35,
       };
     });
   }
@@ -88,11 +101,10 @@ export default function Cats() {
         if (c.sitTimer <= 0) {
           c.state = 'walking';
           // Pick a new waypoint
-          const rng = Math.random;
-          const r = Math.sqrt(rng()) * PLAZA_RADIUS;
-          const a = rng() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * PLAZA_RADIUS;
+          const a = Math.random() * Math.PI * 2;
           c.target.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-          c.walkTimer = 4 + rng() * 5;
+          c.walkTimer = 4 + Math.random() * 5;
         }
       } else {
         // Walking toward target
@@ -100,8 +112,9 @@ export default function Cats() {
         const dz = c.target.z - c.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 0.15) {
+          // Arrived — short rest before the next wander leg
           c.state = 'sitting';
-          c.sitTimer = 3 + Math.random() * 5;
+          c.sitTimer = 1.5 + Math.random() * 2;
         } else {
           const step = Math.min(WALK_SPEED * delta, dist);
           c.position.x += (dx / dist) * step;
@@ -109,9 +122,9 @@ export default function Cats() {
           c.facing = Math.atan2(dx, dz);
           c.walkTimer -= delta;
           if (c.walkTimer <= 0) {
-            // Mid-walk rest — sometimes cats just sit where they are
+            // Mid-walk rest — short so cats are usually on the move
             c.state = 'sitting';
-            c.sitTimer = 2 + Math.random() * 4;
+            c.sitTimer = 1 + Math.random() * 1.5;
           }
         }
       }
@@ -143,9 +156,9 @@ function Cat({ data }: { data: CatData }) {
     const isWalking = data.state === 'walking';
     const isSitting = data.state === 'sitting';
 
-    // Sit: lower the body, bring tail curled around
+    // Sit: lower the body
     if (body.current) {
-      const targetY = isSitting ? 0.25 : 0.4;
+      const targetY = isSitting ? 0.3 : 0.5;
       body.current.position.y += (targetY - body.current.position.y) * Math.min(1, delta * 6);
     }
 
@@ -160,10 +173,15 @@ function Cat({ data }: { data: CatData }) {
   return (
     <group ref={root}>
       <group ref={body}>
-        {/* Body — squished sphere */}
+        {/* Body — squished sphere with subtle emissive so cats pop in low light */}
         <mesh castShadow position={[0, 0.3 * s, 0]} scale={[1, 0.85, 1.3]}>
           <sphereGeometry args={[0.32 * s, 12, 10]} />
-          <meshStandardMaterial color={data.palette.body} roughness={0.95} />
+          <meshStandardMaterial
+            color={data.palette.body}
+            roughness={0.95}
+            emissive={data.palette.body}
+            emissiveIntensity={0.10}
+          />
         </mesh>
         {/* Belly stripe — slightly lighter underside */}
         <mesh position={[0, 0.22 * s, 0.08 * s]} scale={[0.8, 0.5, 0.9]}>
@@ -188,11 +206,11 @@ function Cat({ data }: { data: CatData }) {
         </mesh>
         {/* Eyes */}
         <mesh position={[-0.08 * s, 0.55 * s, 0.5 * s]}>
-          <sphereGeometry args={[0.025 * s, 8, 8]} />
+          <sphereGeometry args={[0.03 * s, 8, 8]} />
           <meshStandardMaterial color="#1A0F08" />
         </mesh>
         <mesh position={[ 0.08 * s, 0.55 * s, 0.5 * s]}>
-          <sphereGeometry args={[0.025 * s, 8, 8]} />
+          <sphereGeometry args={[0.03 * s, 8, 8]} />
           <meshStandardMaterial color="#1A0F08" />
         </mesh>
         {/* Ears */}
