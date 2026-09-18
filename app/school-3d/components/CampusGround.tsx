@@ -6,19 +6,14 @@ import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { BUILDINGS, COURTYARD_CENTER } from '../buildings.config';
 import { makeGrassTexture, makeDirtTexture, makeWoodTexture, makeHillTexture } from '../textures';
+import { useDayNight } from '../lib/dayNightContext';
 
 /**
  * CampusGround — Ghibli pastoral campus ground.
  *
- * Visual changes vs the prior blocky version:
- *   - Sage grass with warm autumn-leaf speckles
- *   - Packed-earth dirt paths instead of cobblestone
- *   - Soft distant rolling-hill silhouettes on all 4 sides
- *   - Wooden stake perimeter (just outside player bounds)
- *   - Warmer lamp halos, softer fountain water, Ghibli-pastel flowers
- *
- * The procedural helpers live in `../textures.ts` so they can be shared
- * without re-generating.
+ * Day/night reactivity: lamps (and the dusk-tinted central fountain)
+ * subscribe to useDayNight() so bulb emissive intensity + halo opacity
+ * ramp up after sunset and back down at dawn.
  */
 export default function CampusGround() {
   const grassTex   = useMemo(() => makeGrassTexture(),  []);
@@ -173,7 +168,6 @@ function Trees() {
 }
 
 function Tree({ type }: { type: 'pine' | 'oak' | 'bushy' }) {
-  // Warm Ghibli sage/olive foliage instead of bright greens
   if (type === 'pine') {
     return (
       <>
@@ -296,6 +290,13 @@ function Benches() {
   );
 }
 
+/**
+ * Lamps — 4 lamp posts at the cardinal points around the plaza.
+ *
+ * Day/night reactive: bulb emissive intensity + halo opacity ramp up
+ * after sunset and back down at dawn. Daytime is barely visible;
+ * nighttime the courtyard glows warm amber.
+ */
 function Lamps() {
   const lamps = [
     { x:  4.5, z:  0 },
@@ -303,32 +304,58 @@ function Lamps() {
     { x:  0, z:  4.5 },
     { x:  0, z: -4.5 },
   ];
+  const bulbRefs = useRef<THREE.Mesh[]>([]);
+  const haloRefs = useRef<THREE.Mesh[]>([]);
+  const { nightFactor } = useDayNight();
+
+  useFrame(() => {
+    const nf = nightFactor.current;
+    // Day: ~0.75 emissive, ~0.22 halo. Night: ~2.5x emissive, ~0.77 halo.
+    const bulbBoost = 0.75 + nf * 1.75;
+    const haloOpacity = 0.22 + nf * 0.55;
+    bulbRefs.current.forEach((mesh) => {
+      if (mesh) {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        mat.emissiveIntensity = bulbBoost;
+      }
+    });
+    haloRefs.current.forEach((mesh) => {
+      if (mesh) {
+        const mat = mesh.material as THREE.MeshBasicMaterial;
+        mat.opacity = haloOpacity;
+      }
+    });
+  });
+
   return (
     <group>
       {lamps.map((l, i) => (
         <group key={i} position={[l.x, 0, l.z]}>
-          {/* base */}
           <mesh castShadow position={[0, 0.1, 0]}>
             <cylinderGeometry args={[0.18, 0.22, 0.2, 8]} />
             <meshStandardMaterial color="#3E2723" />
           </mesh>
-          {/* post */}
           <mesh castShadow position={[0, 1.0, 0]}>
             <cylinderGeometry args={[0.06, 0.08, 1.8, 8]} />
             <meshStandardMaterial color="#212121" />
           </mesh>
-          {/* arm */}
           <mesh castShadow position={[0, 1.85, 0]}>
             <boxGeometry args={[0.4, 0.06, 0.06]} />
             <meshStandardMaterial color="#212121" />
           </mesh>
           {/* warm amber bulb */}
-          <mesh position={[0.2, 1.7, 0]}>
+          <mesh
+            ref={(m) => { if (m) bulbRefs.current[i] = m; }}
+            position={[0.2, 1.7, 0]}
+          >
             <sphereGeometry args={[0.18, 12, 12]} />
             <meshStandardMaterial color="#FFD89B" emissive="#FFCB85" emissiveIntensity={0.75} />
           </mesh>
           {/* warm halo */}
-          <mesh position={[0.2, 1.7, 0]}>
+          <mesh
+            ref={(m) => { if (m) haloRefs.current[i] = m; }}
+            position={[0.2, 1.7, 0]}
+          >
             <sphereGeometry args={[0.4, 12, 12]} />
             <meshBasicMaterial color="#FFE0B0" transparent opacity={0.22} toneMapped={false} />
           </mesh>
@@ -363,7 +390,6 @@ function PlaygroundEquipment({ woodMat }: { woodMat: THREE.Material }) {
           <cylinderGeometry args={[0.02, 0.02, 1.4, 4]} />
           <meshStandardMaterial color="#424242" />
         </mesh>
-        {/* dusty-rose + wheat seats */}
         <mesh castShadow position={[-0.7, 1.5, -0.8]}>
           <boxGeometry args={[0.5, 0.06, 0.3]} />
           <meshStandardMaterial color="#C99B96" />
@@ -374,7 +400,7 @@ function PlaygroundEquipment({ woodMat }: { woodMat: THREE.Material }) {
         </mesh>
       </group>
 
-      {/* Slide — wooden ladder + wheat slide ramp + dusty-rose rails */}
+      {/* Slide */}
       <group position={[0, 0, 0.5]}>
         <mesh castShadow position={[-0.8, 0.9, -0.6]} rotation={[Math.PI / 8, 0, 0]}>
           <boxGeometry args={[0.5, 0.05, 1.6]} />
@@ -448,7 +474,6 @@ function Flagpole() {
         <sphereGeometry args={[0.18, 12, 12]} />
         <meshStandardMaterial color="#E8C788" metalness={0.7} roughness={0.25} />
       </mesh>
-      {/* dusty-rose flag */}
       <mesh ref={flagRef} position={[0.45, 7.5, 0]}>
         <planeGeometry args={[1.2, 0.8]} />
         <meshStandardMaterial color="#C99B96" side={2} />
@@ -472,7 +497,6 @@ function EntranceMarker({ woodMat }: { woodMat: THREE.Material }) {
         <boxGeometry args={[2.2, 0.3, 0.3]} />
         <meshStandardMaterial color="#5C4128" />
       </mesh>
-      {/* wooden hanging sign (no more bright pink) */}
       <mesh castShadow position={[0, 1.9, 0]}>
         <boxGeometry args={[1.4, 0.7, 0.08]} />
         <primitive object={woodMat} attach="material" />
@@ -494,8 +518,6 @@ function EntranceMarker({ woodMat }: { woodMat: THREE.Material }) {
 }
 
 function PerimeterStakes() {
-  // Scattered short wooden stakes just outside the player bounds (±32),
-  // marking the edge of the cultivated campus land. Not a continuous fence.
   const stakes = useMemo(() => {
     const arr: Array<[number, number]> = [];
     for (let x = -32; x <= 32; x += 4) {
@@ -548,7 +570,6 @@ function Fountain({ woodMat }: { woodMat: THREE.Material }) {
         <cylinderGeometry args={[1.2, 1.4, 0.5, 16]} />
         <meshStandardMaterial color="#A89878" roughness={0.75} />
       </mesh>
-      {/* warm water tint instead of bright cyan */}
       <mesh position={[0, 0.55, 0]}>
         <cylinderGeometry args={[1.1, 1.1, 0.1, 16]} />
         <meshStandardMaterial color="#A8C9D8" transparent opacity={0.7} metalness={0.2} roughness={0.3} />
@@ -566,8 +587,6 @@ function Fountain({ woodMat }: { woodMat: THREE.Material }) {
 }
 
 function DistantHills({ hillTex }: { hillTex: THREE.CanvasTexture | null }) {
-  // Four billboarded hill ranges far outside the playable area. Fog
-  // (added in page.tsx) will blend them into the warm sky at the horizon.
   if (!hillTex) return null;
   const ranges = [
     { pos: [0,  8, -55] as [number, number, number], w: 130, h: 35 },

@@ -1,18 +1,29 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { makeCloudTexture } from '../textures';
+import { useDayNight } from '../lib/dayNightContext';
 
 /**
- * SkyExtras — sun + clouds layered on top of drei's <Sky>.
+ * SkyExtras — visible warm sun disc + clouds layered on top of drei's
+ * <Sky>. Fades out at night so the moon and stars take over visually.
  *
- * Golden-hour positioning to match the warm lighting in page.tsx. Clouds
- * use the warm-cream CanvasTexture so they pick up the sunset tint.
+ * Subscribes to the day/night cycle via useDayNight() — when nightFactor
+ * ramps up, the sun group + clouds fade out (opacity 1 → 0).
  */
 export default function SkyExtras() {
   const cloudTex = useMemo(() => makeCloudTexture(), []);
+
+  const sunGroupRef  = useRef<THREE.Group>(null);
+  const sunCoreRef   = useRef<THREE.Mesh>(null);
+  const sunHalo1Ref  = useRef<THREE.Mesh>(null);
+  const sunHalo2Ref  = useRef<THREE.Mesh>(null);
+  const cloudRefs    = useRef<THREE.Mesh[]>([]);
+
+  const { moonOpacity } = useDayNight();
 
   // Hand-placed clouds — drifting across the warm sky.
   const clouds = [
@@ -25,19 +36,44 @@ export default function SkyExtras() {
     { x:  16, y: 14, z: -10, scale: 4.0 },
   ];
 
+  useFrame(() => {
+    // Day-ness = inverse of moon opacity (moonOpacity 1 → nightFactor 1 → no day)
+    const op = Math.max(0, 1 - moonOpacity.current);
+
+    if (sunGroupRef.current) {
+      sunGroupRef.current.visible = op > 0.02;
+      // Subtle scale down as the sun sets for a smoother feeling
+      sunGroupRef.current.scale.setScalar(0.7 + op * 0.3);
+    }
+    if (sunCoreRef.current) {
+      (sunCoreRef.current.material as THREE.MeshBasicMaterial).opacity = op;
+    }
+    if (sunHalo1Ref.current) {
+      (sunHalo1Ref.current.material as THREE.MeshBasicMaterial).opacity = op * 0.32;
+    }
+    if (sunHalo2Ref.current) {
+      (sunHalo2Ref.current.material as THREE.MeshBasicMaterial).opacity = op * 0.14;
+    }
+    cloudRefs.current.forEach((mesh) => {
+      if (mesh) {
+        (mesh.material as THREE.MeshBasicMaterial).opacity = op;
+      }
+    });
+  });
+
   return (
     <group>
-      {/* Sun — low golden-hour disc with concentric warm halos. */}
-      <group position={[55, 18, -45]}>
-        <mesh>
+      {/* Sun — warm disc + concentric halos. Fades to invisible at night. */}
+      <group ref={sunGroupRef} position={[55, 18, -45]}>
+        <mesh ref={sunCoreRef}>
           <sphereGeometry args={[3.2, 24, 24]} />
-          <meshBasicMaterial color="#FFEBC2" toneMapped={false} />
+          <meshBasicMaterial color="#FFEBC2" toneMapped={false} transparent />
         </mesh>
-        <mesh>
+        <mesh ref={sunHalo1Ref}>
           <sphereGeometry args={[5.5, 24, 24]} />
           <meshBasicMaterial color="#FFD89B" transparent opacity={0.32} toneMapped={false} />
         </mesh>
-        <mesh>
+        <mesh ref={sunHalo2Ref}>
           <sphereGeometry args={[9, 24, 24]} />
           <meshBasicMaterial color="#FFC585" transparent opacity={0.14} toneMapped={false} />
         </mesh>
@@ -46,9 +82,16 @@ export default function SkyExtras() {
       {/* Clouds — warm cream, billboarded so they always face the camera */}
       {cloudTex && clouds.map((c, i) => (
         <Billboard key={i} position={[c.x, c.y, c.z]} follow={false}>
-          <mesh>
+          <mesh
+            ref={(m) => { if (m) cloudRefs.current[i] = m; }}
+          >
             <planeGeometry args={[c.scale * 2.5, c.scale]} />
-            <meshBasicMaterial map={cloudTex} transparent depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial
+              map={cloudTex}
+              transparent
+              depthWrite={false}
+              toneMapped={false}
+            />
           </mesh>
         </Billboard>
       ))}

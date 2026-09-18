@@ -5,26 +5,31 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import Humanoid from './Humanoid';
 import { armFirstGesture, playFootstep } from '../lib/audio';
+import { type Customization } from '../lib/customization';
 
 const SPEED = 6;
 const BOUNDS = 28;
-const FOOTSTEP_INTERVAL = 0.36; // seconds between steps while moving
+const FOOTSTEP_INTERVAL = 0.36;
 
 type Props = {
   color: string;
   joystick: { x: number; z: number };
   positionRef: React.MutableRefObject<THREE.Vector3>;
+  customization: Customization;
 };
 
 /**
  * Player — drives the humanoid character based on keyboard + joystick input.
  * Owns position/facing, writes them to the shared positionRef each frame.
  *
+ * Renders optional accessories (hat/backpack) as siblings of the Humanoid.
+ * The accessory group rotates with the player's facing so the backpack
+ * follows the player's back.
+ *
  * Audio: arms a one-time first-gesture handler for the shared AudioContext,
- * then triggers a procedural footstep sound every FOOTSTEP_INTERVAL while
- * moving. Steps are skipped while idle so kids aren't bombarded with sound.
+ * triggers a procedural footstep every FOOTSTEP_INTERVAL while moving.
  */
-export default function Player({ color, joystick, positionRef }: Props) {
+export default function Player({ color, joystick, positionRef, customization }: Props) {
   const keysRef = useRef({
     w: false, a: false, s: false, d: false,
     up: false, down: false, left: false, right: false,
@@ -32,8 +37,8 @@ export default function Player({ color, joystick, positionRef }: Props) {
   const facingRef = useRef(0);
   const movingRef = useRef(false);
   const stepAccumulator = useRef(0);
+  const accGroupRef = useRef<THREE.Group>(null);
 
-  // Arm audio on first user gesture (browser autoplay rule).
   useEffect(() => {
     armFirstGesture();
   }, []);
@@ -96,6 +101,11 @@ export default function Player({ color, joystick, positionRef }: Props) {
       stepAccumulator.current = FOOTSTEP_INTERVAL * 0.5;
     }
 
+    // Sync accessory group rotation with player facing
+    if (accGroupRef.current) {
+      accGroupRef.current.rotation.y = facingRef.current;
+    }
+
     // Camera follow — third-person from behind+above
     const cam = state.camera;
     const desired = new THREE.Vector3(
@@ -116,6 +126,109 @@ export default function Player({ color, joystick, positionRef }: Props) {
         moving={movingRef.current}
         facing={facingRef.current}
       />
+      <group ref={accGroupRef}>
+        {customization.hat === 'hat-party'  && <PartyHat />}
+        {customization.hat === 'hat-wizard' && <WizardHat />}
+        {customization.hat === 'hat-straw'  && <StrawHat />}
+        {customization.backpack === 'bp-school' && <SchoolBag />}
+      </group>
+    </group>
+  );
+}
+
+// ── Accessories ────────────────────────────────────────────
+// All accessories sit in the player's local space at the same y as
+// the chibi head top (~1.6). Hats are slightly above; backpack sits
+// behind the torso, rotated with the player's facing (handled by the
+// parent accGroupRef).
+
+function PartyHat() {
+  return (
+    <group position={[0, 1.70, 0]}>
+      <mesh castShadow position={[0, 0.18, 0]}>
+        <coneGeometry args={[0.18, 0.36, 12]} />
+        <meshStandardMaterial color="#E8B4A0" roughness={0.85} />
+      </mesh>
+      {/* Gold pom on top */}
+      <mesh position={[0, 0.38, 0]}>
+        <sphereGeometry args={[0.07, 10, 10]} />
+        <meshStandardMaterial color="#FFD93D" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+function WizardHat() {
+  return (
+    <group position={[0, 1.70, 0]} rotation={[0, 0, 0.08]}>
+      {/* Brim */}
+      <mesh castShadow position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.24, 0.24, 0.05, 16]} />
+        <meshStandardMaterial color="#5C4128" roughness={0.85} />
+      </mesh>
+      {/* Tall pointy cone */}
+      <mesh castShadow position={[0, 0.30, 0]}>
+        <coneGeometry args={[0.18, 0.5, 12]} />
+        <meshStandardMaterial color="#5C4128" roughness={0.85} />
+      </mesh>
+      {/* Glowing star at the tip */}
+      <mesh position={[0, 0.55, 0.15]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshBasicMaterial color="#FFD93D" toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function StrawHat() {
+  return (
+    <group position={[0, 1.72, 0]}>
+      {/* Brim */}
+      <mesh castShadow position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.30, 0.30, 0.04, 16]} />
+        <meshStandardMaterial color="#C99B66" roughness={0.9} />
+      </mesh>
+      {/* Crown */}
+      <mesh castShadow position={[0, 0.06, 0]}>
+        <cylinderGeometry args={[0.18, 0.20, 0.08, 12]} />
+        <meshStandardMaterial color="#D8B26E" roughness={0.9} />
+      </mesh>
+      {/* Decorative band */}
+      <mesh position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.195, 0.195, 0.04, 12]} />
+        <meshStandardMaterial color="#A04F3F" roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}
+
+function SchoolBag() {
+  return (
+    <group position={[0, 1.0, -0.32]}>
+      {/* Bag body */}
+      <mesh castShadow>
+        <boxGeometry args={[0.36, 0.42, 0.18]} />
+        <meshStandardMaterial color="#A04F3F" roughness={0.85} />
+      </mesh>
+      {/* Flap */}
+      <mesh position={[0, 0.21, 0.04]} castShadow>
+        <boxGeometry args={[0.36, 0.08, 0.20]} />
+        <meshStandardMaterial color="#7A3E2A" roughness={0.85} />
+      </mesh>
+      {/* Strap loops */}
+      <mesh position={[-0.11, 0.18, 0.10]}>
+        <torusGeometry args={[0.06, 0.012, 6, 12, Math.PI]} />
+        <meshStandardMaterial color="#5C4128" roughness={0.85} />
+      </mesh>
+      <mesh position={[0.11, 0.18, 0.10]}>
+        <torusGeometry args={[0.06, 0.012, 6, 12, Math.PI]} />
+        <meshStandardMaterial color="#5C4128" roughness={0.85} />
+      </mesh>
+      {/* Buckle */}
+      <mesh position={[0, 0.21, 0.14]}>
+        <boxGeometry args={[0.06, 0.04, 0.02]} />
+        <meshStandardMaterial color="#E8C788" metalness={0.5} roughness={0.4} />
+      </mesh>
     </group>
   );
 }

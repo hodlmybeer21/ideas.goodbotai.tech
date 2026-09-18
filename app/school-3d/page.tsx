@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useRef, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sky } from '@react-three/drei';
 import Link from 'next/link';
 import * as THREE from 'three';
 import CampusGround from './components/CampusGround';
@@ -21,6 +20,9 @@ import QuestTracker from './components/QuestTracker';
 import StickerBook from './components/StickerBook';
 import Cats from './components/Cats';
 import Butterflies from './components/Butterflies';
+import DayNightCycle from './components/DayNightCycle';
+import WeatherParticles from './components/WeatherParticles';
+import CustomizeModal from './components/CustomizeModal';
 import { BUILDINGS, type Building as BuildingT } from './buildings.config';
 import {
   loadProgress, saveProgress,
@@ -29,6 +31,11 @@ import {
 } from './lib/progress';
 import { getActiveQuest, QUESTS } from './quests';
 import { getEarnedStickerIds, diffStickerIds, getSticker } from './stickers';
+import {
+  loadCustomization, saveCustomization,
+  type Customization,
+} from './lib/customization';
+import { type Season, SEASON_META, nextSeason } from './lib/season';
 import { armFirstGesture, playDoorChime, playStickerEarned } from './lib/audio';
 
 const PLAYER_COLORS = [
@@ -61,29 +68,36 @@ export default function School3DPage() {
   });
   const [playerPos, setPlayerPos]         = useState({ x: 0, z: 8 });
   const [stickerToasts, setStickerToasts] = useState<StickerToast[]>([]);
+  const [season, setSeason]               = useState<Season>('summer');
+  const [customization, setCustomization] = useState<Customization>({ hat: null, backpack: null });
+  const [showCustomize, setShowCustomize] = useState(false);
 
   const playerPosRef                      = useRef(new THREE.Vector3(0, 0, 8));
-  const toastIdRef                       = useRef(0);
-  const prevEarnedRef                    = useRef<Set<string> | null>(null);
+  const toastIdRef                        = useRef(0);
+  const prevEarnedRef                     = useRef<Set<string> | null>(null);
 
-  // Arm audio on first user gesture (browser autoplay rule).
   useEffect(() => {
     armFirstGesture();
   }, []);
 
-  // Load progress on mount, decide whether to show the tutorial.
   useEffect(() => {
     const p = loadProgress();
     setProgress(p);
     setShowTutorial(!p.hasOnboarded);
   }, []);
 
-  // Persist progress whenever it changes.
   useEffect(() => {
     saveProgress(progress);
   }, [progress]);
 
-  // Poll the player position ref ~10x/sec so the mini-map can render it.
+  // Load + persist customization
+  useEffect(() => {
+    setCustomization(loadCustomization());
+  }, []);
+  useEffect(() => {
+    saveCustomization(customization);
+  }, [customization]);
+
   useEffect(() => {
     if (phase !== 'game') return;
     const id = setInterval(() => {
@@ -92,7 +106,6 @@ export default function School3DPage() {
     return () => clearInterval(id);
   }, [phase]);
 
-  // Detect newly-earned stickers and fire toasts + sound.
   useEffect(() => {
     const after = getEarnedStickerIds(progress);
     if (prevEarnedRef.current === null) {
@@ -108,23 +121,13 @@ export default function School3DPage() {
       ...prev,
       ...newIds.map((id) => ({ id: ++toastIdRef.current, stickerId: id })),
     ]);
-
-    // Auto-remove each toast after TOAST_DURATION_MS
-    const timers = newIds.map((_, i) =>
-      setTimeout(() => {
-        setStickerToasts((prev) => prev.slice(0, prev.length - newIds.length + i + 1).slice(-prev.length));
-      }, TOAST_DURATION_MS),
-    );
-    // Simpler: schedule removals in order
     newIds.forEach((_, i) => {
       setTimeout(() => {
         setStickerToasts((prev) => prev.slice(i + 1));
       }, TOAST_DURATION_MS + i * 100);
     });
-    return () => timers.forEach(clearTimeout);
   }, [progress]);
 
-  // E-to-enter handler (keyboard)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyE' && nearBuildingId && !pickerBuilding && !activeStation) {
@@ -134,17 +137,16 @@ export default function School3DPage() {
         if (activeStation) setActiveStation(null);
         else if (pickerBuilding) setPickerBuilding(null);
         else if (showStickerBook) setShowStickerBook(false);
+        else if (showCustomize) setShowCustomize(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [nearBuildingId, pickerBuilding, activeStation, showStickerBook]);
+  }, [nearBuildingId, pickerBuilding, activeStation, showStickerBook, showCustomize]);
 
   const handlePlayerNear = useCallback((buildingId: string, near: boolean) => {
     setNearBuildingId(near ? buildingId : (id) => (id === buildingId ? null : id));
-    if (near) {
-      setProgress((prev) => markVisited(prev, buildingId));
-    }
+    if (near) setProgress((prev) => markVisited(prev, buildingId));
   }, []);
 
   const handlePickStation = useCallback((stationId: string) => {
@@ -153,9 +155,7 @@ export default function School3DPage() {
     setPickerBuilding(null);
   }, []);
 
-  const handleCloseActivity = useCallback(() => {
-    setActiveStation(null);
-  }, []);
+  const handleCloseActivity = useCallback(() => setActiveStation(null), []);
 
   const handleActivityComplete = useCallback((stationId: string) => {
     setProgress((prev) => markCompleted(prev, stationId));
@@ -164,6 +164,10 @@ export default function School3DPage() {
   const handleDismissTutorial = useCallback(() => {
     setShowTutorial(false);
     setProgress((prev) => markOnboarded(prev));
+  }, []);
+
+  const handleCustomizationChange = useCallback((next: Customization) => {
+    setCustomization(next);
   }, []);
 
   const nearBuilding = nearBuildingId ? BUILDINGS.find((b) => b.id === nearBuildingId) ?? null : null;
@@ -178,12 +182,17 @@ export default function School3DPage() {
     ? QUESTS.findIndex((q) => q.id === activeQuest.id)
     : QUESTS.length;
 
-  // ── Picker ──────────────────────────────────────────────
   if (phase === 'picker') {
-    return <CharacterPicker onStart={(c) => { setPlayerColor(c); setPhase('game'); }} colors={PLAYER_COLORS} />;
+    return (
+      <CharacterPicker
+        onStart={(c) => { setPlayerColor(c); setPhase('game'); }}
+        colors={PLAYER_COLORS}
+        customization={customization}
+        onCustomizationChange={handleCustomizationChange}
+      />
+    );
   }
 
-  // ── Game ─────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#E8C9A8' }}>
       <Canvas
@@ -195,31 +204,9 @@ export default function School3DPage() {
         <color attach="background" args={['#E8C9A8']} />
 
         <Suspense fallback={null}>
-          <Sky
-            sunPosition={[60, 8, -50]}
-            turbidity={10}
-            rayleigh={4}
-            mieCoefficient={0.012}
-            mieDirectionalG={0.85}
-          />
+          <DayNightCycle />
           <SkyExtras />
-          <ambientLight intensity={0.55} color="#FFE8C9" />
-          <hemisphereLight args={['#FFD89B', '#7A9B6E', 0.5]} />
-          <directionalLight
-            position={[40, 18, -25]}
-            intensity={1.35}
-            color="#FFCB85"
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-35}
-            shadow-camera-right={35}
-            shadow-camera-top={35}
-            shadow-camera-bottom={-35}
-            shadow-camera-near={0.5}
-            shadow-camera-far={100}
-          />
-
+          <WeatherParticles season={season} />
           <CampusGround />
           <Cats />
           <Butterflies />
@@ -233,11 +220,16 @@ export default function School3DPage() {
           ))}
           <BuildingLabels visitedBuildings={new Set(progress.visitedBuildings)} />
           <NPCs />
-          <Player color={playerColor} joystick={joystickVec} positionRef={playerPosRef} />
+          <Player
+            color={playerColor}
+            joystick={joystickVec}
+            positionRef={playerPosRef}
+            customization={customization}
+          />
         </Suspense>
       </Canvas>
 
-      {/* HUD */}
+      {/* Header */}
       <div style={hudStyles.header}>
         <Link href="/" style={hudStyles.backLink}>← GoodBot Kids</Link>
         <div style={hudStyles.progressChip}>
@@ -252,6 +244,13 @@ export default function School3DPage() {
           </span>
         </div>
         <div style={hudStyles.rightGroup}>
+          <button
+            style={hudStyles.iconBtn}
+            onClick={() => setSeason(nextSeason(season))}
+            title={`Season: ${SEASON_META[season].label} (click to change)`}
+          >
+            {SEASON_META[season].emoji}
+          </button>
           <button style={hudStyles.stickerBtn} onClick={() => setShowStickerBook(true)} title="Open sticker book">
             📚 <span style={hudStyles.stickerCount}>{earnedStickerCount}</span>
           </button>
@@ -314,7 +313,6 @@ export default function School3DPage() {
   );
 }
 
-// ── Sticker toasts ─────────────────────────────────────────
 function StickerToasts({ toasts }: { toasts: StickerToast[] }) {
   if (toasts.length === 0) return null;
   return (
@@ -336,9 +334,17 @@ function StickerToasts({ toasts }: { toasts: StickerToast[] }) {
   );
 }
 
-// ── Character Picker ─────────────────────────────────────
-function CharacterPicker({ onStart, colors }: { onStart: (c: string) => void; colors: typeof PLAYER_COLORS }) {
+function CharacterPicker({
+  onStart, colors, customization, onCustomizationChange,
+}: {
+  onStart: (c: string) => void;
+  colors: typeof PLAYER_COLORS;
+  customization: Customization;
+  onCustomizationChange: (next: Customization) => void;
+}) {
   const [selected, setSelected] = useState(colors[0].color);
+  const [showCustomize, setShowCustomize] = useState(false);
+
   return (
     <div style={pickerStyles.wrap}>
       <div style={pickerStyles.card}>
@@ -368,6 +374,9 @@ function CharacterPicker({ onStart, colors }: { onStart: (c: string) => void; co
           </div>
           <span style={pickerStyles.previewLabel}>You</span>
         </div>
+        <button style={pickerStyles.customizeBtn} onClick={() => setShowCustomize(true)}>
+          🎩 Customize Your Character
+        </button>
         <button style={pickerStyles.goBtn} onClick={() => onStart(selected)}>
           Let&apos;s Go! →
         </button>
@@ -375,6 +384,14 @@ function CharacterPicker({ onStart, colors }: { onStart: (c: string) => void; co
           Explore 12 buildings around the courtyard · WASD to move · E to enter
         </p>
       </div>
+
+      {showCustomize && (
+        <CustomizeModal
+          customization={customization}
+          onChange={onCustomizationChange}
+          onClose={() => setShowCustomize(false)}
+        />
+      )}
     </div>
   );
 }
@@ -416,7 +433,18 @@ const hudStyles = {
   progressItem: { display: 'inline-flex', alignItems: 'center', gap: 4 },
   progressIcon: { fontSize: 14 },
   progressSep: { opacity: 0.5, margin: '0 2px' },
-  rightGroup: { display: 'flex', alignItems: 'center', gap: 8 },
+  rightGroup: { display: 'flex', alignItems: 'center', gap: 6 },
+  iconBtn: {
+    width: 36, height: 36,
+    background: '#FAF1DE',
+    border: '2px solid #D9B082',
+    borderRadius: 10,
+    fontSize: 18,
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0,
+    fontFamily: 'Fredoka, sans-serif',
+  },
   stickerBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 4,
     fontSize: 14, fontWeight: 700,
@@ -425,6 +453,7 @@ const hudStyles = {
     borderRadius: 10, padding: '4px 10px',
     cursor: 'pointer', color: '#5C4128',
     fontFamily: 'Fredoka, sans-serif',
+    height: 36,
   },
   stickerCount: {
     fontSize: 11, fontWeight: 700,
@@ -438,6 +467,7 @@ const hudStyles = {
     borderRadius: 10, padding: '4px 12px',
     cursor: 'pointer', color: '#5C4128',
     fontFamily: 'Fredoka, sans-serif',
+    height: 36,
   },
   controls: {
     position: 'absolute' as const,
@@ -452,7 +482,6 @@ const hudStyles = {
     zIndex: 9,
     maxWidth: 'calc(100vw - 220px)',
   },
-  // Door prompt pushed down so it doesn't collide with the QuestTracker strip.
   doorPrompt: {
     position: 'absolute' as const,
     top: 130, left: '50%',
@@ -546,7 +575,7 @@ const pickerStyles = {
   },
   preview: {
     display: 'flex', flexDirection: 'column' as const, alignItems: 'center',
-    gap: 6, marginBottom: 28,
+    gap: 6, marginBottom: 22,
   },
   previewChar: {
     width: 72, height: 72, borderRadius: '50%',
@@ -555,11 +584,24 @@ const pickerStyles = {
   },
   previewEmoji: { fontSize: 36 },
   previewLabel: { fontSize: 13, color: '#5C4128', fontWeight: 600 },
+  customizeBtn: {
+    width: '100%',
+    background: '#FAF1DE',
+    color: '#5C4128',
+    border: '2px solid #D9B082',
+    borderRadius: 14,
+    padding: '12px 16px',
+    fontSize: 15, fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: 'Fredoka, sans-serif',
+    marginBottom: 12,
+  },
   goBtn: {
     background: '#C99B96', color: 'white',
     border: 'none', borderRadius: 16,
     padding: '16px 36px', fontSize: 20, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'Fredoka, sans-serif',
     boxShadow: '0 4px 0 #8B5A3C',
+    width: '100%',
   },
 };
