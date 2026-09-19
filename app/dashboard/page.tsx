@@ -86,6 +86,8 @@ const ACTIVITIES: Record<string, { name: string; emoji: string; color: string; b
   'map-skills': { name: 'Map Skills', emoji: '🗺️', color: 'var(--accent-blue)', bestKey: 'mapskills_best_streak' },
   'five-senses-lab': { name: 'Five Senses Lab', emoji: '👁️', color: 'var(--accent-green)', bestKey: 'fivesenseslab_best_streak' },
   'community-helpers': { name: 'Community Helpers', emoji: '👮', color: 'var(--accent-blue)', bestKey: 'communityhelpers_best_streak' },
+  // Paragraph Reader — 2026-09-19 (fluent-reading companion to ReadAlong)
+  'paragraph-reader': { name: 'Paragraph Reader', emoji: '📜', color: 'var(--accent-indigo, #6366F1)', bestKey: 'paragraphreader_count' },
   // Games (cross-grade, pure games)
   'tic-tac-toe': { name: 'Tic Tac Toe', emoji: '⭕', color: 'var(--accent-orange)', bestKey: 'tictactoe_best_streak' },
   '2048': { name: '2048', emoji: '🔢', color: 'var(--accent-orange)', bestKey: 'game2048_best_0' },

@@ -86,6 +86,7 @@ import Threes from './components/Threes';
 import Match3 from './components/Match3';
 import StackTower from './components/StackTower';
 import FlappyBird from './components/FlappyBird';
+import ParagraphReader from './components/ParagraphReader';
 
 type Track = 'g1' | 'g2' | 'feelings' | 'games';
 type View =
@@ -116,6 +117,7 @@ type View =
   | 'avalanche'
   | 'galaxy'
   | 'tank'
+  | 'paragraph'
   | 'dashboard';
 
 export default function Home() {
@@ -268,6 +270,7 @@ export default function Home() {
         {view === 'avalanche' && <Avalanche onBack={() => setView('home')} kidName={kidName} />}
         {view === 'galaxy' && <GalaxyDefenders onBack={() => setView('home')} kidName={kidName} />}
         {view === 'tank' && <Indestructotank onBack={() => setView('home')} kidName={kidName} />}
+        {view === 'paragraph' && <ParagraphReader onBack={() => setView('home')} kidName={kidName} />}
         {view === 'wordproblemwoods' && <WordProblemWoods onBack={() => setView('home')} kidName={kidName} />}
         {view === 'measureme' && <MeasureMe onBack={() => setView('home')} kidName={kidName} />}
         {view === 'placevaluepirates' && <PlaceValuePirates onBack={() => setView('home')} kidName={kidName} />}
@@ -422,6 +425,8 @@ const ACTIVITIES: Activity[] = [
   { id: 'avalanche', icon: '🪨', name: 'Avalanche', desc: 'Dodge the falling boulders!', color: 'green', track: 'games' },
   { id: 'galaxy', icon: '👾', name: 'Galaxy Defenders', desc: 'Shoot the aliens before they get you!', color: 'purple', track: 'games' },
   { id: 'tank', icon: '🚜', name: 'Indestructotank', desc: 'Blast the enemy tanks before they get you!', color: 'orange', track: 'games' },
+  // Paragraph Reader — 2026-09-19 (2nd grade fluent-reading companion to ReadAlong)
+  { id: 'paragraph', icon: '📜', name: 'Paragraph Reader', desc: 'Listen to the story and follow along!', color: 'indigo', track: 'g2' },
 ];
 
 // Maps each 2nd Grade game to its subject category for sub-tab filtering.
@@ -434,11 +439,11 @@ const G2_SUBJECT_MAP: Record<string, 'math' | 'ela' | 'science'> = {
   hundreds: 'math', wordproblemwoods: 'math', measureme: 'math',
   placevaluepirates: 'math', graphgarden: 'math', plusminus10and100: 'math',
   symmetrysafari: 'math',
-  // ELA (11)
+  // ELA (12)
   contraction: 'ela', compound: 'ela', suffixsort: 'ela',
   prefixpals: 'ela', pluralpuzzlers: 'ela', contextcluecove: 'ela',
   commacrew: 'ela', conjunctionjunction: 'ela', poetrypark: 'ela',
-  adjectiveadventure: 'ela', verbvault: 'ela',
+  adjectiveadventure: 'ela', verbvault: 'ela', paragraph: 'ela',
   // Science / Social Studies (5)
   earthexplorer: 'science', mattermixer: 'science',
   mapskills: 'science', fivesenseslab: 'science', communityhelpers: 'science',
